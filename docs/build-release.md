@@ -28,3 +28,5 @@ The extensive original-code comparisons live in the sibling analysis workspace. 
 GitHub Actions builds Debug and Release configurations on Linux x86-64, Windows x86-64 and macOS Apple Silicon. Every job runs the asset-independent CTest suite and checks the installed executable before uploading its package. Compiler caches are bounded to 500 MB per configuration; build artifacts expire after seven days.
 
 Changes to game code, tests, build definitions or setup scripts on `master` publish the three tested Release packages and `SHA256SUMS` after all six jobs succeed. Pull requests run the same build checks without publishing. A manual run can also publish from `master` by selecting its `publish` option. Game assets are neither downloaded nor uploaded by CI.
+
+Publishing a complete release retires older published releases and their downloadable packages. Draft releases and Git tags are retained.

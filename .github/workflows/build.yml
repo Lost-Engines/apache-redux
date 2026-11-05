@@ -48,10 +48,9 @@ jobs:
           release=false
           if [[ "$EVENT" == push && "$GITHUB_REF" == refs/heads/master ]]; then
             base="$BEFORE"
-            if [[ "$base" == 0000000000000000000000000000000000000000 ]]; then
+            if [[ "$base" == 0000000000000000000000000000000000000000 ]] || ! git cat-file -e "${base}^{tree}" 2>/dev/null; then
               base=$(git hash-object -t tree /dev/null)
             fi
-            git cat-file -e "${base}^{tree}"
             if ! git diff --quiet "$base" "$GITHUB_SHA" -- src tests CMakeLists.txt cmake scripts .github/workflows/build.yml; then
               release=true
             fi
@@ -213,8 +212,8 @@ jobs:
           # A slower older build must not replace a newer published commit.
           latest=$(gh api "repos/$GH_REPO/releases" --jq '[.[] | select(.draft == false)][0].tag_name // empty')
           if [[ "$latest" == release-* && "$latest" != "$tag" ]]; then
-            previous="${latest#release-}"
-            if git merge-base --is-ancestor "$GITHUB_SHA" "$previous"; then
+            previous=$(git rev-parse --verify "${latest}^{commit}" 2>/dev/null || true)
+            if [[ -n "$previous" ]] && git merge-base --is-ancestor "$GITHUB_SHA" "$previous"; then
               echo "A newer commit is already published; keeping $latest."
               exit 0
             fi
@@ -230,3 +229,10 @@ jobs:
           fi
           gh release upload "$tag" "${packages[@]}" dist/SHA256SUMS --clobber
           gh release edit "$tag" --draft=false --latest
+          # Only prune after publishing the complete replacement. Leave drafts and Git tags alone.
+          keep=$(gh api "repos/$GH_REPO/releases/tags/$tag" --jq .id)
+          gh api --paginate "repos/$GH_REPO/releases?per_page=100" \
+            --jq ".[] | select(.draft == false and .id != $keep) | .id" > old-releases.txt
+          while read -r release_id; do
+            gh api --method DELETE "repos/$GH_REPO/releases/$release_id"
+          done < old-releases.txt
