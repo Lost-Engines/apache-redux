@@ -21,9 +21,9 @@ struct mission_connection {
 };
 struct mission_options {
   configuration::graphics graphics;
-  bool arcade{true};
+  bool arcade{false};
   bool invulnerable{false}, infinite_weapons{false}, no_crashes{false};
-  unsigned int video_mode{1}, detail{0};
+  unsigned int video_mode{1}, detail{9};
   int difficulty{0};
   simulation::control_configuration controls;
   unsigned int deadband{10};

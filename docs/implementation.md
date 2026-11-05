@@ -12,6 +12,8 @@ The original cockpit and avionics draw into a covered pixel layer at 320×240 or
 
 Validation passes in normal and AddressSanitizer/UndefinedBehaviorSanitizer builds: all 60 scene combinations and the projection/coverage checks. The 320×240 and 640×480 mission frames at 90° match Apache C++ pixel for pixel. Live automatic/fixed resize and menu checks also pass under both builds on private Xvfb.
 
+Redux starts with maximum visual detail, the realistic flight model, full sound effects, speech and music enabled. These choices replace the shipped CD defaults; saved player preferences take precedence.
+
 ## Reconstruction history
 
 The reconstruction follows the January 1998 Windows software engine using data shared by the September 1998 and October 2000 European discs. It reads the original resource formats directly. There is no CPU emulator, translated executable or dependency on the analysis workspace in the game.
