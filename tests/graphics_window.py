@@ -32,8 +32,14 @@ for resolution in ['auto','640x480']:
      if len(capture().getcolors(65536) or [])>30: break
      assert game.poll() is None;time.sleep(.05)
     else: raise AssertionError('No rendered flight frame')
-    def key(value): xdo('key','--clearmodifiers',value);time.sleep(a.settle_seconds)
+    # Xvfb repeats function-key symbols on Alt levels; use their physical codes.
+    function_keys={'F1':67,'F2':68,'F3':69,'F6':72}
+    def key(value): xdo('key','--clearmodifiers',function_keys.get(value,value));time.sleep(a.settle_seconds)
     key('Pause');key('F6')
+    before_orbit=capture()
+    xdo('keydown','Alt_L','Right');time.sleep(max(.5,a.settle_seconds));xdo('keyup','Right','Alt_L')
+    time.sleep(a.settle_seconds)
+    assert capture().tobytes()!=before_orbit.tobytes(), 'Alt + Right did not move the paused external camera'
     xdo('windowsize',wid,1000,700)
     for _ in range(100):
      image=capture();bounds=image.getbbox()
@@ -42,7 +48,17 @@ for resolution in ['auto','640x480']:
       if resolution!='auto' and 32<=bounds[0]<=34 and 966<=bounds[2]<=968 and bounds[1]==0 and bounds[3]==700:break
      assert game.poll() is None;time.sleep(.1)
     else:raise AssertionError(('Frame did not resize',bounds))
-    key('F3');key('F2');key('ctrl+Escape')
+    key('F3');key('F2');pilot=capture()
+    key('F6');external=capture()
+    assert external.tobytes()!=pilot.tobytes(), 'F6 did not select the external view'
+    xdo('keydown',function_keys['F1']);time.sleep(max(1,a.settle_seconds));help_frame=capture()
+    xdo('keyup',function_keys['F1']);time.sleep(a.settle_seconds)
+    assert help_frame.tobytes()!=external.tobytes() and capture().tobytes()==help_frame.tobytes(), 'Held F1 did not leave help open'
+    key('F1');assert capture().tobytes()==pilot.tobytes(), 'Second F1 did not return to the paused pilot cockpit'
+    key('F1');key('F2');assert capture().tobytes()==pilot.tobytes(), 'F2 did not leave help for the pilot cockpit'
+    key('F6');external=capture();key('F1');key('Escape')
+    assert capture().tobytes()==external.tobytes(), 'Escape did not return from help to the previous view'
+    key('ctrl+Escape')
     xdo('windowsize',wid,1100,750);time.sleep(max(.4,a.settle_seconds))
     assert game.poll() is None, 'Resizing the exit prompt terminated the game'
     key('n');key('F1');key('Escape');key('ctrl+Escape');key('y')
@@ -54,7 +70,7 @@ for resolution in ['auto','640x480']:
      time.sleep(max(.2,a.settle_seconds));xdo('mousemove','--window',wid,5,5);time.sleep(max(.2,a.settle_seconds))
     click_menu(620,472);assert capture().tobytes()!=main_menu.tobytes(), 'Scaled menu click did not open exit confirmation'
     click_menu(550,445);assert capture().tobytes()==main_menu.tobytes(), 'Scaled No button did not return to the same menu'
-    print(resolution, 'resize, aspect, views, pause, help, exit prompt and scaled menu clicks passed',flush=True)
+    print(resolution, 'resize, aspect, paused orbit, views, F1/F2 help return, exit prompt and scaled menu clicks passed',flush=True)
    finally:
     if game.poll() is None: game.terminate()
     game.wait(timeout=5)

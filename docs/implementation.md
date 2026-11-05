@@ -14,6 +14,10 @@ Validation passes in normal and AddressSanitizer/UndefinedBehaviorSanitizer buil
 
 Redux starts with maximum visual detail, the realistic flight model, full sound effects, speech and music enabled. These choices replace the shipped CD defaults; saved player preferences take precedence.
 
+Camera controls remain active while paused. Orbit, look and zoom use elapsed display time while flight, AI and effects remain stopped. Paused input is consumed each frame without changing the saved flight controls; extra redraws do not apply the same camera movement twice, and the automatic crash camera stays frozen. `tests/paused_camera.py` checks orbit, zoom, view changes, frozen actors and flight state, repeated redraws and resuming; the private-window check also exercises Alt + arrow input while paused.
+
+F1 or F2 closes the in-flight manual and returns to the pilot cockpit, preserving the pause state. Holding F1 does not immediately close it through key repeat. Escape still returns to the previous view.
+
 ## Reconstruction history
 
 The reconstruction follows the January 1998 Windows software engine using data shared by the September 1998 and October 2000 European discs. It reads the original resource formats directly. There is no CPU emulator, translated executable or dependency on the analysis workspace in the game.

@@ -357,6 +357,10 @@ int main(int const argc, char const *const argv[]) try {
     input.clicks.clear();
     for(auto const &key : input.keys) {
       if(!key.down) continue;
+      if(in_flight_help && !key.character && (key.value == GLFW_KEY_F1 || key.value == GLFW_KEY_F2)) {
+        if(!key.repeat) { mission->select_view(0); frontend.back(); }
+        continue;
+      }
       if(key.character) { frontend.text_input(static_cast<unsigned int>(key.value)); continue; }
       if((key.value == GLFW_KEY_ESCAPE || key.value == GLFW_KEY_ENTER || key.value == GLFW_KEY_BACKSPACE) && frontend.text_input(key.value == GLFW_KEY_ESCAPE ? 27 : key.value == GLFW_KEY_ENTER ? 10 : 8)) continue;
       if(key.value == GLFW_KEY_ESCAPE) frontend.back();

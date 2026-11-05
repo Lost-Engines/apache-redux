@@ -4,6 +4,7 @@
 #include <cmath>
 #include <cstdio>
 #include <stdexcept>
+#include <utility>
 #include "resources/reader.h"
 
 namespace apache::frontend {
@@ -395,6 +396,7 @@ void mission_session::command(uint16_t const key) {
 }
 void mission_session::step(unsigned int const ticks) {
   if(ticks == 0 || ticks > 200) throw std::runtime_error{"Mission frame interval must be 1 to 200 ticks"};
+  paused_camera_delta = 0;
   runtime.frame = ++frame_number;
   frame_time = static_cast<double>(ticks) * 0.005;
   last_delta = static_cast<int32_t>(std::min(frame_time * 2147483648.0, static_cast<double>(INT32_MAX)));
@@ -403,7 +405,15 @@ void mission_session::step(unsigned int const ticks) {
   bool const was_prompt{quit_prompt};
   for(auto key : commands) { command(key); if(quit_prompt != was_prompt || help_requested || finished) break; }
   commands.clear();
-  if(paused || (finished && !network) || was_prompt || help_requested) return;
+  if((finished && !network) || was_prompt || help_requested) return;
+  if(paused) {
+    // Consume held-key time for the camera without changing the saved flight inputs.
+    auto const flight{controls.flight};
+    controls.update(views->modes.movement, views->modes.crew == 1, controls.button_commands().alternate);
+    controls.flight = flight;
+    if(!quit_prompt) paused_camera_delta = last_delta;
+    return;
+  }
   if(!(chat && chat->writing) && controls.held[0x39]) runtime.fire_player(runtime.timing.now, frame_time, 0x39);
   if(network) {
     network->state.dead = runtime.pilot->death() != 0;
@@ -442,7 +452,9 @@ void mission_session::draw() {
   if(quit_prompt && quit_drawn) return;
   if(help_requested) return;
   if(network && views->modes.mode == 19 && int64_t{views->context.crash_timer} + (paused ? 0 : last_delta) / 4 > INT32_MAX) network_crash_complete();
-  camera = views->update(sources(), {controls.external[3], controls.external[2], controls.keyboard[5], paused ? 0 : last_delta}, runtime.random.global_seed);
+  // Camera input uses real elapsed time during pause. Crash motion and its timer stay frozen.
+  auto const camera_delta{paused ? std::exchange(paused_camera_delta, 0) : last_delta};
+  camera = views->update(sources(), {controls.external[3], controls.external[2], controls.keyboard[5], paused && views->modes.mode == 19 ? 0 : camera_delta}, runtime.random.global_seed);
   finished = finished || camera.finished;
   visual.lighting = daylight.light; visual.infrared = night_vision || camera.infrared ? 1 : 0;
   visual.hidden_mobile = views->modes.in_cockpit ? std::optional{runtime.spatial.mobile_id(*runtime.timing.player)} : std::nullopt;

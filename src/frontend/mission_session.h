@@ -43,7 +43,7 @@ class mission_session {
   size_t frame_number{0};
   int32_t next_radio{6000};
   std::array<unsigned int, 54> radio_effects;
-  int32_t last_delta{0};
+  int32_t last_delta{0}, paused_camera_delta{0};
   double frame_time{0.05};
   bool quit_drawn{false};
   std::vector<uint16_t> commands;
