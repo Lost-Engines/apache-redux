@@ -24,7 +24,7 @@ celestial::celestial(resources::data_store const &data, std::string_view const z
 int32_t celestial::draw(framebuffer &target, math::matrix3 const &camera, math::trigonometry const &trig, scene_palette const &palette, sky_conditions const &conditions, sky_lighting const &lighting) const {
   if((conditions.cloud_flags & 2) && conditions.cloud_mode != 2) return 0;
   int const width{target.clip.right - target.clip.left + 1}, height{target.clip.bottom - target.clip.top + 1};
-  projection const view{target.clip.left, target.clip.top, width, height};
+  projection const view{target.clip.left, target.clip.top, width, height, target.horizontal_fov};
   bool const daytime{lighting.night <= 644245094};
   if(!daytime) {
     std::array<std::array<int32_t, 65>, 9> grids;
@@ -56,9 +56,9 @@ int32_t celestial::draw(framebuffer &target, math::matrix3 const &camera, math::
   }};
   auto const x{horizontal(eye[0])};
   int64_t const y{target.clip.bottom - (((int64_t{eye[2]} + eye[1]) * height >> 1) / eye[1])};
-  // The software engine uses these fixed margins even in its smaller modes.
-  if(!x || *x < -100 || *x > 740 || y < -100 || y > 580) return glare;
-  auto const right{horizontal(math::add(eye[0], 500000))};
+  // Keep the sun visible at every output resolution and field of view.
+  if(!x || *x < target.clip.left - width || *x > target.clip.right + width || y < target.clip.top - height || y > target.clip.bottom + height) return glare;
+  auto const right{horizontal(math::add(eye[0], static_cast<int32_t>(500000 * view.lateral_scale())))};
   if(!right) return glare;
   rasterizer raster{target};
   material paint;

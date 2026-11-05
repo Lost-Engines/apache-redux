@@ -1,4 +1,5 @@
 #include "mission_session.h"
+#include "render/display_layout.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdio>
@@ -66,10 +67,11 @@ resources::mission_briefing mission_session::quick_start(resources::data_store c
 mission_session::mission_session(resources::data_store const &data, int const mission_id, mission_options const options)
   : mission_session{data, find_mission(data, mission_id), options} {}
 mission_session::mission_session(resources::data_store const &data, resources::mission_briefing definition, mission_options const options, resources::mission_definition const *edited)
-  : settings{connection_options(options)}, initial_seeds{weapon_seeds()}, network_definition{connection_definition(data, definition, settings, edited)}, briefing{std::move(definition)}, zone{warzone(briefing.zone)},
+  : settings{connection_options(options)}, overlay{options.video_mode ? 640u : 320u, options.video_mode ? 480u : 240u}, initial_seeds{weapon_seeds()}, network_definition{connection_definition(data, definition, settings, edited)}, briefing{std::move(definition)}, zone{warzone(briefing.zone)},
     runtime{data, zone, mission_path(briefing), true, true, settings.shared_seat ? 2 : settings.difficulty, initial_seeds, network_definition ? &*network_definition : edited},
     daylight{runtime.executable, runtime.mission.time_of_day}, world{data, zone}, panels{data, options.video_mode},
-    avionics{panels, runtime.trig, runtime.executable}, frame{options.video_mode ? 640u : 320u, options.video_mode ? 480u : 240u} {
+    avionics{panels, runtime.trig, runtime.executable}, frame{options.graphics.fixed_resolution ? options.graphics.fixed_resolution->width : overlay.image.width, options.graphics.fixed_resolution ? options.graphics.fixed_resolution->height : overlay.image.height} {
+  frame.horizontal_fov = options.graphics.field_of_view;
   if(settings.shared_seat) {
     if(*settings.shared_seat != multiplayer::crew_role::pilot && *settings.shared_seat != multiplayer::crew_role::gunner) throw std::runtime_error{"Invalid shared cockpit seat"};
     settings.difficulty = 2; settings.invulnerable = settings.infinite_weapons = settings.no_crashes = false;
@@ -430,6 +432,12 @@ void mission_session::step(unsigned int const ticks) {
   }
   runtime.player_armament->update_hydra(runtime.timing.now, last_delta, controls.keyboard[4]);
 }
+bool mission_session::resize(unsigned int const width, unsigned int const height) {
+  if(frame.image.width == width && frame.image.height == height) return false;
+  frame = render::framebuffer{width, height}; frame.horizontal_fov = settings.graphics.field_of_view;
+  views->modes.changed = true; quit_drawn = false;
+  return true;
+}
 void mission_session::draw() {
   if(quit_prompt && quit_drawn) return;
   if(help_requested) return;
@@ -443,8 +451,14 @@ void mission_session::draw() {
   world.palette.additional_faders.push_back({true, 10000, 2, 254, night_vision ? 1 : 0, {0, 1, 1}});
   world.palette.additional_faders.push_back({false, INT32_MAX, 0, 256, camera.fade, {0, 0, 0}});
   auto const viewport{views->modes.viewport(settings.video_mode)};
-  frame.clip = {viewport[0], viewport[1], viewport[0] + viewport[2] - 1, viewport[1] + viewport[3] - 1};
-  render::projection const projection{viewport[0], viewport[1], viewport[2], viewport[3]};
+  render::rectangle const original_view{viewport[0], viewport[1], viewport[0] + viewport[2] - 1, viewport[1] + viewport[3] - 1};
+  render::display_layout const layout{frame.image.width, frame.image.height, overlay.image.width, overlay.image.height, original_view, settings.graphics.field_of_view};
+  bool const scaled{frame.image.width != overlay.image.width || frame.image.height != overlay.image.height};
+  if(scaled) frame.clear();
+  frame.clip = layout.scene;
+  // Sight coordinates stay in the cockpit's authored pixel space. Its FOV
+  // describes the same rays as the full-resolution scene beneath the overlay.
+  render::projection const projection{viewport[0], viewport[1], viewport[2], viewport[3], layout.instrument_fov};
   world.draw(frame, camera.camera, visual);
   if(camera.sight) runtime.look_player(camera.camera, projection);
   auto &arm{*runtime.player_armament};
@@ -469,9 +483,12 @@ void mission_session::draw() {
     .fuel{runtime.pilot->readings().fuel}, .endurance{endurance}, .flow{runtime.timing.game_flow},
     .score{runtime.quick_score}, .infinite_fuel{settings.arcade ? runtime.pilot->arcade.infinite_fuel : runtime.pilot->realistic.infinite_fuel}, .faults{runtime.pilot->faults()},
     .weapon{simulation::weapon_definitions()[arm.inventory.current].name}});
-  frame.reset_clip(); panels.draw(frame, views->modes.mode, views->modes.changed); avionics.draw(frame, state, world, visual.lighting);
+  auto &hud{scaled ? overlay : frame};
+  if(scaled) layout.background(frame, overlay);
+  hud.horizontal_fov = 90;
+  hud.reset_clip(); panels.draw(hud, views->modes.mode, scaled || views->modes.changed); avionics.draw(hud, state, world, visual.lighting);
   for(size_t i{0}; i != 256; ++i) frame.image.colours[i] = {world.palette.modified[i * 3], world.palette.modified[i * 3 + 1], world.palette.modified[i * 3 + 2]};
-  if(chat) chat->draw(frame, runtime.timing.now);
+  if(chat) chat->draw(hud, runtime.timing.now);
   views->modes.changed = false;
   if(network) {
     ending.finish_frame(); if(crew) crew->outgoing.leaving = ending.quitting;
@@ -479,7 +496,9 @@ void mission_session::draw() {
   }
   if(quit_prompt) {
     auto const &prompt{panels.sprite(settings.video_mode ? "END_YN.640" : "END_YN.320")};
-    frame.reset_clip(); frame.blit(prompt, settings.video_mode ? 210 : 86, settings.video_mode ? 116 : 54, true); quit_drawn = true;
+    hud.reset_clip(); hud.blit(prompt, settings.video_mode ? 210 : 86, settings.video_mode ? 116 : 54, true); quit_drawn = true;
   }
+  if(scaled) layout.composite(overlay, frame);
+  frame.horizontal_fov = settings.graphics.field_of_view;
 }
 } // namespace apache::frontend

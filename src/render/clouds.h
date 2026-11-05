@@ -5,7 +5,7 @@
 #include "resources/terrain.h"
 
 namespace apache::render {
-sector_bounds scan_cloud_sectors(math::pose const &camera, math::trigonometry const &trig, uint32_t heading, uint32_t pitch, unsigned int cloud_mode);
+sector_bounds scan_cloud_sectors(math::pose const &camera, math::trigonometry const &trig, uint32_t heading, uint32_t pitch, unsigned int cloud_mode, bool expanded_frustum = false);
 unsigned int cloud_patch_type(int x, int y);
 struct cloud_vertex {
   math::vector3 eye{0, 0, 0};

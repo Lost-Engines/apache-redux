@@ -153,7 +153,7 @@ void rasterizer::paint_scans(material const &paint) {
         size_t const row{static_cast<size_t>(y) * target.image.width};
         uint8_t previous{target.image.pixels[row + start]};
         for(int x{start}; x <= end; ++x) {
-          auto &pixel{target.image.pixels[row + x]};
+          auto &pixel{target.image.pixels[row + x]}; target.mark(row + x);
           if(shift_right) { auto const old{pixel}; pixel = previous; previous = old; }
           else pixel = target.image.pixels[std::min(row + static_cast<size_t>(x) + 1, target.image.pixels.size() - 1)];
         }
@@ -189,6 +189,7 @@ void rasterizer::paint_scans(material const &paint) {
       if(paint.light != shading::none) colour = paint.intensity_map[(static_cast<size_t>(colour) << 8) | (static_cast<uint32_t>(std::max(intensity, 0)) >> 23)];
       auto &pixel{target.image.pixels[static_cast<size_t>(y) * target.image.width + x]};
       pixel = paint.pattern == fill_pattern::remap ? paint.remapping[pixel] : colour;
+      target.mark(static_cast<size_t>(y) * target.image.width + x);
     }
   }
 }

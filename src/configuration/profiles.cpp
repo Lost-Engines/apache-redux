@@ -30,11 +30,11 @@ resources::bytes text(std::string const &value) {
 }
 std::filesystem::path default_save_directory() {
 #ifdef _WIN32
-  if(auto const *path{std::getenv("LOCALAPPDATA")}; path && *path) return std::filesystem::path{path} / "apache";
+  if(auto const *path{std::getenv("LOCALAPPDATA")}; path && *path) return std::filesystem::path{path} / "apache-redux";
 #endif
-  if(auto const *path{std::getenv("XDG_DATA_HOME")}; path && *path && std::filesystem::path{path}.is_absolute()) return std::filesystem::path{path} / "apache";
-  if(auto const *path{std::getenv("HOME")}; path && *path) return std::filesystem::path{path} / ".local/share/apache";
-  return "apache-saves";
+  if(auto const *path{std::getenv("XDG_DATA_HOME")}; path && *path && std::filesystem::path{path}.is_absolute()) return std::filesystem::path{path} / "apache-redux";
+  if(auto const *path{std::getenv("HOME")}; path && *path) return std::filesystem::path{path} / ".local/share/apache-redux";
+  return "apache-redux-saves";
 }
 profiles::profiles(uint32_t const now) {
   for(size_t i{0}; i != users.size(); ++i) users[i].name = "User " + std::to_string(i + 1);

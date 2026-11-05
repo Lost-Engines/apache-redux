@@ -18,6 +18,8 @@ set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 include(CTest)
 
 add_library(apache_core
+  src/configuration/graphics.cpp src/configuration/graphics.h
+  src/render/display_layout.cpp src/render/display_layout.h
   src/frontend/multiplayer_chat.cpp src/frontend/multiplayer_chat.h
   src/multiplayer/peer_group.cpp src/multiplayer/peer_group.h
   src/multiplayer/connections.cpp src/multiplayer/connections.h
@@ -313,6 +315,11 @@ add_executable(apache_inspect src/inspect_chat.cpp src/inspect_network_live.cpp 
 target_link_libraries(apache_inspect PRIVATE apache_core)
 
 if(BUILD_TESTING)
+  add_executable(graphics_scene_check tests/graphics_scene.cpp)
+  target_link_libraries(graphics_scene_check PRIVATE apache_core)
+  add_executable(graphics_tests tests/graphics.cpp)
+  target_link_libraries(graphics_tests PRIVATE apache_core)
+  add_test(NAME graphics_tests COMMAND graphics_tests)
   add_executable(transport_tests tests/transport.cpp)
   target_link_libraries(transport_tests PRIVATE apache_core)
   add_test(NAME transport_tests COMMAND transport_tests)

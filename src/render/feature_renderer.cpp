@@ -44,7 +44,7 @@ void feature_renderer::draw(std::span<resources::feature_face const> const faces
     if(face.indices.empty()) continue;
     for(auto const index : face.indices) if(index >= points.size()) throw std::runtime_error{"Terrain feature references a missing projected vertex"};
     uint8_t const colour{palette.visual_remap[face.colours[0]]};
-    auto const fogged{[&](vertex3 const &point){ return fog.constant_colour(approximate_range(point.eye), colour, palette.visual_remap); }};
+    auto const fogged{[&](vertex3 const &point){ return fog.constant_colour(approximate_range(view.unmagnify(point.eye)), colour, palette.visual_remap); }};
     if(face.type == 0) {
       for(auto const index : face.indices) if(!points[index].outcode) target.point(points[index].screen.x, points[index].screen.y, static_cast<uint8_t>(fogged(points[index])));
     } else if(face.type == 1) {
@@ -60,8 +60,8 @@ void feature_renderer::draw(std::span<resources::feature_face const> const faces
       if(face.type == 2) {
         // The original checks each vertex before following its next link;
         // the final vertex does not participate in the minimum fog range.
-        uint32_t range{approximate_range(points[face.indices[0]].eye)};
-        for(size_t i{0}; i + 1 < face.indices.size(); ++i) range = std::min(range, approximate_range(points[face.indices[i]].eye));
+        uint32_t range{approximate_range(view.unmagnify(points[face.indices[0]].eye))};
+        for(size_t i{0}; i + 1 < face.indices.size(); ++i) range = std::min(range, approximate_range(view.unmagnify(points[face.indices[i]].eye)));
         paint.colours = fog.constant_colour(range, colour, palette.visual_remap);
       } else if(face.type == 17) {
         std::array<uint8_t, 256> levels{};

@@ -5,6 +5,7 @@
 #include <string>
 #include <GLFW/glfw3.h>
 #include "render/framebuffer.h"
+#include "configuration/graphics.h"
 
 namespace apache::platform {
 struct cursor {
@@ -26,13 +27,14 @@ class window {
   int logical_height{480};
 
 public:
-  window(unsigned int scale);
+  window(unsigned int scale, std::optional<configuration::resolution> resolution = {});
   ~window();
   window(window const&) = delete;
   window &operator=(window const&) = delete;
   GLFWwindow *get() const;
   bool poll();
   bool focused() const;
+  configuration::resolution framebuffer_size() const;
   std::optional<cursor> cursor_position() const;
   void title(std::string const &text);
   void present(render::framebuffer const &frame);

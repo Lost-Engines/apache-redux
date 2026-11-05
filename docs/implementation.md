@@ -1,4 +1,18 @@
-# Implementation and validation
+# Redux graphics
+
+Apache Redux builds on the faithful [Apache C++](https://github.com/Lost-Engines/apache-cpp) reconstruction. The implementation history below describes that shared foundation.
+
+Flight now renders into a framebuffer matching the window's physical pixel size, or a fixed `--resolution WIDTHxHEIGHT`. Window resizing also works while paused and in the sortie-exit confirmation. Presentation preserves the framebuffer's aspect ratio without snapping down to an integer magnification. Menus and movies retain their original resolution and scale proportionately.
+
+`--fov` selects a horizontal field of view between 30 and 150 degrees, with the original 90-degree projection as the default. Terrain, scenery, models, shadows, effects, sky and target markers share this projection. Fog distances exclude the magnification factor, and custom FOVs expand the original cloud sector scan before projection clipping. MFD optics retain their original projection.
+
+The original cockpit and avionics draw into a covered pixel layer at 320×240 or 640×480. This layer is scaled uniformly over the full-resolution world, preserving opaque black and every palette entry. Target projections use the corresponding logical FOV so markers stay attached to the scene. On wide windows, the world extends past the original cockpit's sides; the extra area beside the instrument panel is black. Redux saves live under `apache-redux`, separately from the faithful build.
+
+`graphics_tests` checks option validation, square-pixel projection, FOV clipping, inverse projection, HUD alignment and coverage. `graphics_scene_check DATA_DIRECTORY OUTPUT_DIRECTORY` exercises pilot, gunner, external, helmet and optical views at 640×480, 1920×1080, 3840×2160 and 800×1000, at 30°, 90° and 150° FOV. It also resizes the exit prompt. `tests/graphics_window.py` checks live automatic/fixed resizing, paused view switching, help, sortie exit and scaled menu hit testing on private Xvfb with temporary saves.
+
+Validation passes in normal and AddressSanitizer/UndefinedBehaviorSanitizer builds: all 60 scene combinations and the projection/coverage checks. The 320×240 and 640×480 mission frames at 90° match Apache C++ pixel for pixel. Live automatic/fixed resize and menu checks also pass under both builds on private Xvfb.
+
+## Reconstruction history
 
 The reconstruction follows the January 1998 Windows software engine using data shared by the September 1998 and October 2000 European discs. It reads the original resource formats directly. There is no CPU emulator, translated executable or dependency on the analysis workspace in the game.
 

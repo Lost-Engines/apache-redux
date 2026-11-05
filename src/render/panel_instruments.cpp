@@ -43,7 +43,7 @@ void panel_instruments::shade(framebuffer &target, std::string_view const name, 
     if(!target.clip.contains(xx, yy) || xx < 0 || yy < 0 || xx >= static_cast<int>(target.image.width) || yy >= static_cast<int>(target.image.height)) continue;
     auto &pixel{target.image.pixels[static_cast<size_t>(yy) * target.image.width + xx]};
     auto const value{mask.pixels[static_cast<size_t>(row) * mask.width + column]};
-    if(value && pixel != excluded) pixel = static_cast<uint8_t>(pixel + value - base);
+    if(value && pixel != excluded) { pixel = static_cast<uint8_t>(pixel + value - base); target.mark(static_cast<size_t>(yy) * target.image.width + xx); }
   }
 }
 void panel_instruments::compass(framebuffer &target, uint32_t const heading) const {

@@ -22,6 +22,9 @@ class framebuffer {
 public:
   resources::indexed_image image;
   rectangle clip;
+  double horizontal_fov{90};
+  std::vector<uint8_t> coverage;
+  void mark(size_t index) { if(!coverage.empty()) coverage[index] = 1; }
   framebuffer(unsigned int width, unsigned int height);
   void reset_clip();
   void clear(uint8_t colour = 0);

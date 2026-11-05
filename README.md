@@ -1,12 +1,14 @@
-# Apache C++
+# Apache Redux
 
-A native C++26 reconstruction of Digital Integration's **Apache Longbow**, released as **Apache** in the US, from the [Lost Engines](https://github.com/Lost-Engines) reverse-engineering project.
+An enhanced edition of Digital Integration's **Apache Longbow**, released as **Apache** in the US. Built on our [Apache C++ reconstruction](https://github.com/Lost-Engines/apache-cpp), part of the [Lost Engines](https://github.com/Lost-Engines) project.
 
 Quickstart, training, single missions and campaigns are playable, with the original software graphics, flight models, combat, instruments, mission planner, music and speech. LAN multiplayer includes combat, cooperative missions and a shared pilot/gunner cockpit.
 
+Redux adds full-resolution 3D rendering that follows your window size, fixed resolutions including 4K, and an adjustable field of view. The original cockpit artwork and instruments keep their proportions.
+
 ## Getting started
 
-[Download the latest release](https://github.com/Lost-Engines/apache-cpp/releases/latest) for Linux, Windows or macOS and unpack it.
+[Download the latest release](https://github.com/slowriot/apache-redux/releases/latest) for Linux, Windows or macOS and unpack it.
 
 On Windows, run `scripts\fetch-assets.bat`, then open `apache.exe`. On Linux or macOS, run these commands inside the unpacked directory:
 
@@ -31,13 +33,27 @@ Flight opens the training, single-mission and campaign choices. Briefing maps su
 
 Arrow keys control pitch and roll, Q/A change collective, Enter selects a weapon, and Space fires. F2/F3 select the pilot/gunner cockpit. F1 opens the illustrated manual in single-player flight. P or Pause pauses; Ctrl+Escape asks whether to end the sortie (Y/N).
 
-The window uses square pixels and nearest-neighbour scaling. `--skip-intro` skips the opening sequence, and `--no-audio` disables playback. Run `apache --help` for other options.
+The 3D world renders at the window’s actual pixel resolution, including on high-DPI displays. Resizing the window updates it automatically. Original menus and cockpit artwork use nearest-neighbour scaling with square pixels. `--skip-intro` skips the opening sequence, and `--no-audio` disables playback. Run `apache --help` for other options.
 
-Pilot profiles and preferences are saved under `$XDG_DATA_HOME/apache` or `~/.local/share/apache` on Linux, and `%LOCALAPPDATA%\apache` on Windows. `--save-dir` selects another location. Fetched game files occupy the separate `game` subdirectory on Linux, or `data` beside the Windows executable.
+Pilot profiles and preferences are saved under `$XDG_DATA_HOME/apache-redux` or `~/.local/share/apache-redux` on Linux, and `%LOCALAPPDATA%\apache-redux` on Windows. `--save-dir` selects another location. Fetched game files occupy the separate `game` subdirectory on Linux, or `data` beside the Windows executable.
+
+## Resolution and field of view
+
+No options are needed for automatic resolution. To choose a fixed render size or a wider view:
+
+```sh
+./apache --resolution 1920x1080
+./apache --resolution 3840x2160 --fov 110
+./apache --resolution auto --fov 100
+```
+
+`--fov` sets the horizontal viewing angle in degrees, from 30 to 150. The default is the original 90°. A fixed resolution stays unchanged when the window is resized; its image is fitted without stretching. `--scale 2` sets the initial window to 1280×960 while keeping automatic rendering, or doubles the chosen fixed resolution's window size.
+
+The renderer runs on the CPU. A lower fixed resolution can improve performance on slower machines. The original cockpit and menu images retain their source detail; increasing resolution sharpens the 3D scene. The original 320/640 preference selects cockpit artwork, independently of Redux's render resolution.
 
 ## Multiplayer
 
-Two Player offers combat, cooperative missions and a shared pilot/gunner cockpit. Network supports combat with up to eight Apache players. Players on the same LAN are discovered automatically; a host address can also be entered in the menu. Everyone must choose the same network channel. These sessions connect Apache C++ copies using UDP, rather than the original IPX or modem drivers.
+Two Player offers combat, cooperative missions and a shared pilot/gunner cockpit. Network supports combat with up to eight Apache players. Players on the same LAN are discovered automatically; a host address can also be entered in the menu. Everyone must choose the same network channel. These sessions connect Apache Redux and Apache C++ copies using UDP, rather than the original IPX or modem drivers.
 
 Press Shift+M during flight to chat, Enter to send, and Up to recall the last message. Pause and the manual are disabled during network flight, as in the original.
 

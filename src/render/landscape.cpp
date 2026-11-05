@@ -80,7 +80,7 @@ void landscape::draw(framebuffer &target, math::pose camera, landscape_options c
   palette.prepare(options.infrared);
   if(options.terrain_detail > 3) throw std::runtime_error{"Terrain quality must be between zero and three"};
   missing_normals = invalid_texture_samples = 0;
-  projection const view{target.clip.left, target.clip.top, target.clip.right - target.clip.left + 1, target.clip.bottom - target.clip.top + 1};
+  projection const view{target.clip.left, target.clip.top, target.clip.right - target.clip.left + 1, target.clip.bottom - target.clip.top + 1, target.horizontal_fov};
   horizon background{target, target.clip, palette, trig};
   terrain_fog const fog{options.distance};
   auto const elevation{terrain.elevation(camera.position[0], camera.position[1])};
@@ -134,7 +134,7 @@ void landscape::draw(framebuffer &target, math::pose camera, landscape_options c
         if(!sector_visibility(camera.rotation, origin, view, false)) continue;
         for(unsigned int gx{static_cast<unsigned int>((sx + x) * 4)}; gx != static_cast<unsigned int>((sx + x + 1) * 4); ++gx) for(unsigned int gy{static_cast<unsigned int>((sy + y) * 4)}; gy != static_cast<unsigned int>((sy + y + 1) * 4); ++gy) {
           auto const points{corners(gx, gy)};
-          unsigned int const range{approximate_range(points[0].eye) >> 22};
+          unsigned int const range{approximate_range(view.unmagnify(points[0].eye)) >> 22};
           if(range >= fog.boundary + fog.width) continue;
           auto const &post{terrain.post(gx, gy)};
           std::array<std::array<unsigned int, 3>, 4> constexpr indices{{{2, 0, 1}, {1, 3, 2}, {0, 1, 3}, {3, 2, 0}}};
@@ -184,7 +184,7 @@ void landscape::draw(framebuffer &target, math::pose camera, landscape_options c
   std::optional<cloud_mesh> clouds;
   rasterizer cloud_raster{target};
   if((sky.cloud_flags & 2) && sky.cloud_mode != 1) {
-    clouds.emplace(terrain, camera, scan_cloud_sectors(camera, trig, angles[0], angles[1], sky.cloud_mode), options.cloud_height, sky.cloud_mode, sky.weather);
+    clouds.emplace(terrain, camera, scan_cloud_sectors(camera, trig, angles[0], angles[1], sky.cloud_mode, target.horizontal_fov != 90), options.cloud_height, sky.cloud_mode, sky.weather);
     clouds->submit(queue, camera);
   }
   sun_glare = options.celestial_bodies && sky_visible && (sky.cloud_mode == 2 || sky.weather == 0) ? sky_objects.draw(target, camera.rotation, trig, palette, sky, options.lighting) : 0;

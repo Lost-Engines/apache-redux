@@ -130,14 +130,16 @@ int main(int const argc, char const *const argv[]) try {
       return argv[i];
     }};
     if(key == "--help") {
-      std::cout << "Apache C++ reconstruction\n"
+      std::cout << "Apache Redux reconstruction\n"
                    "Usage: apache [--data-dir DIRECTORY] [--scale N]\n"
                    "  --data-dir DIRECTORY  Original installation or extracted CD contents\n"
                    "  --save-dir DIRECTORY  Pilot and preference storage\n"
                    "  --install-cd FILE     Extract the reference CD into --data-dir or the default location\n"
                    "  --check-assets        Verify all reference game files without starting the game\n"
                    "  --asset-directory     Print the default game-data directory\n"
-                   "  --scale N             Integer scale, or 0 for automatic sizing\n"
+                   "  --resolution WxH      Fixed 3D render size, or auto to follow window pixels (default)\n"
+                   "  --fov DEGREES         Horizontal field of view, 30..150 (default: 90)\n"
+                   "  --scale N             Initial window scale, or 0 to fit the desktop\n"
                    "  --skip-intro          Skip the opening movies and publisher logos\n"
                    "  --no-audio            Disable the playback device\n"
                    "Development checks:\n"
@@ -157,6 +159,8 @@ int main(int const argc, char const *const argv[]) try {
     else if(key == "--check-assets") check_assets = true;
     else if(key == "--asset-directory") asset_directory = true;
     else if(key == "--save-dir") save_directory = value();
+    else if(key == "--resolution") mission_options.graphics.fixed_resolution = apache::configuration::parse_resolution(value());
+    else if(key == "--fov") mission_options.graphics.field_of_view = apache::configuration::parse_field_of_view(value());
     else if(key == "--scale") {
       scale = number(value());
       if(scale > 16) throw std::runtime_error{"Window scale must be between 0 and 16"};
@@ -210,7 +214,12 @@ int main(int const argc, char const *const argv[]) try {
   if(override_video) frontend.options.video_mode = mission_options.video_mode;
   if(mission_id) mission = std::make_unique<apache::frontend::mission_session>(data, mission_id, frontend.options);
   if(!mission_id && selected_menu == "_main_screen" && !quick && pressed.empty()) frontend.startup();
-  apache::platform::window window{scale};
+  apache::platform::window window{scale, mission_options.graphics.fixed_resolution};
+  auto const resize_mission{[&](){
+    if(!mission) return false;
+    auto const size{mission_options.graphics.fixed_resolution.value_or(window.framebuffer_size())};
+    return mission->resize(size.width, size.height);
+  }};
   std::unique_ptr<apache::audio::engine> sound;
   std::unique_ptr<apache::platform::audio_output> audio_device;
   if(!no_audio) {
@@ -274,21 +283,22 @@ int main(int const argc, char const *const argv[]) try {
   unsigned int frames{0};
   auto previous_time{std::chrono::steady_clock::now()};
   double tick_fraction{0};
-  if(mission) { mission->step(10); mission->draw(); window.title("Apache C++ | " + mission->briefing.title); }
+  if(mission) { resize_mission(); mission->step(10); mission->draw(); window.title("Apache Redux | " + mission->briefing.title); }
   while(window.poll() && !menu.quit_requested()) {
     if(network_link && !network_link->ready()) {
       if(std::ranges::any_of(input.keys, [](auto const &k){ return k.down && !k.character && k.value == GLFW_KEY_ESCAPE; })) mission->finished = true;
       input.keys.clear(); input.clicks.clear(); network_link->poll();
       if(mission->finished) {
-        network_link.reset(); if(sound) sound->mission(false); frontend.complete(std::move(mission)); window.title("Apache C++");
+        network_link.reset(); if(sound) sound->mission(false); frontend.complete(std::move(mission)); window.title("Apache Redux");
       } else if(network_link->ready()) {
-        mission->step(10); mission->draw(); window.title("Apache C++ | " + mission->briefing.title);
+        resize_mission(); mission->step(10); mission->draw(); window.title("Apache Redux | " + mission->briefing.title);
       } else { window.present(frame); glfwWaitEventsTimeout(0.005); }
       previous_time = std::chrono::steady_clock::now(); tick_fraction = 0;
       if(frame_limit && ++frames == frame_limit) break;
       continue;
     }
     if(mission && !in_flight_help) {
+      bool const resized{resize_mission()};
       for(auto const &key : input.keys) if(!key.character && (!key.repeat || (mission->chat && mission->chat->writing))) if(auto scan{apache::platform::scan_code(key.value, key.modifiers)}) mission->key(*scan, key.down);
       input.keys.clear(); input.clicks.clear();
       if(!window.focused()) { mission->controls.held.fill(false); mission->controls.counts.fill(0); }
@@ -315,7 +325,8 @@ int main(int const argc, char const *const argv[]) try {
       auto const now{std::chrono::steady_clock::now()};
       tick_fraction += std::chrono::duration<double>(now - previous_time).count() * 200; previous_time = now;
       auto const ticks{static_cast<unsigned int>(std::min(tick_fraction, 200.0))};
-      if(ticks) { tick_fraction -= ticks; mission->step(ticks); mission->draw(); }
+      if(ticks) { tick_fraction -= ticks; mission->step(ticks); }
+      if(ticks || resized) mission->draw();
       if(sound) sound->pause(mission->paused || mission->quit_prompt || mission->help_requested);
       window.present(mission->frame);
       if(mission->help_requested) {
@@ -328,7 +339,7 @@ int main(int const argc, char const *const argv[]) try {
         if(sound) sound->mission(false);
         if(launched_from_menu) frontend.complete(std::move(mission));
         else { mission.reset(); menu.show("_main_screen"); }
-        window.title("Apache C++");
+        window.title("Apache Redux");
       }
       if(frame_limit && ++frames == frame_limit) break;
       continue;
@@ -381,8 +392,8 @@ int main(int const argc, char const *const argv[]) try {
       if(mission->network && frontend.network.peers) {
         network_link = std::make_unique<apache::frontend::mission_link>(*frontend.network.peers, *mission, network_clock);
         network_link->yield = [&](){ std::this_thread::sleep_for(std::chrono::milliseconds{1}); return window.poll(); };
-        window.title("Apache C++ | Waiting for other players");
-      } else { mission->step(10); mission->draw(); window.title("Apache C++ | " + mission->briefing.title); }
+        window.title("Apache Redux | Waiting for other players");
+      } else { resize_mission(); mission->step(10); mission->draw(); window.title("Apache Redux | " + mission->briefing.title); }
       previous_time = std::chrono::steady_clock::now(); tick_fraction = 0;
     }
     if(frame_limit && ++frames == frame_limit) break;

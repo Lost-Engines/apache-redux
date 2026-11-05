@@ -18,7 +18,7 @@ struct grid_position {
   void advance() { fine += 4; if(fine > 128) { fine -= 256; ++coarse; } }
 };
 } // namespace
-sector_bounds scan_cloud_sectors(math::pose const &camera, math::trigonometry const &trig, uint32_t const heading, uint32_t const pitch, unsigned int const cloud_mode) {
+sector_bounds scan_cloud_sectors(math::pose const &camera, math::trigonometry const &trig, uint32_t const heading, uint32_t const pitch, unsigned int const cloud_mode, bool const expanded_frustum) {
   int const range{cloud_mode == 2 ? 18 : 14};
   sector_bounds result{-3, -3, 3, 3};
   if(std::bit_cast<int32_t>(pitch) <= 0x31c71c72) {
@@ -45,6 +45,7 @@ sector_bounds scan_cloud_sectors(math::pose const &camera, math::trigonometry co
       result = {std::min({0, x, end_x}), std::min({0, y, end_y}), std::max({0, x, end_x}), std::max({0, y, end_y})};
     }
   }
+  if(expanded_frustum) result = {-range, -range, range, range};
   auto const restrict_axis{[&](int &low, int &high, int const centre){
     if(centre + low < 0) low = 1 - centre;
     if(centre + low > 63) low = 63 - centre;

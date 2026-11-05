@@ -1,6 +1,8 @@
 #include "projection.h"
 #include <algorithm>
 #include <cstdlib>
+#include <cmath>
+#include <numbers>
 #include <optional>
 #include <stdexcept>
 
@@ -67,14 +69,16 @@ int winding(std::span<vertex3 const> const vertices, bool const robust) {
   if((cross_sign(vertices[second], vertices[third], vertices[fourth]) ^ initial) < 0) return cross_sign(vertices[third], vertices[fourth], vertices[different(fourth, fourth + 1)]);
   return initial;
 }
-projection::projection(int const x, int const y, int const w, int const h) : viewport{x, y, x + w - 1, y + h - 1}, width{w}, height{h} {
+projection::projection(int const x, int const y, int const w, int const h, double const horizontal_fov) : viewport{x, y, x + w - 1, y + h - 1}, width{w}, height{h} {
   if(w < 1 || h < 1 || w > 8192 || h > 8192) throw std::runtime_error{"Invalid projection dimensions"};
+  if(!std::isfinite(horizontal_fov) || horizontal_fov <= 0 || horizontal_fov >= 180) throw std::runtime_error{"Invalid field of view"};
+  horizontal_factor = horizontal_fov == 90 ? 1 : 1 / std::tan(horizontal_fov * std::numbers::pi / 360);
+  vertical_factor = horizontal_factor * w / h;
   double const scale{static_cast<double>(w) * 2147483647.0 / (static_cast<double>(h) * 16.0)};
-  if(scale > INT32_MAX) throw std::runtime_error{"Projection aspect ratio exceeds the original fixed-point range"};
-  vertical_scale = static_cast<int32_t>(scale);
+  vertical_scale = static_cast<int32_t>(std::min(scale, double{INT32_MAX}));
   double const inverse{static_cast<double>(h) * 2147483647.0 / (static_cast<double>(w) * 16.0)};
-  if(inverse > INT32_MAX) throw std::runtime_error{"Projection aspect ratio exceeds the original inverse scale range"};
-  inverse_vertical_scale = static_cast<int32_t>(inverse);
+  inverse_vertical_scale = static_cast<int32_t>(std::min(inverse, double{INT32_MAX}));
+  original_scale = horizontal_fov == 90 && scale <= INT32_MAX && inverse <= INT32_MAX;
 }
 void projection::project(vertex3 &point) const {
   auto const &p{point.eye};
@@ -82,15 +86,23 @@ void projection::project(vertex3 &point) const {
   point.screen.x = std::min(viewport.right, viewport.left + static_cast<int>(((int64_t{p[0]} + p[1]) * width >> 1) / p[1]));
   point.screen.y = std::max(viewport.top, viewport.bottom - static_cast<int>(((int64_t{p[2]} + p[1]) * height >> 1) / p[1]));
 }
+math::vector3 projection::scale(math::vector3 eye) const {
+  if(original_scale) eye[2] = std::bit_cast<int32_t>(static_cast<uint32_t>((math::product_bits(eye[2], vertical_scale) + (1ull << 26)) >> 27));
+  else {
+    auto const bounded{[](double value){ return static_cast<int32_t>(std::clamp(std::round(value), double{INT32_MIN}, double{INT32_MAX})); }};
+    eye[0] = bounded(eye[0] * horizontal_factor); eye[2] = bounded(eye[2] * vertical_factor);
+  }
+  return eye;
+}
 vertex3 projection::prepare(math::vector3 eye, int32_t const u, int32_t const v, int32_t const intensity) const {
-  eye[2] = std::bit_cast<int32_t>(static_cast<uint32_t>((math::product_bits(eye[2], vertical_scale) + (1ull << 26)) >> 27));
+  eye = scale(eye);
   vertex3 result{eye, {.u{u}, .v{v}, .intensity{intensity}}, outcode(eye)};
   if(!result.outcode) project(result);
   return result;
 }
 std::optional<screen_vertex> projection::project_unclipped(math::vector3 eye) const {
   if(eye[1] <= 0) return {};
-  eye[2] = std::bit_cast<int32_t>(static_cast<uint32_t>((math::product_bits(eye[2], vertical_scale) + (1ull << 26)) >> 27));
+  eye = scale(eye);
   auto const coordinate{[&](int32_t const side, int const extent) -> std::optional<int32_t> {
     int64_t const product{int64_t{math::add(side, eye[1])} * extent};
     if((static_cast<uint64_t>(std::abs(product)) >> 32) >= static_cast<uint32_t>(eye[1])) return {};
@@ -102,8 +114,17 @@ std::optional<screen_vertex> projection::project_unclipped(math::vector3 eye) co
   if(!x || !y) return {};
   return screen_vertex{math::add(viewport.left, *x), math::subtract(viewport.bottom, *y)};
 }
+math::vector3 projection::unmagnify(math::vector3 eye) const {
+  if(horizontal_factor != 1) for(auto axis : {0, 2})
+    eye[axis] = static_cast<int32_t>(std::clamp(std::round(eye[axis] / horizontal_factor), double{INT32_MIN}, double{INT32_MAX}));
+  return eye;
+}
 math::vector3 projection::unscale(math::vector3 eye) const {
-  eye[2] = std::bit_cast<int32_t>(static_cast<uint32_t>((math::product_bits(eye[2], inverse_vertical_scale) + (1ull << 26)) >> 27));
+  if(original_scale) eye[2] = std::bit_cast<int32_t>(static_cast<uint32_t>((math::product_bits(eye[2], inverse_vertical_scale) + (1ull << 26)) >> 27));
+  else {
+    auto const bounded{[](double value){ return static_cast<int32_t>(std::clamp(std::round(value), double{INT32_MIN}, double{INT32_MAX})); }};
+    eye[0] = bounded(eye[0] / horizontal_factor); eye[2] = bounded(eye[2] / vertical_factor);
+  }
   return eye;
 }
 vertex3 projection::prepare_scaled(math::vector3 const &eye, int32_t const intensity) const {

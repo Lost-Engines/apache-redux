@@ -70,7 +70,7 @@ void terrain_renderer::draw(resources::terrain_post const &post, std::span<verte
     else subdivide(triangle, kind, {});
     return;
   }
-  uint32_t const range{approximate_range(corners[0].eye)};
+  uint32_t const range{approximate_range(view.unmagnify(corners[0].eye))};
   material paint;
   if(method == terrain_method::constant) paint.colours = fog.constant_colour(range, selector == 127 ? 127 : post.colours[half], palette.visual_remap);
   else if(method == terrain_method::gouraud) {

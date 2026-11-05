@@ -3,7 +3,7 @@
 #include "math/geometry.h"
 
 namespace apache::render {
-horizon::horizon(framebuffer &destination, rectangle const viewport, scene_palette const &colours, math::trigonometry const &angles) : target{destination}, area{viewport}, view{viewport.left, viewport.top, viewport.right - viewport.left + 1, viewport.bottom - viewport.top + 1}, plane{viewport, {-(viewport.right - viewport.left + 1) * 500, -(viewport.bottom - viewport.top + 1) * 500, (viewport.right - viewport.left + 1) * 500, (viewport.bottom - viewport.top + 1) * 500}}, raster{destination}, palette{colours}, trig{angles} {
+horizon::horizon(framebuffer &destination, rectangle const viewport, scene_palette const &colours, math::trigonometry const &angles) : target{destination}, area{viewport}, view{viewport.left, viewport.top, viewport.right - viewport.left + 1, viewport.bottom - viewport.top + 1, destination.horizontal_fov}, plane{viewport, {-(viewport.right - viewport.left + 1) * 500, -(viewport.bottom - viewport.top + 1) * 500, (viewport.right - viewport.left + 1) * 500, (viewport.bottom - viewport.top + 1) * 500}}, raster{destination}, palette{colours}, trig{angles} {
   half_width = (viewport.right - viewport.left + 1) * 500;
   half_height = (viewport.bottom - viewport.top + 1) * 500;
 }

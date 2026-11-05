@@ -1,5 +1,6 @@
 #pragma once
 #include "multiplayer_chat.h"
+#include "configuration/graphics.h"
 #include "render/avionics.h"
 #include "render/landscape.h"
 #include "simulation/control_input.h"
@@ -19,6 +20,7 @@ struct mission_connection {
   bool defer_initialisation{false};
 };
 struct mission_options {
+  configuration::graphics graphics;
   bool arcade{true};
   bool invulnerable{false}, infinite_weapons{false}, no_crashes{false};
   unsigned int video_mode{1}, detail{0};
@@ -32,6 +34,7 @@ struct mission_options {
 // Platform-independent live mission. Elapsed time is supplied in original 200 Hz ticks.
 class mission_session {
   mission_options settings;
+  render::framebuffer overlay;
   simulation::mission_random_state initial_seeds;
   std::optional<resources::mission_definition> network_definition;
   uint32_t library_random{1};
@@ -98,6 +101,7 @@ public:
   void initialise_remote_players();
   void send_server_frame();
   void landing_award();
+  bool resize(unsigned int width, unsigned int height);
   void draw();
 };
 } // namespace apache::frontend

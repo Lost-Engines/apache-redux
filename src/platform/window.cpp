@@ -13,7 +13,7 @@ struct pair { int x; int y; };
 struct display_area { pair position; pair size; };
 display_area viewport(int const width, int const height, int const logical_width, int const logical_height) {
   double const available{std::min(width / static_cast<double>(logical_width),height / static_cast<double>(logical_height))};
-  double const fit{available >= 1 ? std::floor(available) : available};
+  double const fit{available};
   pair const fitted{std::max(1,static_cast<int>(logical_width * fit)),std::max(1,static_cast<int>(logical_height * fit))};
   return {
     .position{(width - fitted.x) / 2,(height - fitted.y) / 2},
@@ -33,26 +33,32 @@ glfw_runtime::~glfw_runtime() {
   glfwTerminate();
 }
 
-window::window(unsigned int const scale) : handle{nullptr, glfwDestroyWindow} {
-  /// Match Darker's floating-window sizing and nearest-neighbour presentation; only the final CPU image uses OpenGL
+window::window(unsigned int const scale, std::optional<configuration::resolution> const resolution) : handle{nullptr, glfwDestroyWindow} {
+  // OpenGL only presents the completed software-rendered image.
   bool const automatic{scale == 0}, compositor_sizing{automatic && glfwGetPlatform() == GLFW_PLATFORM_WAYLAND};
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,2);
   glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR,1);
   glfwWindowHint(GLFW_VISIBLE,GLFW_FALSE);
   glfwWindowHint(GLFW_MAXIMIZED,compositor_sizing ? GLFW_TRUE : GLFW_FALSE);
-  auto const initial_scale{static_cast<int>(scale ? scale : 2)};
-  handle.reset(glfwCreateWindow(logical_width * initial_scale,logical_height * initial_scale,"Apache C++",nullptr,nullptr));
+  auto const initial_scale{static_cast<int>(scale ? scale : 1)};
+  int const initial_width{static_cast<int>(resolution ? resolution->width : 960u)}, initial_height{static_cast<int>(resolution ? resolution->height : 720u)};
+  handle.reset(glfwCreateWindow((scale && !resolution ? 640 : initial_width) * initial_scale,(scale && !resolution ? 480 : initial_height) * initial_scale,"Apache Redux",nullptr,nullptr));
   if(!handle) throw std::runtime_error{"cannot create the Apache window"};
   if(automatic && !compositor_sizing) {
     if(auto *monitor{glfwGetPrimaryMonitor()}) {
       int x{0}, y{0}, width{0}, height{0}, left{0}, top{0}, right{0}, bottom{0};
       glfwGetMonitorWorkarea(monitor,&x,&y,&width,&height);
       glfwGetWindowFrameSize(handle.get(),&left,&top,&right,&bottom);
-      int const fit{std::max(1,std::min((width - left - right) / logical_width,(height - top - bottom) / logical_height))};
-      glfwSetWindowSize(handle.get(),logical_width * fit,logical_height * fit);
-      glfwSetWindowPos(handle.get(),x + left + (width - left - right - logical_width * fit) / 2,y + top + (height - top - bottom - logical_height * fit) / 2);
+      int w{std::max(160, width - left - right - 48)}, h{std::max(160, height - top - bottom - 48)};
+      if(resolution) {
+        double const fit{std::min({1.0, double(w) / initial_width, double(h) / initial_height})};
+        w = static_cast<int>(initial_width * fit); h = static_cast<int>(initial_height * fit);
+      }
+      glfwSetWindowSize(handle.get(),w,h);
+      glfwSetWindowPos(handle.get(),x + left + (width - left - right - w) / 2,y + top + (height - top - bottom - h) / 2);
     }
   }
+  glfwSetWindowSizeLimits(handle.get(), 160, 160, 8192, 8192);
   glfwShowWindow(handle.get());
   if(compositor_sizing) {
     int width{0}, height{0};
@@ -60,8 +66,7 @@ window::window(unsigned int const scale) : handle{nullptr, glfwDestroyWindow} {
     glfwRestoreWindow(handle.get());
     auto const deadline{glfwGetTime() + 1};
     while(glfwGetWindowAttrib(handle.get(),GLFW_MAXIMIZED) && glfwGetTime() < deadline) glfwWaitEventsTimeout(.01);
-    int const fit{std::max(1,std::min(width / logical_width,height / logical_height))};
-    glfwSetWindowSize(handle.get(),logical_width * fit,logical_height * fit);
+    glfwSetWindowSize(handle.get(),width,height);
   }
   glfwMakeContextCurrent(handle.get());
   glfwSwapInterval(1);
@@ -89,6 +94,10 @@ GLFWwindow *window::get() const {
 }
 bool window::focused() const {
   return glfwGetWindowAttrib(handle.get(),GLFW_FOCUSED) == GLFW_TRUE;
+}
+configuration::resolution window::framebuffer_size() const {
+  int width{0}, height{0}; glfwGetFramebufferSize(handle.get(), &width, &height);
+  return {static_cast<unsigned int>(std::clamp(width, 1, 8192)), static_cast<unsigned int>(std::clamp(height, 1, 8192))};
 }
 bool window::poll() {
   glfwPollEvents();
