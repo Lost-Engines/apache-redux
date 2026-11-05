@@ -1,8 +1,8 @@
 #include "installation.h"
 #include "data_store.h"
-#include "configuration/profiles.h"
 #include <algorithm>
 #include <chrono>
+#include <cstdlib>
 #include <fstream>
 #include <memory>
 #include <stdexcept>
@@ -54,7 +54,10 @@ std::filesystem::path default_game_directory() {
   filename.resize(size);
   return std::filesystem::path{filename}.parent_path() / "data";
 #else
-  return configuration::default_save_directory() / "game";
+  // Share original game files with Apache C++, independently of Redux saves.
+  if(auto const *path{std::getenv("XDG_DATA_HOME")}; path && *path && std::filesystem::path{path}.is_absolute()) return std::filesystem::path{path} / "apache/game";
+  if(auto const *path{std::getenv("HOME")}; path && *path) return std::filesystem::path{path} / ".local/share/apache/game";
+  return "apache-saves/game";
 #endif
 }
 std::filesystem::path select_game_directory(std::optional<std::filesystem::path> const &requested, std::filesystem::path const &save_directory) {

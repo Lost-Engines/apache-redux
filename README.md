@@ -35,7 +35,7 @@ Arrow keys control pitch and roll, Q/A change collective, Enter selects a weapon
 
 The 3D world renders at the window’s actual pixel resolution, including on high-DPI displays. Resizing the window updates it automatically. Original menus and cockpit artwork use nearest-neighbour scaling with square pixels. `--skip-intro` skips the opening sequence, and `--no-audio` disables playback. Run `apache --help` for other options.
 
-Pilot profiles and preferences are saved under `$XDG_DATA_HOME/apache-redux` or `~/.local/share/apache-redux` on Linux, and `%LOCALAPPDATA%\apache-redux` on Windows. `--save-dir` selects another location. Fetched game files occupy the separate `game` subdirectory on Linux, or `data` beside the Windows executable.
+Pilot profiles and preferences are saved under `$XDG_DATA_HOME/apache-redux` or `~/.local/share/apache-redux` on Linux, and `%LOCALAPPDATA%\apache-redux` on Windows. `--save-dir` selects another location. Game files are shared with Apache C++ under `$XDG_DATA_HOME/apache/game` or `~/.local/share/apache/game` on Linux, so one download serves both versions. On Windows, they live in `data` beside the executable.
 
 ## Resolution and field of view
 
