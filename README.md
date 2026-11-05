@@ -8,7 +8,7 @@ Redux adds full-resolution 3D rendering that follows your window size, fixed res
 
 ## Getting started
 
-[Download the latest release](https://github.com/slowriot/apache-redux/releases/latest) for Linux, Windows or macOS and unpack it.
+[Download the latest release](https://github.com/Lost-Engines/apache-redux/releases/latest) for Linux, Windows or macOS and unpack it.
 
 On Windows, run `scripts\fetch-assets.bat`, then open `apache.exe`. On Linux or macOS, run these commands inside the unpacked directory:
 
