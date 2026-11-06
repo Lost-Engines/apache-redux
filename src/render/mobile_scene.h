@@ -12,6 +12,7 @@ struct mobile_visibility {
   int32_t near_depth{-262144};
   int32_t far_depth{4194304};
   bool shadows{false};
+  double lod_distance_multiplier{1};
 };
 class mobile_scene {
   struct entry {

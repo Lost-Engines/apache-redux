@@ -73,6 +73,7 @@ mission_session::mission_session(resources::data_store const &data, resources::m
     daylight{runtime.executable, runtime.mission.time_of_day}, world{data, zone}, panels{data, options.video_mode},
     avionics{panels, runtime.trig, runtime.executable}, frame{options.graphics.fixed_resolution ? options.graphics.fixed_resolution->width : overlay.image.width, options.graphics.fixed_resolution ? options.graphics.fixed_resolution->height : overlay.image.height} {
   frame.horizontal_fov = options.graphics.field_of_view;
+  visual.models.lod_distance_multiplier = options.graphics.lod_distance_multiplier;
   if(settings.shared_seat) {
     if(*settings.shared_seat != multiplayer::crew_role::pilot && *settings.shared_seat != multiplayer::crew_role::gunner) throw std::runtime_error{"Invalid shared cockpit seat"};
     settings.difficulty = 2; settings.invulnerable = settings.infinite_weapons = settings.no_crashes = false;
@@ -442,6 +443,12 @@ void mission_session::step(unsigned int const ticks) {
     if((cause == 2 || cause == 3 || cause == 4 || cause == 10 || cause == 11 || cause == 12) && views->modes.mode != 19 && !views->context.following) select_view(19);
   }
   runtime.player_armament->update_hydra(runtime.timing.now, last_delta, controls.keyboard[4]);
+}
+void mission_session::configure_graphics(configuration::graphics const &graphics) {
+  settings.graphics = graphics;
+  frame.horizontal_fov = graphics.field_of_view;
+  visual.models.lod_distance_multiplier = graphics.lod_distance_multiplier;
+  views->modes.changed = true; quit_drawn = false;
 }
 bool mission_session::resize(unsigned int const width, unsigned int const height) {
   if(frame.image.width == width && frame.image.height == height) return false;

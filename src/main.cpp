@@ -123,6 +123,7 @@ int main(int const argc, char const *const argv[]) try {
   bool quick{false}, override_model{false}, override_detail{false}, override_video{false};
   int mission_id{0};
   apache::frontend::mission_options mission_options;
+  std::optional<double> fov_override, lod_override;
   for(int i{1}; i < argc; ++i) {
     std::string_view const key{argv[i]};
     auto const value{[&]()->std::string_view{
@@ -138,7 +139,8 @@ int main(int const argc, char const *const argv[]) try {
                    "  --check-assets        Verify all reference game files without starting the game\n"
                    "  --asset-directory     Print the default game-data directory\n"
                    "  --resolution WxH      Fixed 3D render size, or auto to follow window pixels (default)\n"
-                   "  --fov DEGREES         Horizontal field of view, 30..150 (default: 90)\n"
+                   "  --fov DEGREES         Horizontal field of view, 30..150 (initial default: 90)\n"
+                   "  --lod-distance N      Model LOD/visibility distance multiplier, 0.1..32 (default: 6)\n"
                    "  --scale N             Initial window scale, or 0 to fit the desktop\n"
                    "  --skip-intro          Skip the opening movies and publisher logos\n"
                    "  --no-audio            Disable the playback device\n"
@@ -160,7 +162,8 @@ int main(int const argc, char const *const argv[]) try {
     else if(key == "--asset-directory") asset_directory = true;
     else if(key == "--save-dir") save_directory = value();
     else if(key == "--resolution") mission_options.graphics.fixed_resolution = apache::configuration::parse_resolution(value());
-    else if(key == "--fov") mission_options.graphics.field_of_view = apache::configuration::parse_field_of_view(value());
+    else if(key == "--fov") { fov_override = apache::configuration::parse_field_of_view(value()); mission_options.graphics.field_of_view = *fov_override; }
+    else if(key == "--lod-distance") { lod_override = apache::configuration::parse_lod_distance_multiplier(value()); mission_options.graphics.lod_distance_multiplier = *lod_override; }
     else if(key == "--scale") {
       scale = number(value());
       if(scale > 16) throw std::runtime_error{"Window scale must be between 0 and 16"};
@@ -191,6 +194,8 @@ int main(int const argc, char const *const argv[]) try {
   std::unique_ptr<apache::frontend::mission_session> mission;
   if(mission_id && !capture.empty()) mission = std::make_unique<apache::frontend::mission_session>(data, mission_id, mission_options);
   apache::frontend::mission_frontend frontend{data, mission_options};
+  frontend.settings.override_graphics(fov_override, lod_override);
+  frontend.preferences.update();
   auto &menu{frontend.interface};
   bool launched_from_menu{false};
   menu.show(selected_menu);
@@ -208,6 +213,7 @@ int main(int const argc, char const *const argv[]) try {
   auto const relative{save_root.lexically_relative(data_root)};
   if(relative.empty() || (!relative.empty() && *relative.begin() != "..")) throw std::runtime_error{"Save directory must be outside the original game data"};
   frontend.load_profiles(save_directory);
+  frontend.preferences.update();
   if(directory) apache::resources::remember_game_directory(data.directory(), save_directory);
   if(override_model) frontend.options.arcade = mission_options.arcade;
   if(override_detail) frontend.options.detail = mission_options.detail;

@@ -70,7 +70,7 @@ void model_renderer::draw_instance(model_instance &object, math::pose const &cam
   alternate ^= object.alternate_colours;
   auto const *definition{&model_at(models, object.id)};
   size_t lods{0};
-  while(definition->lod_distance != -1 && definition->lod_distance < object.distance) {
+  while(definition->lod_distance != -1 && double(definition->lod_distance) * style.lod_distance_multiplier < object.distance) {
     if(++lods > models.size()) throw std::runtime_error{"Cyclic model detail chain"};
     definition = &model_at(models, static_cast<uint32_t>(definition->lod_next));
   }

@@ -21,6 +21,12 @@ int main() try {
     require(failed, "invalid FOV accepted");
   }
   require(configuration::parse_field_of_view("72.5") == 72.5, "fractional FOV");
+  require(configuration::graphics{}.lod_distance_multiplier == 6, "Redux default LOD distance");
+  for(auto text : {"", "nan", "inf", "0", "-1", "0.09", "33", "6x"}) {
+    bool failed{false}; try { configuration::parse_lod_distance_multiplier(text); } catch(std::runtime_error const &) { failed = true; }
+    require(failed, "invalid LOD multiplier accepted");
+  }
+  require(configuration::parse_lod_distance_multiplier("6.25") == 6.25, "fractional LOD multiplier");
   render::projection normal{0, 0, 1920, 1080}, wide{0, 0, 1920, 1080, 120}, narrow{0, 0, 1920, 1080, 60};
   auto const point{normal.prepare({10000, 10000, 0})};
   require(point.screen.x == 1919, "45-degree ray reaches edge at 90-degree FOV");

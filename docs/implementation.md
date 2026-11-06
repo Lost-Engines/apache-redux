@@ -34,6 +34,14 @@ At a custom FOV, the helmet display is drawn into its own covered layer using th
 
 `graphics_tests` follows projected world rays through both artwork sizes, wide/portrait/fractional resolutions and 30°, 60°, 120° and 150° FOVs, including subpixel marks and clipping against the instrument panel. `hud_fov_check DATA_DIRECTORY [CAPTURE_DIRECTORY]` checks the actual acquisition-box dimensions through 4K, matching target coordinates/acquisition state across FOV changes, identical panel pixels, and Escape confirmation/cancellation with frozen flight time. `graphics_window.py` also exercises Escape from help, the flight prompt and its cancellation.
 
+## LOD distance and saved graphics options
+
+Redux defaults to a 6.0 LOD distance multiplier. `--lod-distance` accepts 0.1 through 32; 1.0 preserves the original thresholds. Model and shadow renderers multiply each linked-model cutoff, including attachment and terminal empty-model transitions, without changing the actual distance used for painter sorting. The same factor extends object/effect far-depth limits, mobile and scenery sector searches, shadow visibility and the near/distant feature-list boundary. Terrain sector scanning, mesh quality and fog distance remain unchanged. Scenery beyond the terrain scan has a separate submission pass. FLIR model previews use the current scene's LOD factor.
+
+Preferences now has FOV and LOD-distance dropdowns with a preview. `Redux FOV` and `Redux LOD distance` are saved in the existing `prefs.cfg`. Missing or malformed entries use 90 degrees and 6.0. Command-line overrides take precedence for that launch, survive unrelated preference edits and do not replace stored values; an explicit menu selection replaces its corresponding override and saves the choice. Briefing previews and newly prepared missions receive the effective settings.
+
+`lod_check DATA_DIRECTORY [PREFERENCES_CAPTURE.ppm]` checks actual menu clicks, saved settings, temporary command-line overrides, A-10 detail/attachment/shadow selection at five distances, expanded mobile visibility and identical terrain-only pixels from 0.1x through 32x. `graphics_tests` rejects malformed multipliers. Captures use local paths and are not published.
+
 ## Software rendering performance
 
 The high-resolution drawing paths keep the same indexed pixels while avoiding repeated work:
@@ -43,7 +51,7 @@ The high-resolution drawing paths keep the same indexed pixels while avoiding re
 - Perspective terrain writes into an already checked scanline. Its original 16-pixel interpolation blocks and rounding stay intact, including when the viewport clips a span. Block endpoints are rounded once and reused; the three interpolants advance without a small array loop at every pixel.
 - Palette conversion builds a 256-entry RGBA lookup table and fills a reusable upload buffer. Palette changes still apply every frame, while resizing only reallocates when capacity is insufficient.
 
-Measurements on an Intel Xeon E5-2699A v4, GCC 16.2, `RelWithDebInfo` (`-O2`, floating-point contraction disabled), at maximum detail:
+Measurements on an Intel Xeon E5-2699A v4, GCC 16.2, `RelWithDebInfo` (`-O2`, floating-point contraction disabled), at maximum detail and the original 1x LOD distances:
 
 | View | Resolution | Before | After | Speedup |
 | --- | --- | ---: | ---: | ---: |
@@ -56,12 +64,12 @@ Measurements on an Intel Xeon E5-2699A v4, GCC 16.2, `RelWithDebInfo` (`-O2`, fl
 
 These are CPU drawing plus palette-conversion times, excluding simulation, texture upload and display synchronization. Each entry is the median of three 30-frame runs after warmup, alternating the old and new binaries on the same CPU core. The eight benchmark scenes, including the original 640 × 480 resolution, retain identical indexed and RGBA checksums in every run. The baseline is commit `0704172`.
 
-`render_benchmark` loads a mission, advances ten ticks, pauses and draws the same view repeatedly. Negative mission numbers select quickstart warzones 1 through 4. Its arguments are `DATA WIDTH HEIGHT FRAMES [VIEW=0] [MISSION=-3] [ALTITUDE_FEET=0] [FOV=90]`:
+`render_benchmark` loads a mission, advances ten ticks, pauses and draws the same view repeatedly. Negative mission numbers select quickstart warzones 1 through 3. Its arguments are `DATA WIDTH HEIGHT FRAMES [VIEW=0] [MISSION=-3] [ALTITUDE_FEET=0] [FOV=90] [LOD_DISTANCE=6]`:
 
 ```sh
 cmake --build build --target render_benchmark
 build/render_benchmark ~/.local/share/apache/game 3840 2160 100
-build/render_benchmark ~/.local/share/apache/game 3840 2160 100 10 -3 1000 90
+build/render_benchmark ~/.local/share/apache/game 3840 2160 100 10 -3 1000 90 1
 ```
 
 It reports drawing and conversion separately, plus image checksums. When Valgrind headers are installed, `--tool=callgrind --instr-atstart=no` profiles only the measured loop.

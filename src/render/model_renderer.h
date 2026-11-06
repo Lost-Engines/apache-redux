@@ -24,6 +24,7 @@ model_instance construct_scenery_model(resources::model_archive const &models, u
 void maintain_model(model_instance &object, math::pose const *parent = nullptr);
 void synchronize_model(model_instance &destination, model_instance const &source);
 struct model_style {
+  double lod_distance_multiplier{1};
   bool textures{true};
   bool gouraud{true};
   bool glass{true};

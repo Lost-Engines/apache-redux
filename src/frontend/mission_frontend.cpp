@@ -59,6 +59,9 @@ void mission_frontend::launch_quick() {
 void mission_frontend::apply_preferences() {
   options.arcade = settings.model == 2; options.video_mode = settings.video_mode; options.detail = settings.detail; options.difficulty = static_cast<int>(settings.forces);
   options.controls = settings.controls; options.deadband = settings.deadband; options.axes = settings.axes;
+  options.graphics.field_of_view = settings.graphics.field_of_view;
+  options.graphics.lod_distance_multiplier = settings.graphics.lod_distance_multiplier;
+  if(prepared) prepared->configure_graphics(options.graphics);
 }
 void mission_frontend::visible(std::string_view const name, bool const show) {
   auto &object{interface.named(name)}; object.flags = (object.flags & ~1u) | static_cast<unsigned int>(show);

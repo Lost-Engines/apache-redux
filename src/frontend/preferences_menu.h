@@ -9,7 +9,7 @@ class preferences_menu {
   resources::data_store const &data;
   menu &interface;
   std::unique_ptr<render::landscape> world;
-  render::framebuffer preview_frame{290, 216};
+  render::framebuffer preview_frame{290, 156};
   int preview_zone{0};
   bool preview_visible{false};
   void preview();

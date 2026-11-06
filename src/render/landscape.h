@@ -50,6 +50,7 @@ class landscape {
   std::vector<resources::scenery_placement const *> live_scenery;
   std::vector<bool> extra_scenery;
   mobile_scene *live_mobiles{nullptr};
+  double lod_distance_multiplier{1};
   simulation::effects const *live_effects{nullptr};
   simulation::craters const *live_craters{nullptr};
   simulation::fragments const *live_fragments{nullptr};

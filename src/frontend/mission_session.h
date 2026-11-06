@@ -103,6 +103,7 @@ public:
   void send_server_frame();
   void landing_award();
   bool resize(unsigned int width, unsigned int height);
+  void configure_graphics(configuration::graphics const &graphics);
   void draw();
 };
 } // namespace apache::frontend

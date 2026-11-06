@@ -3,6 +3,7 @@
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
+#include "lod.h"
 #include "terrain_projection.h"
 
 namespace apache::render {
@@ -63,7 +64,7 @@ std::string_view landscape::draw_flir(framebuffer &target, model_instance &objec
   for(size_t i{0}; i != 3; ++i) delta[i] = math::subtract(object.relative.position[i], camera.position[i]);
   object.distance = static_cast<int32_t>(approximate_range(delta));
   model_renderer drawer{target, models, object_textures, palette};
-  drawer.style = {.textures{false}, .gouraud{false}, .glass{false}, .light{light_vector(trig, lighting)}};
+  drawer.style = {.lod_distance_multiplier{lod_distance_multiplier}, .textures{false}, .gouraud{false}, .glass{false}, .light{light_vector(trig, lighting)}};
   // The isolated-target path keeps the colour remap left by the preceding
   // scene render. The central gunner display uses this same path.
   drawer.draw(object, camera);
@@ -72,6 +73,8 @@ std::string_view landscape::draw_flir(framebuffer &target, model_instance &objec
 }
 void landscape::draw(framebuffer &target, math::pose camera, landscape_options const &configuration) {
   auto options{configuration};
+  lod_distance_multiplier = options.models.lod_distance_multiplier;
+  options.far_object_depth = lod_cutoff(options.far_object_depth, lod_distance_multiplier);
   auto &active_mobiles{live_mobiles ? *live_mobiles : mobiles};
   auto const &active_effects{live_effects ? *live_effects : effects};
   auto const &active_craters{live_craters ? *live_craters : craters};
@@ -119,6 +122,22 @@ void landscape::draw(framebuffer &target, math::pose camera, landscape_options c
     auto const points{project_feature(object, camera.rotation, origin, view)};
     feature_drawer.draw(distant && object.has_distant ? object.distant : object.faces, points, fog);
   }};
+  int const object_radius{lod_sector_radius(lod_distance_multiplier)};
+  auto const submit_scenery{[&](int x, int y){
+    if(!options.scenery) return;
+    for(auto const index : scenery_sectors[static_cast<size_t>(x * 64 + y)]) {
+      refresh_scenery(index);
+      if(!scenery_placements[index].model) continue;
+      auto &object{scenery[index]};
+      math::vector3 delta;
+      for(size_t axis{0}; axis != 3; ++axis) delta[axis] = math::subtract(object.relative.position[axis], camera.position[axis]);
+      int32_t const depth{math::transform(camera.rotation, delta)[1]};
+      if(depth <= options.near_object_depth || depth >= options.far_object_depth) continue;
+      auto const range{static_cast<int32_t>(approximate_range(delta))};
+      object.distance = depth < 0 ? -range : range;
+      if(!queue.push({draw_kind::ground_object, static_cast<uint32_t>(index), object.distance, 0, models[object.id]->bounds[5] == 0})) break;
+    }
+  }};
   if(sky.cloud_mode == 0 || (!(sky.cloud_flags & 2) && sky.weather == 0)) {
     // The reference engine projects the super-feature vertices but never
     // submits their face lists. They remain available in the resource tools.
@@ -160,21 +179,19 @@ void landscape::draw(framebuffer &target, math::pose camera, landscape_options c
             }
           }
         }
-        draw_feature(features, sx + x, sy + y, origin, std::abs(x) >= 4 || std::abs(y) >= 4);
-        if(options.scenery && std::abs(x) < 2 && std::abs(y) < 2) {
-          for(auto const index : scenery_sectors[static_cast<size_t>((sx + x) * 64 + sy + y)]) {
-            refresh_scenery(index);
-            if(!scenery_placements[index].model) continue;
-            auto &object{scenery[index]};
-            math::vector3 delta;
-            for(size_t axis{0}; axis != 3; ++axis) delta[axis] = math::subtract(object.relative.position[axis], camera.position[axis]);
-            int32_t const depth{math::transform(camera.rotation, delta)[1]};
-            if(depth <= options.near_object_depth || depth >= options.far_object_depth) continue;
-            auto const range{static_cast<int32_t>(approximate_range(delta))};
-            object.distance = depth < 0 ? -range : range;
-            if(!queue.push({draw_kind::ground_object, static_cast<uint32_t>(index), object.distance, 0, models[object.id]->bounds[5] == 0})) break;
-          }
-        }
+        draw_feature(features, sx + x, sy + y, origin, std::abs(x) >= 4 * lod_distance_multiplier || std::abs(y) >= 4 * lod_distance_multiplier);
+        if(std::abs(x) <= object_radius && std::abs(y) <= object_radius) submit_scenery(sx + x, sy + y);
+      }
+    }
+    // Objects can outlive their terrain tile's draw cutoff. Scan any extra
+    // sectors separately without extending terrain projection or its fog.
+    if(lod_distance_multiplier != 1) {
+      int const sx{camera.position[0] >> 22}, sy{camera.position[1] >> 22};
+      for(int x{-object_radius}; x <= object_radius; ++x) for(int y{-object_radius}; y <= object_radius; ++y) {
+        if(sx + x < 0 || sx + x >= 64 || sy + y < 0 || sy + y >= 64) continue;
+        if(!sectors.empty() && x >= sectors.left && x <= sectors.right && y >= sectors.bottom && y <= sectors.top) continue;
+        auto const origin{feature_origin(camera, sx + x, sy + y, false)};
+        if(sector_visibility(camera.rotation, origin, view, false)) submit_scenery(sx + x, sy + y);
       }
     }
   }
@@ -196,8 +213,9 @@ void landscape::draw(framebuffer &target, math::pose camera, landscape_options c
   casting.cloud_mode = sky.cloud_mode; casting.cloud_top = options.cloud_top;
   casting.receiver = [&](math::vector3 const &position){ return active_mobiles.shadow_receiver(position); };
   bool const shadows{options.shadows && options.lighting.night == 0 && std::bit_cast<int32_t>(options.lighting.pitch) < -0x71c71c6 && ((sky.cloud_mode == 0 && sky.weather == 0) || sky.cloud_mode == 2)};
-  active_mobiles.submit(queue, camera, {.cloud_mode{sky.cloud_mode}, .cloud_flags{sky.cloud_flags}, .weather{sky.weather}, .cloud_bottom{options.cloud_bottom}, .cloud_top{options.cloud_top}, .near_depth{options.near_object_depth}, .far_depth{options.far_object_depth}, .shadows{shadows}}, casting);
+  active_mobiles.submit(queue, camera, {.cloud_mode{sky.cloud_mode}, .cloud_flags{sky.cloud_flags}, .weather{sky.weather}, .cloud_bottom{options.cloud_bottom}, .cloud_top{options.cloud_top}, .near_depth{options.near_object_depth}, .far_depth{options.far_object_depth}, .shadows{shadows}, .lod_distance_multiplier{lod_distance_multiplier}}, casting);
   shadow_renderer shadow_drawer{target, models, casting, palette};
+  shadow_drawer.lod_distance_multiplier = lod_distance_multiplier;
   for(auto const &entry : queue.ordered()) {
     if(entry.kind == draw_kind::terrain) draw_tile(tiles[entry.payload], false);
     else if(entry.kind == draw_kind::smoke) effect_drawer.draw_smoke(active_effects.smoke_puffs.at(entry.payload), camera, angles[2], trig, view, cloud_raster);

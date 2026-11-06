@@ -1,9 +1,14 @@
 #include "preferences_menu.h"
 #include <algorithm>
+#include <format>
 #include "resources/executable.h"
 
 namespace apache::frontend {
 void preferences_menu::update() {
+  interface.bounds("_preferences_visual_button", {19, 83, 310, 240});
+  interface.bounds("_preferences_visual", {20, 84, 309, 239});
+  interface.named("_preferences_fov_button").text = std::format("Field of view: {} deg", settings.graphics.field_of_view);
+  interface.named("_preferences_lod_button").text = std::format("LOD distance: {}x", settings.graphics.lod_distance_multiplier);
   auto const on{[this](std::string_view name, bool value){ interface.named(name).on = value; }};
   interface.named("_preferences_visual_detail_bar").range = {0, 99, static_cast<int>(settings.detail * 10), 10};
   interface.named("_preferences_forces_slider_bar").range = {0, 99, static_cast<int>(settings.forces * 10), 5};
@@ -36,6 +41,8 @@ void preferences_menu::preview() {
   options.far_object_depth = level == 0 ? 0x200000 : 0x400000;
   options.terrain_detail = level < 2 ? 0 : level < 5 ? 1 : level == 5 ? 2 : 3;
   options.models.textures = level >= 3; options.models.gouraud = level >= 6;
+  options.models.lod_distance_multiplier = settings.graphics.lod_distance_multiplier;
+  preview_frame.horizontal_fov = settings.graphics.field_of_view;
   options.sky.cloud_flags = level == 0 ? 0 : level < 4 ? 2 : 10;
   options.lighting.heading = 0; options.lighting.pitch = 0xc0000000;
   world->draw(preview_frame, camera, options);
@@ -74,7 +81,15 @@ void preferences_menu::dropdown(widget const &button, std::string const &key, st
 bool preferences_menu::activate(widget &object) {
   auto const &action{object.action};
   if(action == "notify_preferences_button_" || action == "notify_mission_select_preferences_") { show(); return true; }
-  if(action == "notify_preferences_collective_button_") dropdown(object, "Collective control", {{"Keyboard", 0}, {"Throttle Stick", 6}});
+  if(action == "redux_field_of_view") {
+    std::vector<std::pair<std::string, int>> choices;
+    for(int value : {30, 45, 60, 75, 90, 100, 110, 120, 130, 140, 150}) choices.emplace_back(std::format("{} degrees", value), value);
+    interface.popup(std::move(choices), [this](int value){ settings.set_field_of_view(value); update(); preview(); settings.save(); });
+  } else if(action == "redux_lod_distance") {
+    std::vector<std::pair<std::string, int>> choices;
+    for(int value : {25, 50, 100, 200, 300, 400, 600, 800, 1200, 1600, 2400, 3200}) choices.emplace_back(std::format("{}x{}", value / 100.0, value == 100 ? " (original)" : value == 600 ? " (default)" : ""), value);
+    interface.popup(std::move(choices), [this](int value){ settings.set_lod_distance_multiplier(value / 100.0); update(); preview(); settings.save(); });
+  } else if(action == "notify_preferences_collective_button_") dropdown(object, "Collective control", {{"Keyboard", 0}, {"Throttle Stick", 6}});
   else if(action == "notify_preferences_tailrotor_button_") dropdown(object, "Tailrotor control", {{"Keyboard", 0}, {"Pedals", 5}});
   else if(action == "notify_preferences_cyclic_button_") dropdown(object, "Cyclic control", {{"Keyboard", 0}, {"Joystick", 1}, {"Thrustmaster FCS", 2}, {"Flightstick Pro", 3}, {"Virtual Pilot Pro", 4}});
   else if(action == "notify_preferences_visual_detail_bar_") { settings.set("Visual Detail", object.range[2] / 10); preview(); }

@@ -39,17 +39,21 @@ The 3D world renders at the window’s actual pixel resolution, including on hig
 
 Pilot profiles and preferences are saved under `$XDG_DATA_HOME/apache-redux` or `~/.local/share/apache-redux` on Linux, and `%LOCALAPPDATA%\apache-redux` on Windows. `--save-dir` selects another location. Game files are shared with Apache C++ under `$XDG_DATA_HOME/apache/game` or `~/.local/share/apache/game` on Linux, so one download serves both versions. On Windows, they live in `data` beside the executable.
 
-## Resolution and field of view
+## Graphics options
 
 No options are needed for automatic resolution. To choose a fixed render size or a wider view:
 
 ```sh
 ./apache --resolution 1920x1080
 ./apache --resolution 3840x2160 --fov 110
-./apache --resolution auto --fov 100
+./apache --resolution auto --fov 100 --lod-distance 6
 ```
 
 `--fov` sets the horizontal viewing angle in degrees, from 30 to 150. The default is the original 90°. HUD symbols scale with the field of view, keeping acquisition cues and target markers aligned with the scene; cockpit artwork and MFDs retain their normal size. A fixed resolution stays unchanged when the window is resized; its image is fitted without stretching. `--scale 2` sets the initial window to 1280×960 while keeping automatic rendering, or doubles the chosen fixed resolution's window size.
+
+**Preferences** includes **Field of view** and **LOD distance**, with a scene preview. Both choices are remembered between launches. Command-line values override saved choices for that run; selecting a new value in the menu saves it.
+
+`--lod-distance` keeps detailed models visible farther away. The default is **6×** the original distances; **1×** restores the original thresholds. It covers aircraft and attached parts, buildings, shadows, craters, debris and effects, without extending the terrain cutoff. The command line accepts values from 0.1 to 32. Larger values draw more objects and may reduce performance.
 
 The renderer runs on the CPU. A lower fixed resolution can improve performance on slower machines. The original cockpit and menu images retain their source detail; increasing resolution sharpens the 3D scene and target previews, including the small screen in F3. The original 320/640 preference selects cockpit artwork, independently of Redux's render resolution.
 

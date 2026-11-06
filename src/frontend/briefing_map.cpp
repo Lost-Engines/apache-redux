@@ -162,6 +162,8 @@ void briefing_map::preview() {
   options.far_object_depth = level == 0 ? 0x200000 : 0x400000;
   options.terrain_detail = level < 2 ? 0 : level < 5 ? 1 : level == 5 ? 2 : 3;
   options.models.textures = level >= 3; options.models.gouraud = level >= 6;
+  options.models.lod_distance_multiplier = settings.graphics.lod_distance_multiplier;
+  preview_frame.horizontal_fov = settings.graphics.field_of_view;
   options.sky.cloud_flags = level == 0 ? 0 : level < 4 ? 2 : 10;
   options.shadows = false;
   preview_world->draw(preview_frame, preview_camera.camera, options);

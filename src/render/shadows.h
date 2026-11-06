@@ -28,6 +28,7 @@ class shadow_renderer {
   projection view;
   void draw_instance(model_instance &object, math::pose const &camera, unsigned int depth);
 public:
+  double lod_distance_multiplier{1};
   shadow_renderer(framebuffer &target, resources::model_archive const &objects, shadow_projection const &cast, scene_palette const &colours);
   void draw(model_instance &object, math::pose const &camera);
 };

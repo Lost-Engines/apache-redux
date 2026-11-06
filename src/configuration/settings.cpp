@@ -1,5 +1,6 @@
 #include "settings.h"
 #include <algorithm>
+#include <format>
 #include <fstream>
 #include <stdexcept>
 
@@ -16,6 +17,17 @@ settings::settings(resources::data_store const &data) {
   apply();
 }
 void settings::apply() {
+  // Older preference files have neither Redux setting. Ignore malformed edits.
+  graphics.field_of_view = 90;
+  graphics.lod_distance_multiplier = 6;
+  if(auto value{values.get("Redux FOV")}) {
+    try { graphics.field_of_view = parse_field_of_view(*value); } catch(std::runtime_error const &) {}
+  }
+  if(auto value{values.get("Redux LOD distance")}) {
+    try { graphics.lod_distance_multiplier = parse_lod_distance_multiplier(*value); } catch(std::runtime_error const &) {}
+  }
+  if(fov_override) graphics.field_of_view = *fov_override;
+  if(lod_override) graphics.lod_distance_multiplier = *lod_override;
   auto const integer{[&](std::string_view key, int fallback, int maximum){ return static_cast<unsigned int>(std::clamp(values.integer(key).value_or(fallback), 0, maximum)); }};
   video_mode = integer("Visual Resolution", 1, 1); detail = integer("Visual Detail", 9, 9);
   model = values.integer("Model ID").value_or(0) == 0 ? 0u : 2u;
@@ -50,4 +62,17 @@ void settings::save() const {
   std::filesystem::rename(temporary, filename);
 }
 void settings::set(std::string_view const key, int const value) { values.set(key, value); apply(); }
+void settings::set_field_of_view(double const value) {
+  auto const text{std::format("{}", value)};
+  parse_field_of_view(text);
+  fov_override.reset(); values.set("Redux FOV", text); apply();
+}
+void settings::set_lod_distance_multiplier(double const value) {
+  auto const text{std::format("{}", value)};
+  parse_lod_distance_multiplier(text);
+  lod_override.reset(); values.set("Redux LOD distance", text); apply();
+}
+void settings::override_graphics(std::optional<double> const fov, std::optional<double> const lod) {
+  fov_override = fov; lod_override = lod; apply();
+}
 } // namespace apache::configuration

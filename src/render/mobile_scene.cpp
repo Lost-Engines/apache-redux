@@ -1,6 +1,7 @@
 #include "mobile_scene.h"
 #include <algorithm>
 #include <stdexcept>
+#include "lod.h"
 #include "terrain_shading.h"
 
 namespace apache::render {
@@ -89,7 +90,8 @@ void mobile_scene::submit(draw_queue &queue, math::pose const &camera, mobile_vi
   bool const below{visibility.cloud_mode == 0 || (!clouds && visibility.weather == 0)};
   auto sort_casting{casting}; sort_casting.cloud_mode = below ? 0 : 2;
   int const sx{camera.position[0] >> 22}, sy{camera.position[1] >> 22};
-  for(int x{-1}; x <= 1; ++x) for(int y{-1}; y <= 1; ++y) {
+  int const radius{lod_sector_radius(visibility.lod_distance_multiplier)};
+  for(int x{-radius}; x <= radius; ++x) for(int y{-radius}; y <= radius; ++y) {
     if(sx + x < 0 || sx + x >= 64 || sy + y < 0 || sy + y >= 64) continue;
     for(auto const id : sectors[static_cast<size_t>((sx + x) * 64 + sy + y)]) {
       auto const &object{*objects[id]->object};
@@ -106,7 +108,7 @@ void mobile_scene::submit(draw_queue &queue, math::pose const &camera, mobile_vi
         auto const point{sort_casting.project(position)};
         auto const delta_shadow{relative_to(point.position, camera.position)};
         int32_t const depth_shadow{math::transform(camera.rotation, delta_shadow)[1]};
-        if(depth_shadow > visibility.near_depth && depth_shadow < 0x80000) {
+        if(depth_shadow > visibility.near_depth && depth_shadow < lod_cutoff(0x80000, visibility.lod_distance_multiplier)) {
           auto const range{static_cast<int32_t>(approximate_range(delta_shadow))};
           shadow = {draw_kind::shadow, id, depth_shadow < 0 ? -range : range};
         }

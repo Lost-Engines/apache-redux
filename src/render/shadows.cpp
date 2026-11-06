@@ -43,7 +43,7 @@ void shadow_renderer::draw_instance(model_instance &object, math::pose const &ca
   if(depth > 64) throw std::runtime_error{"Excessive shadow attachment depth"};
   auto const *definition{&model_at(models, object.id == 0x4ba || object.id == 0x4bb ? 0x40a : object.id)};
   size_t lods{0};
-  while(definition->lod_distance != -1 && definition->lod_distance < object.distance) {
+  while(definition->lod_distance != -1 && double(definition->lod_distance) * lod_distance_multiplier < object.distance) {
     if(++lods > models.size()) throw std::runtime_error{"Cyclic shadow detail chain"};
     definition = &model_at(models, static_cast<uint32_t>(definition->lod_next));
   }

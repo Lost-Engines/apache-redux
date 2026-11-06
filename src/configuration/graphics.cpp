@@ -26,4 +26,11 @@ double parse_field_of_view(std::string_view text) {
     throw std::runtime_error{"Horizontal FOV must be between 30 and 150 degrees"};
   return result;
 }
+double parse_lod_distance_multiplier(std::string_view text) {
+  double result{0};
+  auto const [end, error]{std::from_chars(text.data(), text.data() + text.size(), result)};
+  if(error != std::errc{} || end != text.data() + text.size() || !std::isfinite(result) || result < 0.1 || result > 32)
+    throw std::runtime_error{"LOD distance multiplier must be between 0.1 and 32"};
+  return result;
+}
 } // namespace apache::configuration

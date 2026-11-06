@@ -641,6 +641,8 @@ std::vector<widget> initial_widgets() {
     {.parent{623}, .name{"Network channel button"}, .globals{}, .type{10}, .area{265, 54, 284, 69}, .flags{0x48149}, .action{"notify_network_channel_"}, .text{"9"}},
     {.parent{623}, .name{"Network channel button"}, .globals{}, .type{10}, .area{287, 54, 306, 69}, .flags{0x48149}, .action{"notify_network_channel_"}, .text{"10"}},
     {.parent{514}, .name{"Modem exit button"}, .globals{"_modem_exit_button"}, .type{9}, .area{598, 464, 639, 479}, .flags{0x48149}, .action{"notify_modem_exit_button_"}, .text{"Exit"}},
+    {.parent{266}, .name{"Redux Field of View"}, .globals{"_preferences_fov_button"}, .type{9}, .area{20, 24, 310, 45}, .flags{0x58149}, .action{"redux_field_of_view"}, .text{"Field of view: 90 deg"}},
+    {.parent{266}, .name{"Redux LOD Distance"}, .globals{"_preferences_lod_button"}, .type{9}, .area{20, 49, 310, 70}, .flags{0x58149}, .action{"redux_lod_distance"}, .text{"LOD distance: 6x"}},
   };
 }
 } // namespace apache::frontend
