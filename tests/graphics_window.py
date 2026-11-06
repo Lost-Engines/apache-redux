@@ -32,9 +32,9 @@ for resolution in ['auto','640x480']:
      if len(capture().getcolors(65536) or [])>30: break
      assert game.poll() is None;time.sleep(.05)
     else: raise AssertionError('No rendered flight frame')
-    # Xvfb repeats function-key symbols on Alt levels; use their physical codes.
-    function_keys={'F1':67,'F2':68,'F3':69,'F6':72}
-    def key(value): xdo('key','--clearmodifiers',function_keys.get(value,value));time.sleep(a.settle_seconds)
+    # Xvfb repeats these symbols on modifier levels; use unambiguous physical codes.
+    key_codes={'F1':67,'F2':68,'F3':69,'F6':72,'Pause':127}
+    def key(value): xdo('key','--clearmodifiers',key_codes.get(value,value));time.sleep(a.settle_seconds)
     key('Pause');key('F6')
     before_orbit=capture()
     xdo('keydown','Alt_L','Right');time.sleep(max(.5,a.settle_seconds));xdo('keyup','Right','Alt_L')
@@ -51,8 +51,8 @@ for resolution in ['auto','640x480']:
     key('F3');key('F2');pilot=capture()
     key('F6');external=capture()
     assert external.tobytes()!=pilot.tobytes(), 'F6 did not select the external view'
-    xdo('keydown',function_keys['F1']);time.sleep(max(1,a.settle_seconds));help_frame=capture()
-    xdo('keyup',function_keys['F1']);time.sleep(a.settle_seconds)
+    xdo('keydown',key_codes['F1']);time.sleep(max(1,a.settle_seconds));help_frame=capture()
+    xdo('keyup',key_codes['F1']);time.sleep(a.settle_seconds)
     assert help_frame.tobytes()!=external.tobytes() and capture().tobytes()==help_frame.tobytes(), 'Held F1 did not leave help open'
     key('F1');assert capture().tobytes()==pilot.tobytes(), 'Second F1 did not return to the paused pilot cockpit'
     key('F1');key('F2');assert capture().tobytes()==pilot.tobytes(), 'F2 did not leave help for the pilot cockpit'

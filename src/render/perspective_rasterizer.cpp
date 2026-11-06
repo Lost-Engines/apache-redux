@@ -73,10 +73,19 @@ void rasterizer::perspective(std::span<perspective_vertex const> const vertices,
       std::swap(lhs.x, rhs.x); std::swap(lhs.u, rhs.u); std::swap(lhs.v, rhs.v); std::swap(lhs.intensity, rhs.intensity);
     }
     int x{lhs.x};
+    auto *out{target.image.pixels.data() + size_t(y) * target.image.width};
+    auto *coverage{target.coverage.empty() ? nullptr : target.coverage.data() + size_t(y) * target.image.width};
+    bool const visible_row{y >= target.clip.top && y <= target.clip.bottom};
+    bool const visible_span{visible_row && lhs.x >= target.clip.left && rhs.x <= target.clip.right};
     auto const pixel{[&](int32_t const u, int32_t const v, int32_t const light, bool const block){
       int64_t const address{block ? static_cast<int64_t>((static_cast<uint32_t>(v) >> 10) & 0xffc0) + (static_cast<uint32_t>(u) >> 16) : int64_t{v >> 16} * 64 + (u >> 16)};
       if(address < 0 || address >= 4096) ++invalid_texture_samples;
-      else target.point(x, y, intensity_map[static_cast<size_t>(image.pixels[static_cast<size_t>(address)]) * 256 + static_cast<uint8_t>(light >> 23)]);
+      else if(visible_span || (visible_row && x >= target.clip.left && x <= target.clip.right)) {
+        // scan_perspective has already checked the framebuffer bounds; retain
+        // the full spans so clipping cannot move the original 16-pixel blocks
+        out[x] = intensity_map[size_t{image.pixels[static_cast<size_t>(address)]} * 256 + static_cast<uint8_t>(light >> 23)];
+        if(coverage) coverage[x] = 1;
+      }
       ++x;
     }};
     if(lhs.x == rhs.x) {
@@ -96,18 +105,21 @@ void rasterizer::perspective(std::span<perspective_vertex const> const vertices,
       double denominator{denominator_step};
       std::array<int32_t, 3> value{nearest(start[0]), nearest(start[1]), nearest(start[2])};
       for(int block{0}; block != blocks; ++block) {
-        std::array<int32_t, 3> delta;
+        std::array<int32_t, 3> delta, next;
         for(size_t i{0}; i != 3; ++i) {
           endpoint_value[i] = (start[i] + numerator[i]) / (denominator + 1.0);
           numerator[i] += step[i];
-          delta[i] = math::subtract(nearest(endpoint_value[i]), value[i]) >> 4;
+          next[i] = nearest(endpoint_value[i]);
+          delta[i] = math::subtract(next[i], value[i]) >> 4;
         }
         denominator += denominator_step;
         for(int index{0}; index != 16; ++index) {
           pixel(value[0], value[1], value[2], true);
-          for(size_t i{0}; i != 3; ++i) value[i] = math::add(value[i], delta[i]);
+          value[0] = math::add(value[0], delta[0]);
+          value[1] = math::add(value[1], delta[1]);
+          value[2] = math::add(value[2], delta[2]);
         }
-        for(size_t i{0}; i != 3; ++i) value[i] = nearest(endpoint_value[i]);
+        value = next;
       }
       remaining %= 16;
     }
@@ -116,7 +128,9 @@ void rasterizer::perspective(std::span<perspective_vertex const> const vertices,
       for(size_t i{0}; i != 3; ++i) { value[i] = nearest(endpoint_value[i]); delta[i] = math::subtract(nearest(finish[i]), value[i]) / remaining; }
       for(int index{0}; index != remaining; ++index) {
         pixel(value[0], value[1], value[2], false);
-        for(size_t i{0}; i != 3; ++i) value[i] = math::add(value[i], delta[i]);
+        value[0] = math::add(value[0], delta[0]);
+        value[1] = math::add(value[1], delta[1]);
+        value[2] = math::add(value[2], delta[2]);
       }
     }
   }

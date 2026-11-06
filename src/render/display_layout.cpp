@@ -27,22 +27,44 @@ rectangle display_layout::map(rectangle const logical) const {
 }
 void display_layout::background(framebuffer const &world, framebuffer &overlay) const {
   auto const w{artwork.right - artwork.left + 1}, h{artwork.bottom - artwork.top + 1};
-  for(unsigned int y{0}; y != source_height; ++y) for(unsigned int x{0}; x != source_width; ++x) {
-    auto const sx{artwork.left + static_cast<int>(uint64_t{x} * w / source_width)};
+  std::vector<unsigned int> columns(source_width);
+  for(unsigned int x{0}; x != source_width; ++x)
+    columns[x] = static_cast<unsigned int>(artwork.left) + static_cast<unsigned int>(uint64_t{x} * w / source_width);
+  for(unsigned int y{0}; y != source_height; ++y) {
     auto const sy{artwork.top + static_cast<int>(uint64_t{y} * h / source_height)};
-    overlay.image.pixels[size_t{y} * source_width + x] = world.image.pixels[size_t(sy) * world.image.width + sx];
+    auto const *row{world.image.pixels.data() + size_t(sy) * world.image.width};
+    auto *out{overlay.image.pixels.data() + size_t{y} * source_width};
+    for(unsigned int x{0}; x != source_width; ++x) out[x] = row[columns[x]];
   }
   overlay.coverage.assign(overlay.image.pixels.size(), 0);
   overlay.reset_clip();
 }
 void display_layout::composite(framebuffer const &overlay, framebuffer &world) const {
   int const w{artwork.right - artwork.left + 1}, h{artwork.bottom - artwork.top + 1};
-  for(int y{0}; y != h; ++y) {
-    size_t const row{size_t(uint64_t(y) * source_height / h) * source_width};
-    auto *out{world.image.pixels.data() + size_t(y + artwork.top) * world.image.width + artwork.left};
-    for(int x{0}; x != w; ++x) {
-      size_t const at{row + size_t(uint64_t(x) * source_width / w)};
-      if(overlay.coverage[at]) out[x] = overlay.image.pixels[at];
+  // visit each logical pixel once, expanding covered runs into the native image
+  // ceil boundaries preserve floor(destination * source / size) sampling exactly
+  auto const edge{[](unsigned int value, int size, unsigned int source){
+    return static_cast<int>((uint64_t{value} * size + source - 1) / source);
+  }};
+  std::vector<int> columns(source_width + 1);
+  for(unsigned int x{0}; x <= source_width; ++x) columns[x] = edge(x, w, source_width);
+  for(unsigned int y{0}; y != source_height; ++y) {
+    int const top{edge(y, h, source_height)}, bottom{edge(y + 1, h, source_height)};
+    if(top == bottom) continue;
+    auto const *mask{overlay.coverage.data() + size_t{y} * source_width};
+    auto const *source{overlay.image.pixels.data() + size_t{y} * source_width};
+    auto *out{world.image.pixels.data() + size_t(top + artwork.top) * world.image.width + artwork.left};
+    unsigned int x{0};
+    while(x != source_width) {
+      while(x != source_width && !mask[x]) ++x;
+      int const start{columns[x]};
+      while(x != source_width && mask[x]) {
+        std::fill(out + columns[x], out + columns[x + 1], source[x]);
+        ++x;
+      }
+      int const count{columns[x] - start};
+      if(count) for(int yy{top + 1}; yy != bottom; ++yy)
+        std::copy_n(out + start, count, out + size_t(yy - top) * world.image.width + start);
     }
   }
 }

@@ -89,6 +89,47 @@ int main() try {
   layout.background(world,overlay); render::rasterizer raster{overlay};
   std::array<render::screen_vertex,4> quad{{{0,0},{2,0},{2,2},{0,2}}}; raster.polygon(quad,0);
   require(std::ranges::count(overlay.coverage,1)==9, "rasterized instrument coverage");
+  // Compare all output pixels with the direct sampling equation. Holes must
+  // retain distinct world pixels even when several rows share a source row.
+  for(auto size : {configuration::resolution{3,2}, {19,11}, {40,35}, {121,65}, {3840,2160}})
+    for(auto anchor : {render::horizontal_anchor::left, render::horizontal_anchor::centre, render::horizontal_anchor::right}) {
+      render::framebuffer image{size.width,size.height}, layer{17,13};
+      for(size_t i{0}; i != image.image.pixels.size(); ++i) image.image.pixels[i] = static_cast<uint8_t>(i * 17 + i / size.width * 13);
+      auto expected{image.image.pixels};
+      render::display_layout const sampling{size.width,size.height,17,13,{0,0,16,12},90,anchor};
+      sampling.background(image,layer);
+      int const w{sampling.artwork.right-sampling.artwork.left+1}, h{sampling.artwork.bottom-sampling.artwork.top+1};
+      for(unsigned int y{0}; y < 13; ++y) for(unsigned int x{0}; x < 17; ++x) {
+        size_t const at{size_t{y}*17+x};
+        size_t const from{size_t(sampling.artwork.top + y*h/13)*size.width + sampling.artwork.left + x*w/17};
+        require(layer.image.pixels[at] == expected[from] && !layer.coverage[at], "background samples changed");
+        layer.image.pixels[at] = static_cast<uint8_t>(at * 37);
+        layer.coverage[at] = (at % 7 < 3 || y == 5) ? 7 : 0;
+      }
+      for(int y{0}; y < h; ++y) for(int x{0}; x < w; ++x) {
+        size_t const from{size_t(y*13/h)*17 + x*17/w};
+        if(layer.coverage[from]) expected[size_t(y+sampling.artwork.top)*size.width+x+sampling.artwork.left] = layer.image.pixels[from];
+      }
+      sampling.composite(layer,image);
+      require(image.image.pixels == expected, "covered runs changed nearest-neighbour pixels or overwrote a hole");
+    }
+  // Reusing the upload buffer must still reflect palette changes and resizing.
+  std::vector<render::rgba> upload;
+  for(unsigned int width : {257u, 16u, 1000u}) {
+    render::framebuffer image{width,2};
+    for(size_t i{0}; i != image.image.pixels.size(); ++i) image.image.pixels[i] = static_cast<uint8_t>(i);
+    for(unsigned int phase : {0u, 23u}) {
+      for(unsigned int i{0}; i < 256; ++i) image.image.colours[i] = {static_cast<uint8_t>(i+phase),static_cast<uint8_t>(255-i),static_cast<uint8_t>(i*17+phase)};
+      image.colour_pixels(upload);
+      require(upload.size() == image.image.pixels.size(), "RGBA upload buffer has stale dimensions");
+      auto const allocated{image.colour_pixels()};
+      for(size_t i{0}; i != upload.size(); ++i) {
+        auto const colour{image.image.colours[image.image.pixels[i]]};
+        require(upload[i].r == colour.r && upload[i].g == colour.g && upload[i].b == colour.b && upload[i].a == 255, "RGBA palette conversion changed");
+        require(allocated[i].r == upload[i].r && allocated[i].g == upload[i].g && allocated[i].b == upload[i].b && allocated[i].a == 255, "allocating and reusable conversions disagree");
+      }
+    }
+  }
   std::cout << "Resolution, FOV, clipping, square pixels and cockpit alignment checks passed\n";
   return 0;
 } catch(std::exception const &e) { std::cerr << e.what() << '\n'; return 1; }

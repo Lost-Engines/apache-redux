@@ -23,6 +23,7 @@ class window {
   glfw_runtime runtime;
   std::unique_ptr<GLFWwindow, decltype(&glfwDestroyWindow)> handle;
   unsigned int texture{0};
+  std::vector<render::rgba> pixels;
   int logical_width{640};
   int logical_height{480};
 

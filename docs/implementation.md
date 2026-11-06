@@ -26,6 +26,40 @@ A-10 gear uses the original nose (1219), right (1217) and left (1214) components
 
 `redux_aircraft_check DATA_DIRECTORY [CAPTURE_DIRECTORY]` exercises all four Cyprus quickstart A-10s through landing/taxi/takeoff, missile notifications while grounded and airborne, carrier and player countermeasures, and native F3 target composition through 4K. It covers both cockpit artwork sizes, custom FOV, fractional scaling, empty targets and damaged displays. Captures are optional and local. These checks pass in normal and AddressSanitizer/UndefinedBehaviorSanitizer builds; the existing six CTest targets and 156-view graphics matrix also pass.
 
+## Software rendering performance
+
+The high-resolution drawing paths keep the same indexed pixels while avoiding repeated work:
+
+- Cockpit composition expands covered runs from the logical image, then copies those runs into repeated destination rows. Transparent holes keep the world pixels beneath them. Ceiling-based run boundaries preserve the existing nearest-neighbour sampling at fractional scales and when shrinking.
+- Flat polygons use span fills, and mesh patterns visit only the pixels they draw. Shaded and textured spans select their lighting path outside the pixel loop.
+- Perspective terrain writes into an already checked scanline. Its original 16-pixel interpolation blocks and rounding stay intact, including when the viewport clips a span. Block endpoints are rounded once and reused; the three interpolants advance without a small array loop at every pixel.
+- Palette conversion builds a 256-entry RGBA lookup table and fills a reusable upload buffer. Palette changes still apply every frame, while resizing only reallocates when capacity is insufficient.
+
+Measurements on an Intel Xeon E5-2699A v4, GCC 16.2, `RelWithDebInfo` (`-O2`, floating-point contraction disabled), at maximum detail:
+
+| View | Resolution | Before | After | Speedup |
+| --- | --- | ---: | ---: | ---: |
+| Cyprus quickstart, pilot cockpit | 1920 × 1080 | 38.9 ms | 8.4 ms | 4.6× |
+| Cyprus quickstart, pilot cockpit | 3840 × 2160 | 128.6 ms | 22.9 ms | 5.6× |
+| Mission 61, 90° side cockpit | 3840 × 2160 | 317.2 ms | 38.2 ms | 8.3× |
+| Cyprus quickstart, gunner cockpit | 3840 × 2160 | 127.4 ms | 22.2 ms | 5.7× |
+| Cyprus quickstart, external view at 1,000 feet AGL | 3840 × 2160 | 176.1 ms | 37.5 ms | 4.7× |
+| Quickstart warzone 1, helmet view at 2,000 feet AGL, 110° FOV | 3840 × 2160 | 165.6 ms | 33.3 ms | 5.0× |
+
+These are CPU drawing plus palette-conversion times, excluding simulation, texture upload and display synchronization. Each entry is the median of three 30-frame runs after warmup, alternating the old and new binaries on the same CPU core. The eight benchmark scenes, including the original 640 × 480 resolution, retain identical indexed and RGBA checksums in every run. The baseline is commit `0704172`.
+
+`render_benchmark` loads a mission, advances ten ticks, pauses and draws the same view repeatedly. Negative mission numbers select quickstart warzones 1 through 4. Its arguments are `DATA WIDTH HEIGHT FRAMES [VIEW=0] [MISSION=-3] [ALTITUDE_FEET=0] [FOV=90]`:
+
+```sh
+cmake --build build --target render_benchmark
+build/render_benchmark ~/.local/share/apache/game 3840 2160 100
+build/render_benchmark ~/.local/share/apache/game 3840 2160 100 10 -3 1000 90
+```
+
+It reports drawing and conversion separately, plus image checksums. When Valgrind headers are installed, `--tool=callgrind --instr-atstart=no` profiles only the measured loop.
+
+`raster_tests` checks 11,264 draws against digests captured from the pre-optimization renderer: both winding orders, degenerate polygons, screen edges, clipping, coverage, mesh patterns, palette remapping, heat haze, affine/perspective textures, transparent texels and rejected UV samples. GCC and Clang optimized builds agree. The raster and composition tests and a complete 4K side view also pass AddressSanitizer and UndefinedBehaviorSanitizer. All seven CTest targets, the 156-view graphics matrix and native target-preview checks pass. Private Xvfb window checks cover both automatic and fixed resolution, paused camera movement, resizing, help and menu transitions. The test sends the physical Pause keycode because Xvfb also maps its symbol on modifier levels.
+
 ## Reconstruction history
 
 The reconstruction follows the January 1998 Windows software engine using data shared by the September 1998 and October 2000 European discs. It reads the original resource formats directly. There is no CPU emulator, translated executable or dependency on the analysis workspace in the game.

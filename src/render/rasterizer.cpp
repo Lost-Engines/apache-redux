@@ -142,6 +142,10 @@ void rasterizer::paint_scans(material const &paint) {
   if(paint.pattern == fill_pattern::remap && paint.remapping.size() != 256) throw std::runtime_error{"A translucent fill needs a 256-entry colour map"};
   if(paint.light != shading::none && paint.intensity_map.size() != 65536) throw std::runtime_error{"Shading needs the palette intensity table"};
   if(paint.image && (!paint.image->width || paint.image->pixels.empty() || paint.image->pixels.size() % paint.image->width)) throw std::runtime_error{"Texture dimensions disagree with its pixels"};
+  bool const flat{!paint.image && paint.light != shading::gouraud};
+  std::array<uint8_t, 2> colours{static_cast<uint8_t>(paint.colours), static_cast<uint8_t>(paint.colours >> 8)};
+  if(flat && paint.light == shading::constant) for(auto &colour : colours)
+    colour = paint.intensity_map[(size_t{colour} << 8) | (static_cast<uint32_t>(std::max(paint.intensity, 0)) >> 23)];
   uint8_t heat{std::array<uint8_t, 4>{204, 102, 51, 153}[paint.heat_phase & 3]};
   for(int y{std::max(first_row, target.clip.top)}; y <= std::min(last_row, target.clip.bottom); ++y) {
     int const lhs{std::min(left[y].x, right[y].x)}, rhs{std::max(left[y].x, right[y].x)};
@@ -161,12 +165,72 @@ void rasterizer::paint_scans(material const &paint) {
       if(shift_right) ++y;
       continue;
     }
+    if(start > end) continue;
+    size_t const row{static_cast<size_t>(y) * target.image.width};
+    auto *out{target.image.pixels.data() + row};
+    auto *coverage{target.coverage.empty() ? nullptr : target.coverage.data() + row};
+    if(flat) {
+      if(paint.pattern == fill_pattern::solid || paint.pattern == fill_pattern::remap) {
+        if(paint.pattern == fill_pattern::remap) {
+          for(int x{start}; x <= end; ++x) out[x] = paint.remapping[out[x]];
+        } else if(colours[0] == colours[1]) {
+          std::fill(out + start, out + end + 1, colours[0]);
+        } else {
+          for(int x{start}; x <= end; ++x) out[x] = colours[(x + y) & 1];
+        }
+        if(coverage) std::fill(coverage + start, coverage + end + 1, 1);
+      } else {
+        // mesh patterns only visit the pixels they actually write
+        if(paint.pattern == fill_pattern::medium && (y & 1)) continue;
+        int const step{paint.pattern == fill_pattern::coarse ? 4 : 2};
+        int const offset{paint.pattern == fill_pattern::coarse ? (y & 1) * 2 : paint.pattern == fill_pattern::fine ? y & 1 : 0};
+        int const first{start + ((offset - start) & (step - 1))};
+        for(int x{first}; x <= end; x += step) out[x] = colours[(x + y) & 1];
+        if(coverage) for(int x{first}; x <= end; x += step) coverage[x] = 1;
+      }
+      continue;
+    }
     int const width{rhs - lhs};
     auto value{left[y]};
     scan_edge const increment{0, width ? (right[y].u - value.u) / width : 0, width ? (right[y].v - value.v) / width : 0, width ? (right[y].intensity - value.intensity) / width : 0};
     value.u += (start - lhs) * increment.u;
     value.v += (start - lhs) * increment.v;
     value.intensity += (start - lhs) * increment.intensity;
+    if(paint.image && paint.pattern == fill_pattern::solid) {
+      // choose the lighting routine once per span, outside the texture loop
+      auto const textured{[&]<shading light>(){
+        for(int x{start}; x <= end; ++x) {
+          auto const tx{static_cast<uint32_t>(value.u) >> 16}, ty{static_cast<uint32_t>(value.v) >> 16};
+          size_t const address{size_t{ty} * paint.image->width + tx};
+          int32_t const intensity{light == shading::constant ? paint.intensity : value.intensity};
+          value.u = math::add(value.u, increment.u);
+          value.v = math::add(value.v, increment.v);
+          if constexpr(light == shading::gouraud) value.intensity = math::add(value.intensity, increment.intensity);
+          if(address >= paint.image->pixels.size()) { ++invalid_texture_samples; continue; }
+          uint8_t colour{paint.image->pixels[address]};
+          if(paint.masked && !colour) continue;
+          if constexpr(light != shading::none)
+            colour = paint.intensity_map[(size_t{colour} << 8) | (static_cast<uint32_t>(std::max(intensity, 0)) >> 23)];
+          out[x] = colour;
+          if(coverage) coverage[x] = 1;
+        }
+      }};
+      switch(paint.light) {
+        case shading::none: textured.template operator()<shading::none>(); break;
+        case shading::constant: textured.template operator()<shading::constant>(); break;
+        case shading::gouraud: textured.template operator()<shading::gouraud>(); break;
+      }
+      continue;
+    }
+    if(!paint.image && paint.pattern == fill_pattern::solid) {
+      for(int x{start}; x <= end; ++x) {
+        auto const light{static_cast<uint32_t>(std::max(value.intensity, 0)) >> 23};
+        out[x] = paint.intensity_map[(size_t{colours[(x + y) & 1]} << 8) | light];
+        value.intensity = math::add(value.intensity, increment.intensity);
+      }
+      if(coverage) std::fill(coverage + start, coverage + end + 1, 1);
+      continue;
+    }
     for(int x{start}; x <= end; ++x) {
       int32_t const u{value.u}, v{value.v}, intensity{paint.light == shading::constant ? paint.intensity : value.intensity};
       value.u = math::add(value.u, increment.u);

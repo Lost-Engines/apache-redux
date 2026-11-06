@@ -129,7 +129,7 @@ void window::present(render::framebuffer const &frame) {
     glBindTexture(GL_TEXTURE_2D, texture);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, logical_width, logical_height, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
   }
-  auto const pixels{frame.colour_pixels()};
+  frame.colour_pixels(pixels);
   auto const area{viewport(width, height, logical_width, logical_height)};
   glViewport(0,0,width,height);
   glClearColor(0,0,0,1);

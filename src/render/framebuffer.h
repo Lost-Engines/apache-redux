@@ -32,6 +32,7 @@ public:
   void fill(rectangle area, uint8_t colour);
   void surround(rectangle area, bool pressed = false);
   void blit(resources::indexed_image const &source, int x, int y, bool transparent = false);
+  void colour_pixels(std::vector<rgba> &pixels) const;
   std::vector<rgba> colour_pixels() const;
 };
 } // namespace apache::render

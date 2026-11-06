@@ -62,13 +62,19 @@ void framebuffer::blit(resources::indexed_image const &source, int const x, int 
     }
   }
 }
+void framebuffer::colour_pixels(std::vector<rgba> &pixels) const {
+  std::array<rgba, 256> palette;
+  for(size_t i{0}; i != palette.size(); ++i) {
+    auto const &colour{image.colours[i]};
+    palette[i] = {colour.r, colour.g, colour.b, 255};
+  }
+  pixels.resize(image.pixels.size());
+  std::transform(image.pixels.begin(), image.pixels.end(), pixels.begin(),
+    [&palette](uint8_t index){ return palette[index]; });
+}
 std::vector<rgba> framebuffer::colour_pixels() const {
   std::vector<rgba> pixels;
-  pixels.reserve(image.pixels.size());
-  for(auto const index : image.pixels) {
-    auto const &c{image.colours[index]};
-    pixels.push_back({c.r, c.g, c.b, 255});
-  }
+  colour_pixels(pixels);
   return pixels;
 }
 } // namespace apache::render
