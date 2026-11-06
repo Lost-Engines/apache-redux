@@ -10,6 +10,7 @@ public:
   double instrument_fov;
   display_layout(unsigned int width, unsigned int height, unsigned int logical_width,
                  unsigned int logical_height, rectangle viewport, double fov, horizontal_anchor anchor = horizontal_anchor::centre);
+  rectangle map(rectangle logical) const;
   void background(framebuffer const &world, framebuffer &overlay) const;
   void composite(framebuffer const &overlay, framebuffer &world) const;
 };

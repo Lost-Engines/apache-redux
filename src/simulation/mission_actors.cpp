@@ -23,8 +23,41 @@ uint32_t random_pair(uint32_t &seed) {
 }
 
 }
+bool mission_actors::on_ground(size_t const index) const {
+  auto const &unit{units.at(index)};
+  if(unit.classification != 1 && unit.classification != 2) return false;
+  if(unit.conditions & 0x400) return true; // Attached to a carrier deck.
+  auto const &position{unit.object.world.position};
+  return int64_t{position[2]} <= int64_t{environment.height(position[0], position[1])} + 256;
+}
+void mission_actors::update_landing_gear(size_t const index) {
+  auto &unit{units[index]}; auto &object{unit.object};
+  if(object.id != 3 || unit.destroyed || (object.status & 1)) return;
+  auto const &route{mission.tasks.at(unit.location.task).actors.at(unit.location.group).waypoints};
+  auto const &position{object.world.position};
+  int64_t const altitude{int64_t{position[2]} - environment.height(position[0], position[1])};
+  bool const approaching{unit.waypoint && *unit.waypoint < route.size() && route[*unit.waypoint].position[2] == 0 && !(unit.conditions & 10)};
+  bool const down{on_ground(index) || (approaching && altitude <= 1000 * 256) || ((object.flags & 4) && altitude < 100 * 256)};
+  // The detailed A-10 has three authored, but originally unpopulated, gear slots.
+  // Lower LODs instead test animation bit 4. Leave weapons and damaged wings alone.
+  auto const attach{[&](render::model_instance *parent, size_t slot, uint32_t model){
+    if(!parent || slot >= parent->children.size()) return;
+    auto &child{parent->children[slot]};
+    if(down && !child) {
+      auto const &mount{models.at(parent->id)->children.at(slot)};
+      child = std::make_unique<render::model_instance>(render::construct_model(models, model, {mount.translation, mount.rotation}));
+    } else if(!down && child && child->id == model) child.reset();
+  }};
+  attach(&object, 2, 1219);
+  if(object.children.size() >= 2) {
+    attach(object.children[0].get(), 1, 1217);
+    attach(object.children[1].get(), 3, 1214);
+  }
+  object.flags = down ? object.flags | 4u : object.flags & ~4u;
+}
 void mission_actors::synchronize_models(bool const maintain_carriers) {
   for(size_t index{0}; index < units.size(); ++index) {
+    update_landing_gear(index);
     auto &unit{units[index]}; if(unit.conditions & 0x400) continue;
     unit.object.relative = unit.object.world;
     if(maintain_carriers || std::ranges::none_of(carriers, [index](auto const &carrier){ return carrier.actor == index; })) render::maintain_model(unit.object);
@@ -67,7 +100,7 @@ bool mission_actors::register_aircraft(size_t const index) {
   }
   return false;
 }
-mission_actors::mission_actors(resources::mission_definition const &mission, std::span<std::vector<resources::formation_member> const> const formations, resources::model_archive const &models, math::trigonometry const &trig, actor_environment const &environment, unsigned int const map, uint32_t const seed) : types{actor_types()}, random_seed{seed} {
+mission_actors::mission_actors(resources::mission_definition const &mission, std::span<std::vector<resources::formation_member> const> const formations, resources::model_archive const &models, math::trigonometry const &trig, actor_environment const &environment, unsigned int const map, uint32_t const seed) : mission{mission}, models{models}, environment{environment}, types{actor_types()}, random_seed{seed} {
   for(size_t task_index{0}; task_index != mission.tasks.size(); ++task_index) {
     auto const &task{mission.tasks[task_index]};
     for(size_t group_index{0}; group_index != task.actors.size(); ++group_index) {

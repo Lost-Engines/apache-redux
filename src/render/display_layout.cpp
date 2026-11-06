@@ -17,6 +17,14 @@ display_layout::display_layout(unsigned int width, unsigned int height, unsigned
   if(viewport.top == 0 && viewport.bottom + 1 == static_cast<int>(logical_height)) { scene.top = 0; scene.bottom = static_cast<int>(height) - 1; }
   instrument_fov = static_cast<unsigned int>(w) == width ? fov : 360 / std::numbers::pi * std::atan(double(w) / width * std::tan(fov * std::numbers::pi / 360));
 }
+rectangle display_layout::map(rectangle const logical) const {
+  int const w{artwork.right - artwork.left + 1}, h{artwork.bottom - artwork.top + 1};
+  // Composite samples with floor(destination * source / size). Ceil at both
+  // boundaries therefore covers exactly the pixels belonging to this rectangle.
+  auto const edge{[](int value, int size, unsigned int source){ return static_cast<int>((int64_t{value} * size + source - 1) / source); }};
+  return {artwork.left + edge(logical.left, w, source_width), artwork.top + edge(logical.top, h, source_height),
+    artwork.left + edge(logical.right + 1, w, source_width) - 1, artwork.top + edge(logical.bottom + 1, h, source_height) - 1};
+}
 void display_layout::background(framebuffer const &world, framebuffer &overlay) const {
   auto const w{artwork.right - artwork.left + 1}, h{artwork.bottom - artwork.top + 1};
   for(unsigned int y{0}; y != source_height; ++y) for(unsigned int x{0}; x != source_width; ++x) {

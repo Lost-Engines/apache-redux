@@ -1,4 +1,5 @@
 #pragma once
+#include <functional>
 #include "cockpit.h"
 #include "instrument_font.h"
 #include "math/geometry.h"
@@ -67,6 +68,7 @@ struct multiplayer_scores {
   std::vector<std::pair<std::string, int32_t>> players; // Local player first, then connection order.
   int32_t timer{0};
 };
+using target_preview_renderer = std::function<std::string_view(rectangle)>;
 class mfd_renderer {
   cockpit const &panels;
   instrument_font font;
@@ -78,7 +80,7 @@ public:
   void off(framebuffer &target, rectangle area) const;
   void damaged(framebuffer &target, rectangle area, uint32_t &seed) const;
   void engines(framebuffer &target, rectangle area, engine_instruments const &state) const;
-  void flir(framebuffer &target, rectangle area, landscape &world, model_instance *object, math::vector3 const &aim, math::vector3 const &observer, sky_lighting const &lighting) const;
+  void flir(framebuffer &target, rectangle area, landscape &world, model_instance *object, math::vector3 const &aim, math::vector3 const &observer, sky_lighting const &lighting, target_preview_renderer const &preview = {}) const;
   void weapons(framebuffer &target, rectangle area, weapon_instruments const &state) const;
   void radar(framebuffer &target, rectangle area, radar_instruments const &state, std::span<radar_contact const> contacts, math::trigonometry const &trig) const;
   void flight_plan(framebuffer &target, rectangle area, std::span<waypoint_mark const> route, size_t current, int32_t x, int32_t y, uint32_t heading, int32_t airspeed, math::trigonometry const &trig) const;

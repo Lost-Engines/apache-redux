@@ -94,7 +94,11 @@ firing_status mission_weapons::fire_ground(target_reference const &source, targe
   if(!index) return firing_status::blocked;
   launch(*index); return firing_status::ready;
 }
+bool mission_weapons::grounded(size_t const index) const {
+  return events.grounded ? events.grounded(index) : actors.on_ground(index);
+}
 bool mission_weapons::decoy(size_t const index, unsigned int const id) {
+  if(grounded(index)) return false;
   auto const &actor{actors.units[index]}; projectile_request request; request.weapon = id; request.source = *spatial.targets[index]; request.launch.pose = actor.object.world; request.launch.source = targets.describe(request.source).movement; request.launch.simple_value = weapons.at(id).tracking_or_dispersion;
   auto const round{construct(request)}; if(!round) return false;
   launch(*round);
@@ -102,7 +106,7 @@ bool mission_weapons::decoy(size_t const index, unsigned int const id) {
   return true;
 }
 bool mission_weapons::release_countermeasure(unsigned int const weapon, uint16_t const key) {
-  if(!spatial.player) return false;
+  if(!spatial.player || grounded(*spatial.player)) return false;
   size_t const index{*spatial.player}; auto &actor{actors.units[index]}; auto &decoy_state{decoys[index]};
   countermeasure_actor state{static_cast<int32_t>(actor.classification), true, actor.object.world.position, actor.conditions, actor.random, actor.retreat_until, decoy_state.deadlines[0], decoy_state.deadlines[1]};
   countermeasure_callbacks callbacks;
@@ -116,6 +120,9 @@ void mission_weapons::incoming(size_t const round_index, projectile_record &roun
   auto const *target{adjusted_projectile_target(round, targets.world, {})};
   if(!target || target->identity.kind != target_kind::mobile) return;
   auto const index{spatial.actor_index(target->identity.index)}; if(!index) return;
+  // Keep the player's incoming warning, but parked AI neither dispenses decoys
+  // nor advances its countermeasure timers/random sequence.
+  if(spatial.player != index && grounded(*index)) return;
   auto &actor{actors.units[*index]}; auto &decoys{this->decoys[*index]};
   countermeasure_actor state{static_cast<int32_t>(actor.classification), spatial.player == index, actor.object.world.position, actor.conditions, actor.random, actor.retreat_until, decoys.deadlines[0], decoys.deadlines[1]};
   countermeasure_callbacks callbacks; callbacks.launch = [&](unsigned int id){ return decoy(*index, id); }; callbacks.warning = [&](int32_t arrival){ if(events.incoming) events.incoming(round_index, round.state.weapon, arrival); };

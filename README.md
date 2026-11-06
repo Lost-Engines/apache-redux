@@ -51,7 +51,12 @@ No options are needed for automatic resolution. To choose a fixed render size or
 
 `--fov` sets the horizontal viewing angle in degrees, from 30 to 150. The default is the original 90°. A fixed resolution stays unchanged when the window is resized; its image is fitted without stretching. `--scale 2` sets the initial window to 1280×960 while keeping automatic rendering, or doubles the chosen fixed resolution's window size.
 
-The renderer runs on the CPU. A lower fixed resolution can improve performance on slower machines. The original cockpit and menu images retain their source detail; increasing resolution sharpens the 3D scene. The original 320/640 preference selects cockpit artwork, independently of Redux's render resolution.
+The renderer runs on the CPU. A lower fixed resolution can improve performance on slower machines. The original cockpit and menu images retain their source detail; increasing resolution sharpens the 3D scene and target previews, including the small screen in F3. The original 320/640 preference selects cockpit artwork, independently of Redux's render resolution.
+
+## Gameplay fixes
+
+- A-10s lower their landing gear on approach and keep it down while taxiing or parked, then retract it after takeoff.
+- Aircraft on the ground no longer release chaff or flares.
 
 ## Multiplayer
 

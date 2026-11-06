@@ -510,7 +510,17 @@ void mission_session::draw() {
   hud.horizontal_fov = 90;
   hud.reset_clip();
   if(!side_panel) panels.draw(hud, views->modes.mode, scaled || views->modes.changed);
-  avionics.draw(hud, state, world, visual.lighting);
+  render::target_preview_renderer preview;
+  if(scaled) preview = [&](render::rectangle area) -> std::string_view {
+    auto const saved_clip{frame.clip}; auto const saved_fov{frame.horizontal_fov};
+    frame.reset_clip(); frame.clip = render::intersect(frame.clip, layout.map(area));
+    frame.horizontal_fov = 90;
+    frame.fill(frame.clip, 208);
+    auto const name{state.target_model ? world.draw_flir(frame, *state.target_model, state.target_camera_aim, state.helmet.aircraft.position, visual.lighting) : "No Target"};
+    frame.clip = saved_clip; frame.horizontal_fov = saved_fov;
+    return name;
+  };
+  avionics.draw(hud, state, world, visual.lighting, preview);
   for(size_t i{0}; i != 256; ++i) frame.image.colours[i] = {world.palette.modified[i * 3], world.palette.modified[i * 3 + 1], world.palette.modified[i * 3 + 2]};
   if(chat) chat->draw(hud, runtime.timing.now);
   views->modes.changed = false;

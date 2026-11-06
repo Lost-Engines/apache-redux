@@ -4,11 +4,11 @@
 
 namespace apache::render {
 avionics_renderer::avionics_renderer(cockpit const &panels, math::trigonometry const &angles, resources::executable_data const &executable) : trig{angles}, instruments{panels, angles, executable}, screens{panels, executable}, helmet{executable, angles, panels.video_mode()} {}
-void avionics_renderer::multifunction(framebuffer &target, avionics_instruments &state, bool const gunner, landscape &world, sky_lighting const &lighting) const {
+void avionics_renderer::multifunction(framebuffer &target, avionics_instruments &state, bool const gunner, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview) const {
   auto const &flight{state.helmet};
   auto const navigation{state.navigation.value_or(navigation_instruments{flight.heading, flight.airspeed})};
   state.displays.apply_faults(gunner, flight.faults);
-  auto const draw_target{[&](rectangle const area){ screens.flir(target, area, world, state.target_model, state.target_camera_aim, flight.aircraft.position, lighting); }};
+  auto const draw_target{[&](rectangle const area){ screens.flir(target, area, world, state.target_model, state.target_camera_aim, flight.aircraft.position, lighting, preview); }};
   for(size_t side{0}; side != 2; ++side) {
     auto const area{screens.area(static_cast<mfd_panel>((gunner ? 2 : 0) + side))};
     using enum simulation::mfd_page;
@@ -32,17 +32,17 @@ void avionics_renderer::multifunction(framebuffer &target, avionics_instruments 
   }
   screens.corners(target, gunner);
 }
-void avionics_renderer::draw(framebuffer &target, avionics_instruments &state, landscape &world, sky_lighting const &lighting) const {
+void avionics_renderer::draw(framebuffer &target, avionics_instruments &state, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview) const {
   auto const &flight{state.helmet};
   switch(flight.view) {
   case 0:
     instruments.attitude(target, flight.aircraft.rotation); instruments.compass(target, flight.heading);
     instruments.airspeed(target, flight.airspeed); instruments.altimeter(target, flight.barometric_altitude);
-    helmet.draw(target, flight); instruments.clock(target, state.clock_time); multifunction(target, state, false, world, lighting);
+    helmet.draw(target, flight); instruments.clock(target, state.clock_time); multifunction(target, state, false, world, lighting, preview);
     instruments.communications(target, false, state.communications); instruments.warnings(target, false, flight.faults);
     break;
   case 5:
-    helmet.draw(target, flight); multifunction(target, state, true, world, lighting);
+    helmet.draw(target, flight); multifunction(target, state, true, world, lighting, preview);
     instruments.communications(target, true, state.communications); instruments.warnings(target, true, flight.faults);
     break;
   case 1: case 2: case 3: case 4: case 6: case 7: case 8: case 9: case 12: case 13: case 18:

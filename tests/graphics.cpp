@@ -68,6 +68,19 @@ int main() try {
     require(scene.image.pixels[2*12+6] == 208, "helmet mark stays centred independently of cockpit artwork");
     require(std::ranges::count(scene.image.pixels,224) == 4 && std::ranges::count(scene.image.pixels,208) == 4, "two-layer composition preserves both masks");
   }
+  // Every logical rectangle must map to precisely the destination samples it owns,
+  // including fractional scaling and a smaller-than-authored window.
+  for(auto size : {configuration::resolution{3,2}, {9,7}, {13,11}, {16,9}}) {
+    render::display_layout const layout{size.width,size.height,4,3,{0,0,3,2},90};
+    for(int top{0}; top < 3; ++top) for(int left{0}; left < 4; ++left) {
+      render::rectangle const logical{left,top,3,2};
+      auto const mapped{layout.map(logical)};
+      render::framebuffer world{size.width,size.height}, layer{4,3}; world.clear(0);
+      layout.background(world,layer); layer.fill(logical,1); layout.composite(layer,world);
+      for(unsigned int y{0}; y < size.height; ++y) for(unsigned int x{0}; x < size.width; ++x)
+        require((world.image.pixels[size_t(y)*size.width+x] != 0) == mapped.contains(x,y), "native preview boundaries match cockpit sampling");
+    }
+  }
   render::framebuffer world{8,6}, overlay{4,3}; world.clear(17);
   render::display_layout layout{8,6,4,3,{0,0,3,2},90}; layout.background(world,overlay);
   resources::indexed_image black; black.width=2;black.height=1;black.pixels={0,0};

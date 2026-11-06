@@ -20,6 +20,12 @@ F1 or F2 closes the in-flight manual and returns to the pilot cockpit, preservin
 
 Side cockpit artwork is anchored to the right edge when looking left and to the left edge when looking right, for both pilot and gunner seats. The helmet display and its target projection remain centred; the wider world continues behind both layers.
 
+The target-camera images in F3 and the FLIR MFD pages render directly into the native framebuffer at the display's fixed 90° projection. Their rectangles use the same sampling boundaries as cockpit scaling, including fractional scales. Captions and bezel corners remain on the logical overlay; covered pixels inside the image are cleared before the final composite. Damaged and empty displays retain their original appearance.
+
+A-10 gear uses the original nose (1219), right (1217) and left (1214) components in the model's existing attachment slots, plus animation bit 4 for the lower LODs. Redux lowers it on ground contact or below 1,000 feet AGL while following a ground waypoint, and keeps it down until 100 feet after takeoff. Updates preserve weapons, existing child instances and missing damaged wings. Grounded AI, including carrier attachments, cannot emit countermeasures or reschedule automatic release timers. Player releases use the flight model's landed state, so a stationary hover still permits chaff and flares.
+
+`redux_aircraft_check DATA_DIRECTORY [CAPTURE_DIRECTORY]` exercises all four Cyprus quickstart A-10s through landing/taxi/takeoff, missile notifications while grounded and airborne, carrier and player countermeasures, and native F3 target composition through 4K. It covers both cockpit artwork sizes, custom FOV, fractional scaling, empty targets and damaged displays. Captures are optional and local. These checks pass in normal and AddressSanitizer/UndefinedBehaviorSanitizer builds; the existing six CTest targets and 156-view graphics matrix also pass.
+
 ## Reconstruction history
 
 The reconstruction follows the January 1998 Windows software engine using data shared by the September 1998 and October 2000 European discs. It reads the original resource formats directly. There is no CPU emulator, translated executable or dependency on the analysis workspace in the game.

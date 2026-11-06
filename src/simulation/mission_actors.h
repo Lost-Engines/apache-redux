@@ -45,7 +45,11 @@ struct actor_environment {
   void set_position(actor_state &actor, math::vector3 const &position) const { if(relocate) relocate(actor, position); else actor.object.world.position = position; }
 };
 class mission_actors {
+  resources::mission_definition const &mission;
+  resources::model_archive const &models;
+  actor_environment const &environment;
   std::array<actor_type, 1315> types;
+  void update_landing_gear(size_t index);
   void register_ship(size_t index, resources::model_archive const &models);
   bool register_aircraft(size_t index);
 public:
@@ -54,6 +58,7 @@ public:
   std::vector<carrier_state> carriers;
   uint32_t random_seed{0};
   std::optional<std::array<size_t, 2>> selected_waypoint;
+  bool on_ground(size_t index) const;
   void synchronize_models(bool maintain_carriers = true);
   mission_actors(resources::mission_definition const &mission, std::span<std::vector<resources::formation_member> const> formations, resources::model_archive const &models, math::trigonometry const &trig, actor_environment const &environment, unsigned int map, uint32_t seed = 1);
 };

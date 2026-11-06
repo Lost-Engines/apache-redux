@@ -59,9 +59,16 @@ void mfd_renderer::engines(framebuffer &target, rectangle const area, engine_ins
     target.fill({area.left + positions[i], std::min(top, baseline), area.left + positions[i] + (high ? 1 : 0), std::max(top, baseline)}, 222);
   }
 }
-void mfd_renderer::flir(framebuffer &target, rectangle const area, landscape &world, model_instance *const object, math::vector3 const &aim, math::vector3 const &observer, sky_lighting const &lighting) const {
+void mfd_renderer::flir(framebuffer &target, rectangle const area, landscape &world, model_instance *const object, math::vector3 const &aim, math::vector3 const &observer, sky_lighting const &lighting, target_preview_renderer const &preview) const {
   off(target, area);
-  std::string_view const name{object ? world.draw_flir(target, *object, aim, observer, lighting) : "No Target"};
+  std::string_view const name{preview ? preview(area) : object ? world.draw_flir(target, *object, aim, observer, lighting) : "No Target"};
+  if(preview && !target.coverage.empty()) {
+    // The image was drawn directly into the native framebuffer. Only its label
+    // and the bezel corners should be copied from the logical cockpit overlay.
+    auto const box{target.clip};
+    for(int y{box.top}; y <= box.bottom; ++y) for(int x{box.left}; x <= box.right; ++x)
+      target.coverage[size_t(y) * target.image.width + x] = 0;
+  }
   projection2 const plane{area, object ? window2{-0x100000, -0x100000, 0x100000, 0x100000} : window2{-1000, -1000, 1000, 1000}};
   auto const point{plane.project({0, object ? -0xccccc : -800})};
   font.draw(target, name, point.x - (font.width(name) / 2 - 1), point.y, 222);

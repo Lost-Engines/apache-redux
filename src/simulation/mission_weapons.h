@@ -9,6 +9,7 @@ struct mission_weapon_callbacks {
   std::function<void(size_t, projectile_record &, projectile_event_info const &)> event;
   std::function<void()> bomb_released;
   std::function<void(size_t, unsigned int, int32_t)> incoming;
+  std::function<bool(size_t)> grounded;
 };
 struct actor_decoys {
   std::array<int32_t, 2> deadlines{};
@@ -35,6 +36,7 @@ class mission_weapons {
   std::optional<size_t> construct(projectile_request const &request);
   void launch(size_t index);
   void event(size_t index, projectile_record &round, projectile_event_info const &event);
+  bool grounded(size_t actor) const;
   bool decoy(size_t actor, unsigned int weapon);
   void incoming(size_t index, projectile_record &round);
 public:

@@ -52,6 +52,7 @@ mission_runtime::mission_runtime(resources::data_store const &data, std::string 
   targets.additional_state = [this](uint32_t id){ mobile_target_state state; if(auto i{spatial.actor_index(id)}) state.damage = combat.attention[*i].damage; if(pilot) state.player_airspeed = pilot->readings().airspeed; if(sensors && spatial.player && spatial.mobile_id(*spatial.player) == id) { state.ground_radar = sensors->state.ground; state.air_radar = sensors->state.air; } return state; };
   if(armed) {
     mission_weapon_callbacks callbacks;
+    callbacks.grounded = [this](size_t index){ return pilot && timing.player == index ? pilot->landed() : actors.on_ground(index); };
     callbacks.incoming = [this](size_t round, unsigned int weapon, int32_t arrival){ if(player_armament) player_armament->warnings.incoming(round, weapon, arrival); };
     callbacks.launched = [this](size_t i, auto const &round){ if(events.launched) events.launched(i, round); };
     callbacks.event = [this](size_t i, auto &round, auto const &info){ if(events.projectile) events.projectile(i, round, info); if(damage) damage->impact(round, info); if(player_armament && info.kind == projectile_event::removed) player_armament->removed(i, round.state.weapon); };
