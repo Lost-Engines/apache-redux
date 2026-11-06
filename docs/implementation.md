@@ -18,6 +18,8 @@ Camera controls remain active while paused. Orbit, look and zoom use elapsed dis
 
 F1 or F2 closes the in-flight manual and returns to the pilot cockpit, preserving the pause state. Holding F1 does not immediately close it through key repeat. Escape still returns to the previous view.
 
+Side cockpit artwork is anchored to the right edge when looking left and to the left edge when looking right, for both pilot and gunner seats. The helmet display and its target projection remain centred; the wider world continues behind both layers.
+
 ## Reconstruction history
 
 The reconstruction follows the January 1998 Windows software engine using data shared by the September 1998 and October 2000 European discs. It reads the original resource formats directly. There is no CPU emulator, translated executable or dependency on the analysis workspace in the game.

@@ -4,11 +4,13 @@
 #include <numbers>
 namespace apache::render {
 display_layout::display_layout(unsigned int width, unsigned int height, unsigned int logical_width,
-                               unsigned int logical_height, rectangle viewport, double fov)
+                               unsigned int logical_height, rectangle viewport, double fov, horizontal_anchor anchor)
   : source_width{logical_width}, source_height{logical_height} {
   double const scale{std::min(double(width) / logical_width, double(height) / logical_height)};
   int const w{static_cast<int>(std::lround(logical_width * scale))}, h{static_cast<int>(std::lround(logical_height * scale))};
-  int const x{(static_cast<int>(width) - w) / 2}, y{(static_cast<int>(height) - h) / 2};
+  int const spare{static_cast<int>(width) - w};
+  int const x{anchor == horizontal_anchor::left ? 0 : anchor == horizontal_anchor::right ? spare : spare / 2};
+  int const y{(static_cast<int>(height) - h) / 2};
   artwork = {x, y, x + w - 1, y + h - 1};
   scene = {0, y + static_cast<int>(std::lround(viewport.top * scale)), static_cast<int>(width) - 1,
            y + static_cast<int>(std::lround((viewport.bottom + 1) * scale)) - 1};

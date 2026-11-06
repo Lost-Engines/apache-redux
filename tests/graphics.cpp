@@ -45,6 +45,29 @@ int main() try {
     double const scale{double(layout.artwork.right-layout.artwork.left+1)/640};
     require(std::abs(a.x-(layout.artwork.left+b.x*scale)) <= 7 && std::abs(a.y-(layout.artwork.top+b.y*scale)) <= 7, "target marker alignment after cockpit scaling");
   }
+  for(auto dimensions : {configuration::resolution{640,480}, {641,480}, {1920,1080}, {3840,2160}, {800,1000}}) {
+    render::rectangle const viewport{0,0,639,479};
+    render::display_layout const centre{dimensions.width,dimensions.height,640,480,viewport,90};
+    render::display_layout const left{dimensions.width,dimensions.height,640,480,viewport,90,render::horizontal_anchor::left};
+    render::display_layout const right{dimensions.width,dimensions.height,640,480,viewport,90,render::horizontal_anchor::right};
+    require(left.artwork.left == 0 && right.artwork.right == static_cast<int>(dimensions.width)-1, "side cockpit reaches screen edge");
+    require(left.artwork.right-left.artwork.left == right.artwork.right-right.artwork.left && left.artwork.top == centre.artwork.top, "anchoring preserves cockpit size and vertical placement");
+    require(left.scene.left == centre.scene.left && right.scene.right == centre.scene.right && left.instrument_fov == centre.instrument_fov, "cockpit anchoring leaves world projection unchanged");
+  }
+  // Compose a side panel, then a centred helmet mark over the sampled scene.
+  for(auto anchor : {render::horizontal_anchor::left, render::horizontal_anchor::right}) {
+    render::framebuffer scene{12,6}, layer{4,3}; scene.clear(17);
+    render::display_layout const panel{12,6,4,3,{0,0,3,2},90,anchor};
+    render::display_layout const helmet{12,6,4,3,{0,0,3,2},90};
+    panel.background(scene,layer);
+    layer.point(anchor == render::horizontal_anchor::left ? 0 : 3,0,224);
+    panel.composite(layer,scene);
+    helmet.background(scene,layer); layer.point(2,1,208); helmet.composite(layer,scene);
+    auto const edge{anchor == render::horizontal_anchor::left ? 0u : 11u};
+    require(scene.image.pixels[edge] == 224, "cockpit artwork stays at the outer edge");
+    require(scene.image.pixels[2*12+6] == 208, "helmet mark stays centred independently of cockpit artwork");
+    require(std::ranges::count(scene.image.pixels,224) == 4 && std::ranges::count(scene.image.pixels,208) == 4, "two-layer composition preserves both masks");
+  }
   render::framebuffer world{8,6}, overlay{4,3}; world.clear(17);
   render::display_layout layout{8,6,4,3,{0,0,3,2},90}; layout.background(world,overlay);
   resources::indexed_image black; black.width=2;black.height=1;black.pixels={0,0};

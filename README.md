@@ -31,11 +31,11 @@ That location is remembered for subsequent launches. The reference is the Januar
 
 Flight opens the training, single-mission and campaign choices. Briefing maps support route editing, payload selection and a live 3D preview. Use Preferences to choose graphics, flight model, difficulty, audio and keyboard/joystick controls.
 
-Arrow keys control pitch and roll, Q/A change collective, Enter selects a weapon, and Space fires. F2/F3 select the pilot/gunner cockpit. F1 opens the illustrated manual in single-player flight; press F1 again or F2 to return to the pilot cockpit. P or Pause pauses; Ctrl+Escape asks whether to end the sortie (Y/N).
+Arrow keys control pitch and roll, Q/A change collective, Enter selects a weapon, and Space fires. F2/F3 select the pilot/gunner cockpit; F4/F5 look left/right. F1 opens the illustrated manual in single-player flight; press F1 again or F2 to return to the pilot cockpit. P or Pause pauses; Ctrl+Escape asks whether to end the sortie (Y/N).
 
 F6 shows the helicopter from outside. Hold Alt and use the arrow keys (or your selected joystick) to orbit it; comma and period zoom out and in. Camera movement and view switching work while paused. H selects the helmet-mounted display, a first-person view without the cockpit; F2 returns to the pilot cockpit.
 
-The 3D world renders at the window’s actual pixel resolution, including on high-DPI displays. Resizing the window updates it automatically. Original menus and cockpit artwork use nearest-neighbour scaling with square pixels. `--skip-intro` skips the opening sequence, and `--no-audio` disables playback. Run `apache --help` for other options.
+The 3D world renders at the window’s actual pixel resolution, including on high-DPI displays. Resizing the window updates it automatically. Original menus and cockpit artwork use nearest-neighbour scaling with square pixels. Side cockpit views align to the screen edge, with helmet-display symbols centred on the view. `--skip-intro` skips the opening sequence, and `--no-audio` disables playback. Run `apache --help` for other options.
 
 Pilot profiles and preferences are saved under `$XDG_DATA_HOME/apache-redux` or `~/.local/share/apache-redux` on Linux, and `%LOCALAPPDATA%\apache-redux` on Windows. `--save-dir` selects another location. Game files are shared with Apache C++ under `$XDG_DATA_HOME/apache/game` or `~/.local/share/apache/game` on Linux, so one download serves both versions. On Windows, they live in `data` beside the executable.
 

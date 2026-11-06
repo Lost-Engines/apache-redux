@@ -496,9 +496,21 @@ void mission_session::draw() {
     .score{runtime.quick_score}, .infinite_fuel{settings.arcade ? runtime.pilot->arcade.infinite_fuel : runtime.pilot->realistic.infinite_fuel}, .faults{runtime.pilot->faults()},
     .weapon{simulation::weapon_definitions()[arm.inventory.current].name}});
   auto &hud{scaled ? overlay : frame};
+  auto const direction{views->modes.mode % 5};
+  bool const side_panel{scaled && views->modes.mode < 10 && direction != 0 && layout.artwork.right - layout.artwork.left + 1 < static_cast<int>(frame.image.width)};
+  if(side_panel) {
+    // The cockpit frame stays at the screen edge; helmet symbology stays on the viewing axis.
+    auto const anchor{direction <= 2 ? render::horizontal_anchor::right : render::horizontal_anchor::left};
+    render::display_layout const panel_layout{frame.image.width, frame.image.height, overlay.image.width, overlay.image.height, original_view, settings.graphics.field_of_view, anchor};
+    panel_layout.background(frame, overlay);
+    panels.draw(overlay, views->modes.mode, true);
+    panel_layout.composite(overlay, frame);
+  }
   if(scaled) layout.background(frame, overlay);
   hud.horizontal_fov = 90;
-  hud.reset_clip(); panels.draw(hud, views->modes.mode, scaled || views->modes.changed); avionics.draw(hud, state, world, visual.lighting);
+  hud.reset_clip();
+  if(!side_panel) panels.draw(hud, views->modes.mode, scaled || views->modes.changed);
+  avionics.draw(hud, state, world, visual.lighting);
   for(size_t i{0}; i != 256; ++i) frame.image.colours[i] = {world.palette.modified[i * 3], world.palette.modified[i * 3 + 1], world.palette.modified[i * 3 + 2]};
   if(chat) chat->draw(hud, runtime.timing.now);
   views->modes.changed = false;
