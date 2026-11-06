@@ -30,7 +30,7 @@ concurrency:
 
 jobs:
   changes:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     outputs:
       release: ${{ steps.classify.outputs.release }}
     steps:
@@ -71,11 +71,11 @@ jobs:
         configuration: [Debug, Release]
         include:
           - platform: linux-x86_64
-            runner: ubuntu-24.04
+            runner: ubuntu-latest
           - platform: windows-x86_64
-            runner: windows-2025
+            runner: windows-latest
           - platform: macos-arm64
-            runner: macos-15
+            runner: macos-latest
         # Each platform is crossed with both configurations below.
         platform: [linux-x86_64, windows-x86_64, macos-arm64]
     defaults:
@@ -187,7 +187,7 @@ jobs:
   release:
     needs: [changes, build]
     if: needs.changes.outputs.release == 'true'
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     permissions:
       contents: write
     concurrency:
