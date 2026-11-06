@@ -499,12 +499,21 @@ void mission_session::draw() {
   auto const direction{views->modes.mode % 5};
   bool const side_panel{scaled && views->modes.mode < 10 && direction != 0 && layout.artwork.right - layout.artwork.left + 1 < static_cast<int>(frame.image.width)};
   if(side_panel) {
-    // The cockpit frame stays at the screen edge; helmet symbology stays on the viewing axis.
-    auto const anchor{direction <= 2 ? render::horizontal_anchor::right : render::horizontal_anchor::left};
-    render::display_layout const panel_layout{frame.image.width, frame.image.height, overlay.image.width, overlay.image.height, original_view, settings.graphics.field_of_view, anchor};
-    panel_layout.background(frame, overlay);
-    panels.draw(overlay, views->modes.mode, true);
-    panel_layout.composite(overlay, frame);
+    // Anchor the authored pieces independently; helmet symbology stays centred.
+    auto const draw_panel{[&](render::horizontal_anchor anchor, render::cockpit_section section){
+      render::display_layout const panel_layout{frame.image.width, frame.image.height, overlay.image.width, overlay.image.height, original_view, settings.graphics.field_of_view, anchor};
+      panel_layout.background(frame, overlay);
+      panels.draw(overlay, views->modes.mode, true, section);
+      panel_layout.composite(overlay, frame);
+    }};
+    if(views->modes.mode == 2 || views->modes.mode == 4) {
+      // The pilot's 90-degree views have a lower frame on one side and a
+      // separate upper corner on the other. Keep the lower frame intact.
+      draw_panel(render::horizontal_anchor::left, render::cockpit_section::left);
+      draw_panel(render::horizontal_anchor::right, render::cockpit_section::right);
+    } else {
+      draw_panel(direction <= 2 ? render::horizontal_anchor::right : render::horizontal_anchor::left, render::cockpit_section::complete);
+    }
   }
   if(scaled) layout.background(frame, overlay);
   hud.horizontal_fov = 90;

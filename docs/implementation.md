@@ -18,7 +18,7 @@ Camera controls remain active while paused. Orbit, look and zoom use elapsed dis
 
 F1 or F2 closes the in-flight manual and returns to the pilot cockpit, preserving the pause state. Holding F1 does not immediately close it through key repeat. Escape still returns to the previous view.
 
-Side cockpit artwork is anchored to the right edge when looking left and to the left edge when looking right, for both pilot and gunner seats. The helmet display and its target projection remain centred; the wider world continues behind both layers.
+Side cockpit artwork is anchored to the right edge when looking left and to the left edge when looking right, for both pilot and gunner seats. The pilot’s 90° views use two independent groups: `PLTL90_1` through `_3` stay at the left/lower edge and `PLTL90_4` stays at the upper right, with the reverse arrangement for `PLTR90`. The lower rail stays intact even where it crosses the original image’s centre. Both `.320` and `.640` artwork use these groups; 4:3 layouts retain the original placement. The helmet display and its target projection remain centred.
 
 The target-camera images in F3 and the FLIR MFD pages render directly into the native framebuffer at the display's fixed 90° projection. Their rectangles use the same sampling boundaries as cockpit scaling, including fractional scales. Captions and bezel corners remain on the logical overlay; covered pixels inside the image are cleared before the final composite. Damaged and empty displays retain their original appearance.
 

@@ -8,6 +8,7 @@
 #include "resources/data_store.h"
 
 namespace apache::render {
+enum class cockpit_section { complete, left, right };
 class cockpit {
   unsigned int mode;
   std::map<std::string, resources::indexed_image, std::less<>> sprites;
@@ -19,6 +20,6 @@ public:
   void copy(framebuffer &target, std::string_view name, size_t source_offset, rectangle destination, bool masked = false) const;
   void install_palette(palette_rgb &palette) const;
   std::array<palette_fader, 3> faders(int32_t night, bool night_vision) const;
-  void draw(framebuffer &target, unsigned int view, bool new_view) const;
+  void draw(framebuffer &target, unsigned int view, bool new_view, cockpit_section section = cockpit_section::complete) const;
 };
 } // namespace apache::render
