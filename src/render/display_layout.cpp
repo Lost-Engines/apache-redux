@@ -68,4 +68,43 @@ void display_layout::composite(framebuffer const &overlay, framebuffer &world) c
     }
   }
 }
+void display_layout::composite_hud(framebuffer const &overlay, framebuffer &world, rectangle const reference_view, double const fov) const {
+  double const zoom{fov == 90 ? 1 : 1 / std::tan(fov * std::numbers::pi / 360)};
+  double const scale_x{double(artwork.right - artwork.left + 1) / source_width * zoom};
+  double const scale_y{double(artwork.bottom - artwork.top + 1) / source_height * zoom};
+  // the 3D projection's origin lies at left + width/2, bottom - height/2
+  double const centre_x{scene.left + (scene.right - scene.left + 1) / 2.0};
+  double const centre_y{scene.bottom - (scene.bottom - scene.top + 1) / 2.0};
+  double const source_x{reference_view.left + (reference_view.right - reference_view.left + 1) / 2.0};
+  double const source_y{reference_view.bottom - (reference_view.bottom - reference_view.top + 1) / 2.0};
+  auto const clip{intersect(scene, {0, 0, static_cast<int>(world.image.width) - 1, static_cast<int>(world.image.height) - 1})};
+  std::vector<int> columns(source_width + 1);
+  for(unsigned int x{0}; x <= source_width; ++x)
+    columns[x] = static_cast<int>(std::ceil(centre_x + (x - source_x) * scale_x));
+  for(unsigned int y{0}; y != source_height; ++y) {
+    int const first{static_cast<int>(std::ceil(centre_y + (y - source_y) * scale_y))};
+    int const next{static_cast<int>(std::ceil(centre_y + (y + 1 - source_y) * scale_y))};
+    int const top{std::max(clip.top, first)}, bottom{std::min(clip.bottom + 1, std::max(first + 1, next))};
+    if(top >= bottom) continue;
+    auto const *mask{overlay.coverage.data() + size_t{y} * source_width};
+    auto const *source{overlay.image.pixels.data() + size_t{y} * source_width};
+    auto *out{world.image.pixels.data() + size_t(top) * world.image.width};
+    unsigned int x{0};
+    while(x != source_width) {
+      while(x != source_width && !mask[x]) ++x;
+      int const start{std::clamp(columns[x], clip.left, clip.right + 1)};
+      int end{start};
+      while(x != source_width && mask[x]) {
+        // keep subpixel strokes visible instead of dropping entire box edges
+        int const left{std::clamp(columns[x], clip.left, clip.right + 1)};
+        end = std::clamp(std::max(columns[x] + 1, columns[x + 1]), clip.left, clip.right + 1);
+        std::fill(out + left, out + end, source[x]);
+        ++x;
+      }
+      int const count{end - start};
+      if(count) for(int yy{top + 1}; yy != bottom; ++yy)
+        std::copy_n(out + start, count, out + size_t(yy - top) * world.image.width + start);
+    }
+  }
+}
 } // namespace apache::render

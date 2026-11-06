@@ -113,6 +113,42 @@ int main() try {
       sampling.composite(layer,image);
       require(image.image.pixels == expected, "covered runs changed nearest-neighbour pixels or overwrote a hole");
     }
+  // A HUD mark projected at the reference FOV must land on the same world ray
+  // after the complete HUD is zoomed, in cockpit and full-screen views.
+  for(unsigned int source_width : {320u,640u}) for(auto size : {configuration::resolution{640,480}, {1437,911}, {3840,2160}, {800,1000}})
+    for(double fov : {30.,60.,120.,150.}) for(bool cockpit : {false,true}) {
+      unsigned int const source_height{source_width*3/4};
+      int const view_height{cockpit ? static_cast<int>(source_width*31/80) : static_cast<int>(source_height)};
+      render::rectangle const viewport{0,0,static_cast<int>(source_width)-1,view_height-1};
+      render::display_layout const layout{size.width,size.height,source_width,source_height,viewport,fov};
+      render::display_layout const reference{size.width,size.height,source_width,source_height,viewport,90};
+      render::projection const source{0,0,static_cast<int>(source_width),view_height,reference.instrument_fov};
+      render::projection const destination{layout.scene.left,layout.scene.top,layout.scene.right-layout.scene.left+1,layout.scene.bottom-layout.scene.top+1,fov};
+      render::framebuffer image{size.width,size.height}, layer{source_width,source_height};
+      layer.coverage.assign(layer.image.pixels.size(),0); image.clear(17);
+      std::array<math::vector3,3> const rays{{{-1000,20000,500},{0,20000,0},{1000,20000,-500}}};
+      for(size_t i{0}; i < rays.size(); ++i) {
+        auto const point{*source.project_unclipped(rays[i])};
+        layer.point(point.x,point.y,static_cast<uint8_t>(220+i));
+      }
+      layout.composite_hud(layer,image,viewport,fov);
+      double const zoom{destination.lateral_scale()};
+      int const tolerance{static_cast<int>(std::ceil(2.0*(layout.artwork.right-layout.artwork.left+1)/source_width*zoom))+2};
+      for(size_t i{0}; i < rays.size(); ++i) {
+        auto const point{*destination.project_unclipped(rays[i])};
+        bool found{false};
+        for(int y{std::max(0,point.y-tolerance)}; y <= std::min(static_cast<int>(size.height)-1,point.y+tolerance); ++y)
+          for(int x{std::max(0,point.x-tolerance)}; x <= std::min(static_cast<int>(size.width)-1,point.x+tolerance); ++x)
+            found = found || image.image.pixels[size_t(y)*size.width+x] == 220+i;
+        require(found, "FOV-scaled HUD marker disappeared or does not follow its world ray");
+      }
+      layer.coverage.assign(layer.image.pixels.size(),1);
+      std::ranges::fill(layer.image.pixels,223);
+      image.clear(17); layout.composite_hud(layer,image,viewport,fov);
+      for(unsigned int y{0}; y < size.height; ++y) for(unsigned int x{0}; x < size.width; ++x)
+        if(!layout.scene.contains(static_cast<int>(x),static_cast<int>(y)))
+          require(image.image.pixels[size_t{y}*size.width+x] == 17, "enlarged HUD overwrote the instrument panel or letterbox");
+    }
   // Reusing the upload buffer must still reflect palette changes and resizing.
   std::vector<render::rgba> upload;
   for(unsigned int width : {257u, 16u, 1000u}) {

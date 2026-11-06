@@ -35,6 +35,7 @@ struct mission_options {
 class mission_session {
   mission_options settings;
   render::framebuffer overlay;
+  render::framebuffer helmet_overlay;
   simulation::mission_random_state initial_seeds;
   std::optional<resources::mission_definition> network_definition;
   uint32_t library_random{1};

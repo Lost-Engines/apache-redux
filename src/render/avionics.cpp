@@ -32,21 +32,27 @@ void avionics_renderer::multifunction(framebuffer &target, avionics_instruments 
   }
   screens.corners(target, gunner);
 }
-void avionics_renderer::draw(framebuffer &target, avionics_instruments &state, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview) const {
+void avionics_renderer::draw_helmet(framebuffer &target, helmet_instruments const &state) const {
+  if(state.view < 10 || state.view == 12 || state.view == 13 || state.view == 18) helmet.draw(target, state);
+}
+void avionics_renderer::draw(framebuffer &target, avionics_instruments &state, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview, bool const draw_hud) const {
   auto const &flight{state.helmet};
   switch(flight.view) {
   case 0:
     instruments.attitude(target, flight.aircraft.rotation); instruments.compass(target, flight.heading);
     instruments.airspeed(target, flight.airspeed); instruments.altimeter(target, flight.barometric_altitude);
-    helmet.draw(target, flight); instruments.clock(target, state.clock_time); multifunction(target, state, false, world, lighting, preview);
+    if(draw_hud) helmet.draw(target, flight);
+    instruments.clock(target, state.clock_time); multifunction(target, state, false, world, lighting, preview);
     instruments.communications(target, false, state.communications); instruments.warnings(target, false, flight.faults);
     break;
   case 5:
-    helmet.draw(target, flight); multifunction(target, state, true, world, lighting, preview);
+    if(draw_hud) helmet.draw(target, flight);
+    multifunction(target, state, true, world, lighting, preview);
     instruments.communications(target, true, state.communications); instruments.warnings(target, true, flight.faults);
     break;
   case 1: case 2: case 3: case 4: case 6: case 7: case 8: case 9: case 12: case 13: case 18:
-    helmet.draw(target, flight); break;
+    if(draw_hud) helmet.draw(target, flight);
+    break;
   case 10: case 11: case 14: case 15: case 16: case 17: case 19: break;
   default: throw std::runtime_error{"Invalid avionics view"};
   }

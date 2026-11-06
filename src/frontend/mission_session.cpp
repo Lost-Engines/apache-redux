@@ -68,7 +68,7 @@ resources::mission_briefing mission_session::quick_start(resources::data_store c
 mission_session::mission_session(resources::data_store const &data, int const mission_id, mission_options const options)
   : mission_session{data, find_mission(data, mission_id), options} {}
 mission_session::mission_session(resources::data_store const &data, resources::mission_briefing definition, mission_options const options, resources::mission_definition const *edited)
-  : settings{connection_options(options)}, overlay{options.video_mode ? 640u : 320u, options.video_mode ? 480u : 240u}, initial_seeds{weapon_seeds()}, network_definition{connection_definition(data, definition, settings, edited)}, briefing{std::move(definition)}, zone{warzone(briefing.zone)},
+  : settings{connection_options(options)}, overlay{options.video_mode ? 640u : 320u, options.video_mode ? 480u : 240u}, helmet_overlay{overlay.image.width, overlay.image.height}, initial_seeds{weapon_seeds()}, network_definition{connection_definition(data, definition, settings, edited)}, briefing{std::move(definition)}, zone{warzone(briefing.zone)},
     runtime{data, zone, mission_path(briefing), true, true, settings.shared_seat ? 2 : settings.difficulty, initial_seeds, network_definition ? &*network_definition : edited},
     daylight{runtime.executable, runtime.mission.time_of_day}, world{data, zone}, panels{data, options.video_mode},
     avionics{panels, runtime.trig, runtime.executable}, frame{options.graphics.fixed_resolution ? options.graphics.fixed_resolution->width : overlay.image.width, options.graphics.fixed_resolution ? options.graphics.fixed_resolution->height : overlay.image.height} {
@@ -315,8 +315,8 @@ void mission_session::command(uint16_t const key) {
   }
   if(chat && key == 0x4032) { chat->begin(); return; }
   if(quit_prompt) {
-    if((key & 255) == 0x15) request_end(1);
-    else if((key & 255) == 0x31) { quit_prompt = false; quit_drawn = false; views->modes.changed = true; }
+    if((key & 255) == 0x15) { if(crew) crew->notify_key(0x2001); request_end(1); }
+    else if(key == 1 || (key & 255) == 0x31) { quit_prompt = false; quit_drawn = false; views->modes.changed = true; }
     return;
   }
   auto &arm{*runtime.player_armament}; auto &sensors{runtime.sensors->state}; auto &displays{instruments->state.displays};
@@ -334,12 +334,13 @@ void mission_session::command(uint16_t const key) {
     return;
   }
   switch(key) {
+    case 1: quit_prompt = true; break;
     case 0x2001: case 0x2010: case 0x102d:
       if(crew) { crew->notify_key(key); request_end(1); }
       else quit_prompt = true;
       break;
     case 0x3b: if(!network) help_requested = true; break;
-    case 1: case 0x200f: if(!network) accelerated_time = 1; break;
+    case 0x200f: if(!network) accelerated_time = 1; break;
     case 0x400f: if(!network) accelerated_time = 8; break;
     case 0xf: if(!network) accelerated_time = accelerated_time == 8 ? 1 : accelerated_time * 2; break;
     case 0x19: if(!network) paused = !paused; break;
@@ -405,7 +406,7 @@ void mission_session::step(unsigned int const ticks) {
   bool const was_prompt{quit_prompt};
   for(auto key : commands) { command(key); if(quit_prompt != was_prompt || help_requested || finished) break; }
   commands.clear();
-  if((finished && !network) || was_prompt || help_requested) return;
+  if((finished && !network) || was_prompt || quit_prompt || help_requested) return;
   if(paused) {
     // Consume held-key time for the camera without changing the saved flight inputs.
     auto const flight{controls.flight};
@@ -468,9 +469,11 @@ void mission_session::draw() {
   bool const scaled{frame.image.width != overlay.image.width || frame.image.height != overlay.image.height};
   if(scaled) frame.clear();
   frame.clip = layout.scene;
-  // Sight coordinates stay in the cockpit's authored pixel space. Its FOV
-  // describes the same rays as the full-resolution scene beneath the overlay.
-  render::projection const projection{viewport[0], viewport[1], viewport[2], viewport[3], layout.instrument_fov};
+  // draw HUD symbols and target coordinates in the same reference projection,
+  // then scale the complete HUD about the camera's optical axis for custom FOVs
+  render::display_layout const reference_layout{frame.image.width, frame.image.height, overlay.image.width, overlay.image.height, original_view, 90};
+  render::projection const projection{viewport[0], viewport[1], viewport[2], viewport[3], reference_layout.instrument_fov};
+  bool const zoom_hud{settings.graphics.field_of_view != 90};
   world.draw(frame, camera.camera, visual);
   if(camera.sight) runtime.look_player(camera.camera, projection);
   auto &arm{*runtime.player_armament};
@@ -529,7 +532,16 @@ void mission_session::draw() {
     frame.clip = saved_clip; frame.horizontal_fov = saved_fov;
     return name;
   };
-  avionics.draw(hud, state, world, visual.lighting, preview);
+  avionics.draw(hud, state, world, visual.lighting, preview, !zoom_hud);
+  if(zoom_hud) {
+    if(scaled) layout.composite(overlay, frame);
+    helmet_overlay.coverage.assign(helmet_overlay.image.pixels.size(), 0);
+    helmet_overlay.reset_clip();
+    avionics.draw_helmet(helmet_overlay, state.helmet);
+    layout.composite_hud(helmet_overlay, frame, original_view, settings.graphics.field_of_view);
+    // chat and the quit prompt stay above the HUD at their normal text size
+    if(scaled) layout.background(frame, overlay);
+  }
   for(size_t i{0}; i != 256; ++i) frame.image.colours[i] = {world.palette.modified[i * 3], world.palette.modified[i * 3 + 1], world.palette.modified[i * 3 + 2]};
   if(chat) chat->draw(hud, runtime.timing.now);
   views->modes.changed = false;

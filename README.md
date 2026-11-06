@@ -31,7 +31,7 @@ That location is remembered for subsequent launches. The reference is the Januar
 
 Flight opens the training, single-mission and campaign choices. Briefing maps support route editing, payload selection and a live 3D preview. Use Preferences to choose graphics, flight model, difficulty, audio and keyboard/joystick controls.
 
-Arrow keys control pitch and roll, Q/A change collective, Enter selects a weapon, and Space fires. F2/F3 select the pilot/gunner cockpit; F4/F5 look left/right. F1 opens the illustrated manual in single-player flight; press F1 again or F2 to return to the pilot cockpit. P or Pause pauses; Ctrl+Escape asks whether to end the sortie (Y/N).
+Arrow keys control pitch and roll, Q/A change collective, Enter selects a weapon, and Space fires. F2/F3 select the pilot/gunner cockpit; F4/F5 look left/right. F1 opens the illustrated manual in single-player flight; press F1 again or F2 to return to the pilot cockpit. P or Pause pauses; Escape asks whether to end the sortie. Press Y to confirm, or N or Escape to cancel. Ctrl+Escape also works.
 
 F6 shows the helicopter from outside. Hold Alt and use the arrow keys (or your selected joystick) to orbit it; comma and period zoom out and in. Camera movement and view switching work while paused. H selects the helmet-mounted display, a first-person view without the cockpit; F2 returns to the pilot cockpit.
 
@@ -49,7 +49,7 @@ No options are needed for automatic resolution. To choose a fixed render size or
 ./apache --resolution auto --fov 100
 ```
 
-`--fov` sets the horizontal viewing angle in degrees, from 30 to 150. The default is the original 90°. A fixed resolution stays unchanged when the window is resized; its image is fitted without stretching. `--scale 2` sets the initial window to 1280×960 while keeping automatic rendering, or doubles the chosen fixed resolution's window size.
+`--fov` sets the horizontal viewing angle in degrees, from 30 to 150. The default is the original 90°. HUD symbols scale with the field of view, keeping acquisition cues and target markers aligned with the scene; cockpit artwork and MFDs retain their normal size. A fixed resolution stays unchanged when the window is resized; its image is fitted without stretching. `--scale 2` sets the initial window to 1280×960 while keeping automatic rendering, or doubles the chosen fixed resolution's window size.
 
 The renderer runs on the CPU. A lower fixed resolution can improve performance on slower machines. The original cockpit and menu images retain their source detail; increasing resolution sharpens the 3D scene and target previews, including the small screen in F3. The original 320/640 preference selects cockpit artwork, independently of Redux's render resolution.
 

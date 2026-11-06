@@ -13,5 +13,6 @@ public:
   rectangle map(rectangle logical) const;
   void background(framebuffer const &world, framebuffer &overlay) const;
   void composite(framebuffer const &overlay, framebuffer &world) const;
+  void composite_hud(framebuffer const &overlay, framebuffer &world, rectangle reference_view, double fov) const;
 };
 } // namespace apache::render

@@ -26,6 +26,14 @@ A-10 gear uses the original nose (1219), right (1217) and left (1214) components
 
 `redux_aircraft_check DATA_DIRECTORY [CAPTURE_DIRECTORY]` exercises all four Cyprus quickstart A-10s through landing/taxi/takeoff, missile notifications while grounded and airborne, carrier and player countermeasures, and native F3 target composition through 4K. It covers both cockpit artwork sizes, custom FOV, fractional scaling, empty targets and damaged displays. Captures are optional and local. These checks pass in normal and AddressSanitizer/UndefinedBehaviorSanitizer builds; the existing six CTest targets and 156-view graphics matrix also pass.
 
+## HUD field of view and Escape confirmation
+
+Escape opens the end-sortie confirmation in flight; Escape or N cancels, and Y confirms. The existing Ctrl+Escape binding remains available. Opening or closing the prompt does not advance the simulation, and cancelling preserves the prior pause state. Escape retains its existing role in chat, the manual and frontend menus.
+
+At a custom FOV, the helmet display is drawn into its own covered layer using the reference 90° projection. Target, impact and intercept positions use that same reference projection, then the whole layer scales by `1 / tan(FOV / 2)` about the camera's viewing axis. This keeps the acquisition box and its target symbols on the same angular scale as the world. Drawing directly into the native framebuffer avoids shrinking the HUD in the low-resolution cockpit layer first. Every covered source pixel retains at least one output pixel so thin box edges and aiming marks survive minification. Enlarged symbols clip to the scene viewport; cockpit artwork, MFDs, chat and confirmation text keep their existing size. The default 90° path is unchanged.
+
+`graphics_tests` follows projected world rays through both artwork sizes, wide/portrait/fractional resolutions and 30°, 60°, 120° and 150° FOVs, including subpixel marks and clipping against the instrument panel. `hud_fov_check DATA_DIRECTORY [CAPTURE_DIRECTORY]` checks the actual acquisition-box dimensions through 4K, matching target coordinates/acquisition state across FOV changes, identical panel pixels, and Escape confirmation/cancellation with frozen flight time. `graphics_window.py` also exercises Escape from help, the flight prompt and its cancellation.
+
 ## Software rendering performance
 
 The high-resolution drawing paths keep the same indexed pixels while avoiding repeated work:

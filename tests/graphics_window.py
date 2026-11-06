@@ -58,10 +58,12 @@ for resolution in ['auto','640x480']:
     key('F1');key('F2');assert capture().tobytes()==pilot.tobytes(), 'F2 did not leave help for the pilot cockpit'
     key('F6');external=capture();key('F1');key('Escape')
     assert capture().tobytes()==external.tobytes(), 'Escape did not return from help to the previous view'
-    key('ctrl+Escape')
+    key('Escape');assert capture().tobytes()!=external.tobytes(), 'Escape did not open confirmation'
+    key('Escape');assert capture().tobytes()==external.tobytes(), 'Escape did not cancel confirmation'
+    key('Escape')
     xdo('windowsize',wid,1100,750);time.sleep(max(.4,a.settle_seconds))
     assert game.poll() is None, 'Resizing the exit prompt terminated the game'
-    key('n');key('F1');key('Escape');key('ctrl+Escape');key('y')
+    key('n');key('F1');key('Escape');key('Escape');key('y')
     assert game.poll() is None, 'Could not return to the menu'
     xdo('mousemove','--window',wid,5,5);time.sleep(max(.2,a.settle_seconds));main_menu=capture()
     def click_menu(x,y):

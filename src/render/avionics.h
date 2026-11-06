@@ -36,6 +36,7 @@ class avionics_renderer {
   void multifunction(framebuffer &target, avionics_instruments &state, bool gunner, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview = {}) const;
 public:
   avionics_renderer(cockpit const &panels, math::trigonometry const &trig, resources::executable_data const &executable);
-  void draw(framebuffer &target, avionics_instruments &state, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview = {}) const;
+  void draw_helmet(framebuffer &target, helmet_instruments const &state) const;
+  void draw(framebuffer &target, avionics_instruments &state, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview = {}, bool draw_hud = true) const;
 };
 } // namespace apache::render
