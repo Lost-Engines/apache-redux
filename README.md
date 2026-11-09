@@ -41,13 +41,18 @@ Pilot profiles and preferences are saved under `$XDG_DATA_HOME/apache-redux` or 
 
 ## Graphics options
 
-No options are needed for automatic resolution. To choose a fixed render size or a wider view:
+Press **Alt+Enter** to toggle fullscreen at any time, or launch with `--fullscreen`. Returning to a window restores its previous size and position.
+
+No options are needed for automatic resolution. To start fullscreen, choose a fixed render size or a wider view:
 
 ```sh
+./apache --fullscreen
 ./apache --resolution 1920x1080
 ./apache --resolution 3840x2160 --fov 110
 ./apache --resolution auto --fov 100 --lod-distance 6
 ```
+
+Fullscreen uses the display’s current resolution and refresh rate. Automatic rendering follows that resolution; `--resolution` can still select a smaller render size.
 
 `--fov` sets the horizontal viewing angle in degrees, from 30 to 150. The default is the original 90°. HUD symbols scale with the field of view, keeping acquisition cues and target markers aligned with the scene; cockpit artwork and MFDs retain their normal size. A fixed resolution stays unchanged when the window is resized; its image is fitted without stretching. `--scale 2` sets the initial window to 1280×960 while keeping automatic rendering, or doubles the chosen fixed resolution's window size.
 

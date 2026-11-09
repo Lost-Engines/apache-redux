@@ -32,6 +32,8 @@ unsigned int number(std::string_view const text) {
   return result;
 }
 struct events {
+  apache::platform::window &window;
+  explicit events(apache::platform::window &window) : window{window} {}
   struct key { int value, modifiers; bool down; bool character{false}, repeat{false}; };
   std::vector<key> keys;
   struct click { unsigned int button; bool down; };
@@ -41,7 +43,7 @@ struct events {
 // presentation holds the current frame instead of dropping authored deltas.
 bool play_clip(apache::resources::data_store const &data, apache::frontend::presentation_clip const &clip, apache::platform::window &window, events &input) {
   auto const interrupted{[&](){
-    bool const skip{std::ranges::any_of(input.keys, [](auto const &k){ return k.down && !k.character; }) || std::ranges::any_of(input.clicks, [](auto const &c){ return c.down; })};
+    bool const skip{std::ranges::any_of(input.keys, [](auto const &k){ return k.down && !k.character && k.value != GLFW_KEY_LEFT_ALT && k.value != GLFW_KEY_RIGHT_ALT; }) || std::ranges::any_of(input.clicks, [](auto const &c){ return c.down; })};
     input.keys.clear(); input.clicks.clear(); return skip;
   }};
   input.keys.clear(); input.clicks.clear();
@@ -119,7 +121,7 @@ int main(int const argc, char const *const argv[]) try {
   std::string capture;
   std::string pressed;
   unsigned int scale{0}, frame_limit{0};
-  bool no_audio{false}, skip_intro{false};
+  bool no_audio{false}, skip_intro{false}, fullscreen{false};
   bool quick{false}, override_model{false}, override_detail{false}, override_video{false};
   int mission_id{0};
   apache::frontend::mission_options mission_options;
@@ -132,7 +134,7 @@ int main(int const argc, char const *const argv[]) try {
     }};
     if(key == "--help") {
       std::cout << "Apache Redux reconstruction\n"
-                   "Usage: apache [--data-dir DIRECTORY] [--scale N]\n"
+                   "Usage: apache [--data-dir DIRECTORY] [--scale N] [--fullscreen]\n"
                    "  --data-dir DIRECTORY  Original installation or extracted CD contents\n"
                    "  --save-dir DIRECTORY  Pilot and preference storage\n"
                    "  --install-cd FILE     Extract the reference CD into --data-dir or the default location\n"
@@ -142,6 +144,7 @@ int main(int const argc, char const *const argv[]) try {
                    "  --fov DEGREES         Horizontal field of view, 30..150 (initial default: 90)\n"
                    "  --lod-distance N      Model LOD/visibility distance multiplier, 0.1..32 (default: 6)\n"
                    "  --scale N             Initial window scale, or 0 to fit the desktop\n"
+                   "  --fullscreen          Start fullscreen; Alt+Enter toggles at any time\n"
                    "  --skip-intro          Skip the opening movies and publisher logos\n"
                    "  --no-audio            Disable the playback device\n"
                    "Development checks:\n"
@@ -171,6 +174,7 @@ int main(int const argc, char const *const argv[]) try {
     else if(key == "--menu") selected_menu = "_" + std::string{value()} + "_screen";
     else if(key == "--capture") capture = value();
     else if(key == "--press") pressed = value();
+    else if(key == "--fullscreen") fullscreen = true;
     else if(key == "--skip-intro") skip_intro = true;
     else if(key == "--no-audio") no_audio = true;
     else if(key == "--quick") quick = true;
@@ -220,7 +224,7 @@ int main(int const argc, char const *const argv[]) try {
   if(override_video) frontend.options.video_mode = mission_options.video_mode;
   if(mission_id) mission = std::make_unique<apache::frontend::mission_session>(data, mission_id, frontend.options);
   if(!mission_id && selected_menu == "_main_screen" && !quick && pressed.empty()) frontend.startup();
-  apache::platform::window window{scale, mission_options.graphics.fixed_resolution};
+  apache::platform::window window{scale, mission_options.graphics.fixed_resolution, fullscreen};
   auto const resize_mission{[&](){
     if(!mission) return false;
     auto const size{mission_options.graphics.fixed_resolution.value_or(window.framebuffer_size())};
@@ -264,10 +268,11 @@ int main(int const argc, char const *const argv[]) try {
     mission->runtime.events.gun_sound = [&](bool active){ sound->gun(active); };
   }};
   connect_audio();
-  events input;
+  events input{window};
   glfwSetWindowUserPointer(window.get(), &input);
   glfwSetKeyCallback(window.get(), [](GLFWwindow *const handle, int const key, int, int const action, int const modifiers){
-    static_cast<events*>(glfwGetWindowUserPointer(handle))->keys.push_back({key, modifiers, action != GLFW_RELEASE, false, action == GLFW_REPEAT});
+    auto &input{*static_cast<events*>(glfwGetWindowUserPointer(handle))};
+    if(!input.window.fullscreen_key(key, action, modifiers)) input.keys.push_back({key, modifiers, action != GLFW_RELEASE, false, action == GLFW_REPEAT});
   });
   glfwSetCharCallback(window.get(), [](GLFWwindow *handle, unsigned int value){ static_cast<events*>(glfwGetWindowUserPointer(handle))->keys.push_back({static_cast<int>(value), 0, true, true}); });
   glfwSetMouseButtonCallback(window.get(), [](GLFWwindow *const handle, int const button, int const action, int){

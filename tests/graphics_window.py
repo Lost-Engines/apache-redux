@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Check Redux resizing on a private Xvfb display, using existing game data."""
-import argparse, os, subprocess, tempfile, time
+"""Check Redux fullscreen, resizing and input on a private Xvfb display."""
+import argparse, os, re, subprocess, tempfile, time
 from pathlib import Path
 from PIL import ImageGrab
 p=argparse.ArgumentParser(description=__doc__)
@@ -15,7 +15,7 @@ def xdo(*args): return subprocess.check_output(['xdotool',*map(str,args)],text=T
 for resolution in ['auto','640x480']:
  with tempfile.TemporaryDirectory(prefix='apache-redux-window-') as directory:
   with open(Path(directory)/'game.log','w+') as log:
-   game=subprocess.Popen([str(a.binary.resolve()),'--data-dir',str(a.data_dir.resolve()),'--save-dir',directory,'--mission','61','--no-audio','--skip-intro','--scale','1','--resolution',resolution,'--fov','110'],stdout=log,stderr=log)
+   game=subprocess.Popen([str(a.binary.resolve()),'--data-dir',str(a.data_dir.resolve()),'--save-dir',directory,'--mission','61','--no-audio','--skip-intro','--scale','1','--fullscreen','--resolution',resolution,'--fov','110'],stdout=log,stderr=log)
    try:
     for _ in range(500):
      found=subprocess.run(['xdotool','search','--onlyvisible','--pid',str(game.pid),'--name','Apache Redux'],capture_output=True,text=True)
@@ -24,9 +24,19 @@ for resolution in ['auto','640x480']:
      time.sleep(.03)
     else: raise AssertionError('No game window')
     xdo('windowfocus',wid)
+    def geometry():
+     # xdotool adds decorations twice on reparented windows. Capture the actual
+     # client rectangle, both with a window manager and on bare Xvfb.
+     details=subprocess.check_output(['xwininfo','-id',wid],text=True)
+     return tuple(int(re.search(rf'^\s*{label}:\s*(-?\d+)',details,re.M)[1])
+                  for label in ['Absolute upper-left X','Absolute upper-left Y','Width','Height'])
+    def wait_size(size):
+     for _ in range(100):
+      if geometry()[2:]==size: time.sleep(a.settle_seconds);return
+      assert game.poll() is None;time.sleep(.05)
+     raise AssertionError(('Unexpected window size',geometry(),size))
     def capture():
-     geometry=dict(line.split('=',1) for line in xdo('getwindowgeometry','--shell',wid).splitlines())
-     x,y,w,h=[int(geometry[k]) for k in ['X','Y','WIDTH','HEIGHT']]
+     x,y,w,h=geometry()
      return ImageGrab.grab(xdisplay=os.environ['DISPLAY']).crop((x,y,x+w,y+h)).convert('RGB')
     for _ in range(100):
      if len(capture().getcolors(65536) or [])>30: break
@@ -35,11 +45,25 @@ for resolution in ['auto','640x480']:
     # Xvfb repeats these symbols on modifier levels; use unambiguous physical codes.
     key_codes={'F1':67,'F2':68,'F3':69,'F6':72,'Pause':127}
     def key(value): xdo('key','--clearmodifiers',key_codes.get(value,value));time.sleep(a.settle_seconds)
-    key('Pause');key('F6')
+    desktop=ImageGrab.grab(xdisplay=os.environ['DISPLAY']).size
+    wait_size(desktop) # --fullscreen, with either automatic or fixed rendering.
+    key('Alt_L+Return');wait_size((640,480))
+    key('Pause');key('F2')
+    windowed=geometry();pilot=capture()
+    # Holding Enter must not repeat the toggle or select another weapon. Release
+    # Alt first to check that the remaining repeats/releases are also consumed.
+    xdo('keydown','Alt_L','Return');wait_size(desktop)
+    time.sleep(1);assert geometry()[2:]==desktop, 'Held Alt+Enter repeated the toggle'
+    xdo('keyup','Alt_L');time.sleep(.3);xdo('keyup','Return')
+    key('Alt_R+KP_Enter');wait_size(windowed[2:])
+    assert geometry()==windowed, 'Fullscreen did not restore window placement'
+    assert capture().tobytes()==pilot.tobytes(), 'Fullscreen chord reached flight controls'
+    key('F6')
     before_orbit=capture()
     xdo('keydown','Alt_L','Right');time.sleep(max(.5,a.settle_seconds));xdo('keyup','Right','Alt_L')
     time.sleep(a.settle_seconds)
     assert capture().tobytes()!=before_orbit.tobytes(), 'Alt + Right did not move the paused external camera'
+    xdo('windowmove',wid,20,20)
     xdo('windowsize',wid,1000,700)
     for _ in range(100):
      image=capture();bounds=image.getbbox()
@@ -47,7 +71,7 @@ for resolution in ['auto','640x480']:
       if resolution=='auto' and bounds==(0,0,1000,700):break
       if resolution!='auto' and 32<=bounds[0]<=34 and 966<=bounds[2]<=968 and bounds[1]==0 and bounds[3]==700:break
      assert game.poll() is None;time.sleep(.1)
-    else:raise AssertionError(('Frame did not resize',bounds))
+    else:raise AssertionError(('Frame did not resize',geometry(),bounds))
     key('F3');key('F2');pilot=capture()
     key('F6');external=capture()
     assert external.tobytes()!=pilot.tobytes(), 'F6 did not select the external view'
@@ -66,13 +90,18 @@ for resolution in ['auto','640x480']:
     key('n');key('F1');key('Escape');key('Escape');key('y')
     assert game.poll() is None, 'Could not return to the menu'
     xdo('mousemove','--window',wid,5,5);time.sleep(max(.2,a.settle_seconds));main_menu=capture()
+    menu_geometry=geometry()
+    key('Alt_L+Return');wait_size(desktop)
+    key('Alt_L+Return');wait_size(menu_geometry[2:])
+    xdo('mousemove','--window',wid,5,5);time.sleep(a.settle_seconds)
+    assert geometry()==menu_geometry and capture().tobytes()==main_menu.tobytes(), 'Fullscreen changed the menu'
     def click_menu(x,y):
      w,h=capture().size;scale=min(w/640,h/480)
      xdo('mousemove','--window',wid,round((w-640*scale)/2+x*scale),round((h-480*scale)/2+y*scale));xdo('click',1)
      time.sleep(max(.2,a.settle_seconds));xdo('mousemove','--window',wid,5,5);time.sleep(max(.2,a.settle_seconds))
     click_menu(620,472);assert capture().tobytes()!=main_menu.tobytes(), 'Scaled menu click did not open exit confirmation'
     click_menu(550,445);assert capture().tobytes()==main_menu.tobytes(), 'Scaled No button did not return to the same menu'
-    print(resolution, 'resize, aspect, paused orbit, views, F1/F2 help return, exit prompt and scaled menu clicks passed',flush=True)
+    print(resolution, 'fullscreen launch/toggle/held chord, resize, aspect, paused orbit, views, F1/F2 help return, exit prompt and scaled menu clicks passed',flush=True)
    finally:
     if game.poll() is None: game.terminate()
     game.wait(timeout=5)

@@ -1,8 +1,10 @@
 #include "window.h"
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <iostream>
 #include <stdexcept>
+#include <utility>
 #ifdef _WIN32
 #include <GL/glext.h>
 #endif // _WIN32
@@ -33,7 +35,7 @@ glfw_runtime::~glfw_runtime() {
   glfwTerminate();
 }
 
-window::window(unsigned int const scale, std::optional<configuration::resolution> const resolution) : handle{nullptr, glfwDestroyWindow} {
+window::window(unsigned int const scale, std::optional<configuration::resolution> const resolution, bool const fullscreen) : handle{nullptr, glfwDestroyWindow} {
   // OpenGL only presents the completed software-rendered image.
   bool const automatic{scale == 0}, compositor_sizing{automatic && glfwGetPlatform() == GLFW_PLATFORM_WAYLAND};
   glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR,2);
@@ -68,6 +70,7 @@ window::window(unsigned int const scale, std::optional<configuration::resolution
     while(glfwGetWindowAttrib(handle.get(),GLFW_MAXIMIZED) && glfwGetTime() < deadline) glfwWaitEventsTimeout(.01);
     glfwSetWindowSize(handle.get(),width,height);
   }
+  if(fullscreen) toggle_fullscreen();
   glfwMakeContextCurrent(handle.get());
   glfwSwapInterval(1);
   glGenTextures(1,&texture);
@@ -99,8 +102,51 @@ configuration::resolution window::framebuffer_size() const {
   int width{0}, height{0}; glfwGetFramebufferSize(handle.get(), &width, &height);
   return {static_cast<unsigned int>(std::clamp(width, 1, 8192)), static_cast<unsigned int>(std::clamp(height, 1, 8192))};
 }
+void window::toggle_fullscreen() {
+  if(glfwGetWindowMonitor(handle.get())) {
+    glfwSetWindowMonitor(handle.get(), nullptr, windowed_x, windowed_y, windowed_width, windowed_height, GLFW_DONT_CARE);
+    if(windowed_maximized) glfwMaximizeWindow(handle.get());
+    return;
+  }
+  auto *monitor{glfwGetPrimaryMonitor()};
+  glfwGetWindowSize(handle.get(), &windowed_width, &windowed_height);
+  windowed_maximized = glfwGetWindowAttrib(handle.get(), GLFW_MAXIMIZED) == GLFW_TRUE;
+  if(glfwGetPlatform() != GLFW_PLATFORM_WAYLAND) {
+    // Use the display containing most of the window. Wayland owns placement.
+    glfwGetWindowPos(handle.get(), &windowed_x, &windowed_y);
+    int count{0};
+    auto **monitors{glfwGetMonitors(&count)};
+    int64_t largest_overlap{0};
+    for(int i{0}; i < count; ++i) {
+      auto const *mode{glfwGetVideoMode(monitors[i])};
+      if(!mode) continue;
+      int x{0}, y{0}; glfwGetMonitorPos(monitors[i], &x, &y);
+      int const width{std::max(0, std::min(windowed_x + windowed_width, x + mode->width) - std::max(windowed_x, x))};
+      int const height{std::max(0, std::min(windowed_y + windowed_height, y + mode->height) - std::max(windowed_y, y))};
+      int64_t const overlap{int64_t{width} * height};
+      if(overlap > largest_overlap) { largest_overlap = overlap; monitor = monitors[i]; }
+    }
+  }
+  auto const *mode{monitor ? glfwGetVideoMode(monitor) : nullptr};
+  if(!mode) { std::cerr << "WARNING: No display mode is available for fullscreen.\n"; return; }
+  // Keep the desktop resolution and refresh rate, even with a fixed render size.
+  glfwSetWindowMonitor(handle.get(), monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+}
+bool window::fullscreen_key(int const key, int const action, int const modifiers) {
+  if(key != GLFW_KEY_ENTER && key != GLFW_KEY_KP_ENTER) return false;
+  auto &consumed{fullscreen_enter[key == GLFW_KEY_KP_ENTER ? 1u : 0u]};
+  if(consumed) {
+    if(action == GLFW_RELEASE) consumed = false;
+    return true;
+  }
+  if(action != GLFW_PRESS || !(modifiers & GLFW_MOD_ALT)) return false;
+  consumed = true;
+  fullscreen_pending = !fullscreen_pending;
+  return true;
+}
 bool window::poll() {
   glfwPollEvents();
+  if(std::exchange(fullscreen_pending, false)) toggle_fullscreen();
   return !glfwWindowShouldClose(handle.get());
 }
 std::optional<cursor> window::cursor_position() const {
