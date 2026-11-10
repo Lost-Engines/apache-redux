@@ -8,9 +8,9 @@ cmake --build build -j3
 ctest --test-dir build --output-on-failure
 ```
 
-GLFW and miniaudio sources are fetched at pinned, checksum-verified revisions. No game assets are fetched by CMake or the tests. `scripts/fetch-assets.sh` and `scripts/fetch-assets.bat` acquire the original game data separately.
+GLFW follows upstream `master` in local builds and CI; miniaudio uses a checksum-verified source archive. No game assets are fetched by CMake or the tests. `scripts/fetch-assets.sh` and `scripts/fetch-assets.bat` acquire the original game data separately.
 
-For portable packages, configure with `-DAPACHE_STATIC_RUNTIME=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_DISABLE_FIND_PACKAGE_glfw3=TRUE`. This bundles GLFW and statically links the compiler runtimes. Linux still uses system graphics, windowing and C libraries.
+For portable packages, configure with `-DAPACHE_STATIC_RUNTIME=ON -DBUILD_SHARED_LIBS=OFF`. This bundles GLFW and statically links the compiler runtimes. Linux still uses system graphics, windowing and C libraries.
 
 Install into an empty staging directory, then package it:
 
