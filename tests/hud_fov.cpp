@@ -94,8 +94,11 @@ int main(int argc, char **argv) try {
     if(reference_target) require(target == *reference_target, "FOV changed the reference target coordinates or acquisition state");
     else reference_target=target;
     render::display_layout const layout{1920,1080,640,480,{0,0,639,247},fov};
-    auto const start{flight->frame.image.pixels.begin()+ptrdiff_t(layout.scene.bottom+1)*1920};
-    std::vector<uint8_t> const panel{start,flight->frame.image.pixels.end()};
+    std::vector<uint8_t> panel;
+    for(int y{layout.scene.bottom+1}; y <= layout.artwork.bottom; ++y) {
+      auto const start{flight->frame.image.pixels.begin()+ptrdiff_t(y)*1920+layout.artwork.left};
+      panel.insert(panel.end(),start,start+layout.artwork.right-layout.artwork.left+1);
+    }
     if(panel_pixels.empty()) panel_pixels=panel;
     else require(panel == panel_pixels, "changing FOV changed cockpit artwork or panel instruments");
     if(argc == 3) {

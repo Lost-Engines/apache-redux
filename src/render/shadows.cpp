@@ -34,7 +34,7 @@ shadow_plane shadow_projection::project(math::vector3 const &position, bool cons
   }
   return result;
 }
-shadow_renderer::shadow_renderer(framebuffer &target, resources::model_archive const &objects, shadow_projection const &cast, scene_palette const &colours) : models{objects}, casting{cast}, palette{colours}, raster{target}, view{target.clip.left, target.clip.top, target.clip.right - target.clip.left + 1, target.clip.bottom - target.clip.top + 1, target.horizontal_fov} {}
+shadow_renderer::shadow_renderer(framebuffer &target, resources::model_archive const &objects, shadow_projection const &cast, scene_palette const &colours) : models{objects}, casting{cast}, palette{colours}, raster{target}, view{target} {}
 void shadow_renderer::draw(model_instance &object, math::pose const &camera) {
   maintain_model(object);
   draw_instance(object, camera, 0);

@@ -24,7 +24,7 @@ celestial::celestial(resources::data_store const &data, std::string_view const z
 int32_t celestial::draw(framebuffer &target, math::matrix3 const &camera, math::trigonometry const &trig, scene_palette const &palette, sky_conditions const &conditions, sky_lighting const &lighting) const {
   if((conditions.cloud_flags & 2) && conditions.cloud_mode != 2) return 0;
   int const width{target.clip.right - target.clip.left + 1}, height{target.clip.bottom - target.clip.top + 1};
-  projection const view{target.clip.left, target.clip.top, width, height, target.horizontal_fov};
+  projection const view{target};
   bool const daytime{lighting.night <= 644245094};
   if(!daytime) {
     std::array<std::array<int32_t, 65>, 9> grids;

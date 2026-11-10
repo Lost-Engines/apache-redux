@@ -3,9 +3,17 @@
 #include "math/geometry.h"
 
 namespace apache::render {
-horizon::horizon(framebuffer &destination, rectangle const viewport, scene_palette const &colours, math::trigonometry const &angles) : target{destination}, area{viewport}, view{viewport.left, viewport.top, viewport.right - viewport.left + 1, viewport.bottom - viewport.top + 1, destination.horizontal_fov}, plane{viewport, {-(viewport.right - viewport.left + 1) * 500, -(viewport.bottom - viewport.top + 1) * 500, (viewport.right - viewport.left + 1) * 500, (viewport.bottom - viewport.top + 1) * 500}}, raster{destination}, palette{colours}, trig{angles} {
-  half_width = (viewport.right - viewport.left + 1) * 500;
-  half_height = (viewport.bottom - viewport.top + 1) * 500;
+horizon::horizon(framebuffer &destination, rectangle const viewport, scene_palette const &colours, math::trigonometry const &angles)
+  : horizon{destination, viewport, destination.projection_reference.value_or(viewport), colours, angles} {}
+horizon::horizon(framebuffer &destination, rectangle const viewport, rectangle const reference, scene_palette const &colours, math::trigonometry const &angles)
+  : target{destination}, area{viewport}, view{reference.left, reference.top, reference.right - reference.left + 1, reference.bottom - reference.top + 1, destination.horizontal_fov},
+    plane{viewport, {-(reference.right - reference.left + 1) * 500,
+      -(reference.bottom - reference.top + 1) * 500 - (viewport.bottom - reference.bottom) * 1000,
+      (reference.right - reference.left + 1) * 500,
+      (reference.bottom - reference.top + 1) * 500 + (reference.top - viewport.top) * 1000}},
+    raster{destination}, palette{colours}, trig{angles} {
+  half_width = (reference.right - reference.left + 1) * 500;
+  half_height = (reference.bottom - reference.top + 1) * 500;
 }
 void horizon::fill(std::array<vertex2, 4> const &points, uint8_t const colour) {
   raster.polygon(plane.clip(points), palette.visual_remap[colour] * 0x01010101u);

@@ -16,15 +16,17 @@ int winding(std::span<vertex3 const> vertices, bool robust = false);
 class projection {
   rectangle viewport;
   int width{0};
-  int height{0};
+  int height{0}, reference_height{0}, vertical_offset{0};
   int32_t vertical_scale{0};
   int32_t inverse_vertical_scale{0};
   double horizontal_factor{1}, vertical_factor{1};
   bool original_scale{true};
   math::vector3 scale(math::vector3 eye) const;
+  math::vector3 unframe(math::vector3 eye) const;
   void project(vertex3 &point) const;
 public:
-  projection(int x, int y, int w, int h, double horizontal_fov = 90);
+  projection(int x, int y, int w, int h, double horizontal_fov = 90, std::optional<rectangle> reference = {});
+  explicit projection(framebuffer const &target);
   double lateral_scale() const { return horizontal_factor; }
   vertex3 prepare(math::vector3 eye, int32_t u = 0, int32_t v = 0, int32_t intensity = 0) const;
   std::optional<screen_vertex> project_unclipped(math::vector3 eye) const;

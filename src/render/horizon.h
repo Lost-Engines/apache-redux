@@ -28,6 +28,7 @@ class horizon {
   vertex2 right;
   std::array<int32_t, 2> extension{0, 0};
   void fill(std::array<vertex2, 4> const &points, uint8_t colour);
+  horizon(framebuffer &destination, rectangle viewport, rectangle reference, scene_palette const &colours, math::trigonometry const &angles);
 public:
   horizon(framebuffer &destination, rectangle viewport, scene_palette const &colours, math::trigonometry const &angles);
   void ground(uint32_t pitch_angle, uint32_t roll_angle, sky_conditions const &conditions);

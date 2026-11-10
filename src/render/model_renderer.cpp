@@ -57,7 +57,7 @@ void maintain_model(model_instance &object, math::pose const *const parent) {
   for(auto const &child : object.children) if(child) maintain_model(*child, &object.world);
   if(object.maintained) object.maintained(object);
 }
-model_renderer::model_renderer(framebuffer &destination, resources::model_archive const &objects, std::vector<std::optional<resources::texture>> const &images, scene_palette const &colours) : target{destination}, raster{destination}, view{destination.clip.left, destination.clip.top, destination.clip.right - destination.clip.left + 1, destination.clip.bottom - destination.clip.top + 1, destination.horizontal_fov}, models{objects}, textures{images}, palette{colours} {}
+model_renderer::model_renderer(framebuffer &destination, resources::model_archive const &objects, std::vector<std::optional<resources::texture>> const &images, scene_palette const &colours) : target{destination}, raster{destination}, view{destination}, models{objects}, textures{images}, palette{colours} {}
 void model_renderer::draw(model_instance &object, math::pose const &camera) {
   missing_normals = 0;
   raster.invalid_texture_samples = 0;

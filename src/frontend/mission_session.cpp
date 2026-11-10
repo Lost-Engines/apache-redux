@@ -476,12 +476,18 @@ void mission_session::draw() {
   bool const scaled{frame.image.width != overlay.image.width || frame.image.height != overlay.image.height};
   if(scaled) frame.clear();
   frame.clip = layout.scene;
+  if(views->modes.mode < 10 && layout.artwork.right - layout.artwork.left + 1 < static_cast<int>(frame.image.width)) {
+    // Keep the windscreen projection while revealing scenery beside the panel.
+    frame.projection_reference = layout.scene;
+    frame.clip.bottom = static_cast<int>(frame.image.height) - 1;
+  }
   // draw HUD symbols and target coordinates in the same reference projection,
   // then scale the complete HUD about the camera's optical axis for custom FOVs
   render::display_layout const reference_layout{frame.image.width, frame.image.height, overlay.image.width, overlay.image.height, original_view, 90};
   render::projection const projection{viewport[0], viewport[1], viewport[2], viewport[3], reference_layout.instrument_fov};
   bool const zoom_hud{settings.graphics.field_of_view != 90};
   world.draw(frame, camera.camera, visual);
+  frame.projection_reference.reset();
   if(camera.sight) runtime.look_player(camera.camera, projection);
   auto &arm{*runtime.player_armament};
   auto const &rotation{views->modes.mode == 12 ? camera.camera.rotation : runtime.pilot->readings().position.rotation};

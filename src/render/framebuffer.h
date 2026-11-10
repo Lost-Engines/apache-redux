@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <optional>
 #include <vector>
 #include "resources/image.h"
 
@@ -23,6 +24,8 @@ public:
   resources::indexed_image image;
   rectangle clip;
   double horizontal_fov{90};
+  // Extend the render area without moving the cockpit's optical axis.
+  std::optional<rectangle> projection_reference;
   std::vector<uint8_t> coverage;
   void mark(size_t index) { if(!coverage.empty()) coverage[index] = 1; }
   framebuffer(unsigned int width, unsigned int height);

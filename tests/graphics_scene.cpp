@@ -67,6 +67,20 @@ int main(int argc, char **argv) try {
       for(unsigned int view : {0u,1u,2u,3u,4u,5u,6u,7u,8u,9u,10u,12u,13u}) {
         session.select_view(view); session.draw();
         if(session.frame.image.width!=size.width || session.frame.image.height!=size.height) throw std::runtime_error{"Wrong render dimensions"};
+        if(view == 0 || view == 5) {
+          auto const raw{session.views->modes.viewport(options.video_mode)};
+          apache::render::display_layout const layout{size.width,size.height,options.video_mode ? 640u : 320u,options.video_mode ? 480u : 240u,
+            {raw[0],raw[1],raw[0]+raw[2]-1,raw[1]+raw[3]-1},fov};
+          if(layout.artwork.left > 0) {
+            size_t samples{0}, visible{0};
+            for(int y{layout.scene.bottom+1}; y < static_cast<int>(size.height); ++y)
+              for(int x{0}; x < static_cast<int>(size.width); ++x) if(x < layout.artwork.left || x > layout.artwork.right) {
+                ++samples;
+                visible += session.frame.image.pixels[size_t(y)*size.width+x] != 0;
+              }
+            if(!samples || visible < samples*9/10) throw std::runtime_error{"Scenery is missing beside the cockpit panel"};
+          }
+        }
         if(fov==90 && size.width==1920) apache::resources::write_ppm((output/("view-"+std::to_string(view)+".ppm")).string(),session.frame.image);
         std::cout << size.width << 'x' << size.height << " FOV " << fov << " view " << view << '\n';
       }

@@ -83,7 +83,7 @@ void landscape::draw(framebuffer &target, math::pose camera, landscape_options c
   palette.prepare(options.infrared);
   if(options.terrain_detail > 3) throw std::runtime_error{"Terrain quality must be between zero and three"};
   missing_normals = invalid_texture_samples = 0;
-  projection const view{target.clip.left, target.clip.top, target.clip.right - target.clip.left + 1, target.clip.bottom - target.clip.top + 1, target.horizontal_fov};
+  projection const view{target};
   horizon background{target, target.clip, palette, trig};
   terrain_fog const fog{options.distance};
   auto const elevation{terrain.elevation(camera.position[0], camera.position[1])};

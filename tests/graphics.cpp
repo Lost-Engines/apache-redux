@@ -51,6 +51,33 @@ int main() try {
     double const scale{double(layout.artwork.right-layout.artwork.left+1)/640};
     require(std::abs(a.x-(layout.artwork.left+b.x*scale)) <= 7 && std::abs(a.y-(layout.artwork.top+b.y*scale)) <= 7, "target marker alignment after cockpit scaling");
   }
+  // Extending the image below the windscreen must preserve the existing rays,
+  // fog coordinates and square pixels while admitting scenery in the corners.
+  for(auto size : {configuration::resolution{1920,1080}, {3840,2160}, {1437,911}, {2560,1080}})
+    for(double fov : {30.,90.,150.}) {
+      render::display_layout const layout{size.width,size.height,640,480,{0,0,639,247},fov};
+      auto const reference{layout.scene};
+      int const width{static_cast<int>(size.width)}, height{static_cast<int>(size.height)};
+      render::projection const before{reference.left,reference.top,width,reference.bottom-reference.top+1,fov};
+      render::projection const extended{reference.left,reference.top,width,height-reference.top,fov,reference};
+      for(math::vector3 const ray : {math::vector3{0,100000,0}, {-1000,100000,5000}, {1000,100000,-5000}}) {
+        auto const a{*before.project_unclipped(ray)}, b{*extended.project_unclipped(ray)};
+        require(a.x == b.x && std::abs(a.y-b.y) <= 1, "extending scenery moved a windscreen ray");
+        auto const original{before.prepare(ray)}, expanded{extended.prepare(ray)};
+        auto const fog_a{before.unmagnify(original.eye)}, fog_b{extended.unmagnify(expanded.eye)};
+        auto const restored{extended.unscale(expanded.eye)};
+        for(size_t axis{0}; axis != 3; ++axis) {
+          require(std::abs(fog_a[axis]-fog_b[axis]) <= 8, "extending scenery changed fog distance");
+          require(std::abs(restored[axis]-ray[axis]) <= 8, "off-centre inverse projection");
+        }
+      }
+      auto const lower_ray{extended.unscale({0,100000,-80000})};
+      auto const lower{extended.prepare(lower_ray)};
+      require(!lower.outcode && lower.screen.y > reference.bottom && lower.screen.y < height, "lower cockpit corner is outside the frustum");
+      require(before.prepare(lower_ray).outcode != 0, "corner regression ray was already inside the windscreen");
+      auto const clipped{extended.clip_line(extended.prepare({0,100000,1000000}),lower)};
+      require(clipped && (*clipped)[0].screen.y == reference.top && (*clipped)[1].screen.y == lower.screen.y, "off-centre clipping misses the screen boundary");
+    }
   for(auto dimensions : {configuration::resolution{640,480}, {641,480}, {1920,1080}, {3840,2160}, {800,1000}}) {
     render::rectangle const viewport{0,0,639,479};
     render::display_layout const centre{dimensions.width,dimensions.height,640,480,viewport,90};
