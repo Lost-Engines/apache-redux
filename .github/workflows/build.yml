@@ -145,7 +145,7 @@ jobs:
             extra+=(-DCMAKE_OSX_ARCHITECTURES=arm64 "-DCMAKE_OBJC_COMPILER=$OBJC")
           fi
           cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=${{ matrix.configuration }} \
-            -DBUILD_TESTING=ON -DBUILD_SHARED_LIBS=OFF -DCMAKE_DISABLE_FIND_PACKAGE_glfw3=TRUE -DAPACHE_STATIC_RUNTIME=ON \
+            -DBUILD_TESTING=ON -DBUILD_SHARED_LIBS=OFF -DAPACHE_STATIC_RUNTIME=ON \
             -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
             "${extra[@]}"
       - name: Build
