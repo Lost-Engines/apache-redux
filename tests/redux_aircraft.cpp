@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <iostream>
 #include <stdexcept>
+#include <tuple>
 using namespace apache;
 void require(bool value, char const *message) { if(!value) throw std::runtime_error{message}; }
 void gear(render::model_instance const &object, bool down) {
@@ -17,6 +18,7 @@ void gear(render::model_instance const &object, bool down) {
 }
 int main(int argc, char **argv) try {
   if(argc < 2 || argc > 3) throw std::runtime_error{"Usage: redux_aircraft_check DATA_DIRECTORY [CAPTURE_DIRECTORY]"};
+  if(argc == 3) std::filesystem::create_directories(argv[2]);
   resources::data_store data{argv[1]};
   frontend::mission_options options; options.detail=4;
   auto session_owner{std::make_unique<frontend::mission_session>(data,frontend::mission_session::quick_start(data,3),options)};
@@ -47,6 +49,92 @@ int main(int argc, char **argv) try {
     unit.waypoint=route.size()-1; place(0); unit.speed=0;
   }
   std::cout << "Four A-10s: approach, parked, taxi, takeoff and retraction passed\n";
+
+  // Use the real F-15 model and actor constructor with a short landing/departure route.
+  {
+    resources::mission_definition mission;
+    auto &task{mission.tasks.emplace_back()}; task.type=10;
+    auto &definition{task.actors.emplace_back()}; definition.model=225;
+    definition.waypoints={
+      {.position={0,0,1600*256}},
+      {.position={0,100000,0}},
+      {.position={0,200000,1600*256}},
+    };
+    simulation::actor_environment environment{
+      .height=[](int32_t,int32_t){ return 100*256; },
+      .surface=[](int32_t,int32_t){ return 0u; },
+    };
+    simulation::mission_actors f15{mission,runtime.formations,runtime.models,runtime.trig,environment,3};
+    auto &unit{f15.units.front()}; auto &object{unit.object};
+    unit.conditions &= ~10u; object.flags |= 8;
+    auto *nose{object.children.at(2).get()};
+    auto const check{[&](bool down){
+      require(bool(object.flags & 4) == down && (object.flags & 8), "F-15 gear and unrelated animation flags");
+      require(object.children[2].get() == nose, "F-15 gear update preserves the nose");
+      for(auto const &[parent,slot,id] : std::array<std::tuple<render::model_instance const*,size_t,uint32_t>,3>{{
+          {&object,0,1228},{&object,1,1231},{nose,0,1229}}}) {
+        auto const &child{parent->children.at(slot)};
+        require(down ? child && child->id == id : !child, "F-15 landing gear attachment");
+        if(child) require(child->world.position == parent->world.position, "F-15 gear transform maintained");
+      }
+    }};
+    auto const place{[&](int feet){ object.world.position[2]=(100+feet)*256; f15.synchronize_models(); }};
+    place(1500); check(false);
+    place(800); check(true);
+    place(0); check(true); require(f15.on_ground(0), "parked F-15 is grounded");
+    auto *wheel{object.children[0].get()}; f15.synchronize_models();
+    require(object.children[0].get() == wheel, "F-15 gear stays attached between updates");
+    unit.speed=5000; place(0); check(true);
+    unit.waypoint=2; place(50); check(true);
+    place(150); check(false);
+    unit.waypoint.reset(); place(0); check(true);
+
+    render::framebuffer image{800,600};
+    auto const &colours{session.world.palette.colours};
+    for(size_t i{0}; i != 256; ++i) image.image.colours[i]={colours[i*3],colours[i*3+1],colours[i*3+2]};
+    math::pose camera{object.world.position};
+    camera.position[0]+=16000; camera.position[1]-=22000; camera.position[2]+=5500;
+    math::vector3 direction;
+    for(size_t i{0}; i < 3; ++i) direction[i]=object.world.position[i]-camera.position[i];
+    direction[2]+=1600; camera.rotation=math::direction_matrix(math::normalise_q31(direction));
+    auto const textures{resources::read_object_textures(data.read("3DDATA/OBJTEXT.BIN"))};
+    render::model_renderer drawer{image,runtime.models,textures,session.world.palette};
+    std::array<bool,3> drawn{};
+    drawer.face_observer=[&](uint32_t model,uint32_t){
+      if(model==1228) drawn[0]=true; if(model==1229) drawn[1]=true; if(model==1231) drawn[2]=true;
+    };
+    image.clear(208); drawer.draw(object,camera);
+    require(std::ranges::all_of(drawn,[](bool value){ return value; }), "all three F-15 wheels reach the renderer");
+    if(argc == 3) resources::write_ppm((std::filesystem::path{argv[2]}/"f15-gear.ppm").string(),image.image);
+    // Look under the fuselage: distant gear lines share its underside visibility test.
+    camera.position[2]=object.world.position[2]-5500;
+    for(size_t i{0}; i < 3; ++i) direction[i]=object.world.position[i]-camera.position[i];
+    camera.rotation=math::direction_matrix(math::normalise_q31(direction));
+    // The next two detail levels draw their wheels through bit 4, without attachments.
+    for(auto const &[model,distance] : std::array<std::pair<uint32_t,int32_t>,2>{{{226,300000},{227,600000}}}) {
+      auto const faces{[&](uint32_t flags){
+        std::vector<uint32_t> packets;
+        resources::execute_model(*runtime.models[model],flags,0,{
+          .face=[&](auto const&,uint32_t pc,bool){ packets.push_back(pc); return 0; },
+          .winding=[](auto){ return 0; },
+        });
+        return packets;
+      }};
+      auto const up{faces(object.flags & ~4u)}; auto const down{faces(object.flags)};
+      size_t wheels{0}; object.distance=distance;
+      drawer.face_observer=[&](uint32_t,uint32_t pc){
+        if(std::ranges::find(down,pc) != down.end() && std::ranges::find(up,pc) == up.end()) ++wheels;
+      };
+      image.clear(208); drawer.draw(object,camera);
+      require(wheels > 0, "F-15 wheels render at the next two detail levels");
+    }
+    object.distance=0;
+    unit.destroyed=1; place(1500); check(true); unit.destroyed=0;
+    object.status |= 1; place(1500); check(true); object.status &= ~1u;
+    object.children[2].reset(); place(0);
+    require(!object.children[2], "gear update must not recreate a destroyed F-15 nose");
+    std::cout << "F-15: approach, parked, taxi, takeoff, detail levels and damage passed\n";
+  }
 
   std::vector<unsigned int> launched;
   runtime.events.launched=[&](size_t, auto const &round){ launched.push_back(round.state.weapon); };
@@ -134,7 +222,6 @@ int main(int argc, char **argv) try {
     require(ink > 100, "target preview has visible geometry");
     require(size.width == 640 ? changed == 0 : changed > 100, "native target preview differs from enlarged low-resolution image");
     if(argc == 3 && size.width == 1920) {
-      std::filesystem::create_directories(argv[2]);
       resources::write_ppm((std::filesystem::path{argv[2]}/"f3-native.ppm").string(),session.frame.image);
     }
     std::cout << size.width << 'x' << size.height << ": native F3 pixels match; " << changed << " differ from upscaling\n";

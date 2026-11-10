@@ -32,14 +32,14 @@ bool mission_actors::on_ground(size_t const index) const {
 }
 void mission_actors::update_landing_gear(size_t const index) {
   auto &unit{units[index]}; auto &object{unit.object};
-  if(object.id != 3 || unit.destroyed || (object.status & 1)) return;
+  if((object.id != 3 && object.id != 225) || unit.destroyed || (object.status & 1)) return;
   auto const &route{mission.tasks.at(unit.location.task).actors.at(unit.location.group).waypoints};
   auto const &position{object.world.position};
   int64_t const altitude{int64_t{position[2]} - environment.height(position[0], position[1])};
   bool const approaching{unit.waypoint && *unit.waypoint < route.size() && route[*unit.waypoint].position[2] == 0 && !(unit.conditions & 10)};
   bool const down{on_ground(index) || (approaching && altitude <= 1000 * 256) || ((object.flags & 4) && altitude < 100 * 256)};
-  // The detailed A-10 has three authored, but originally unpopulated, gear slots.
-  // Lower LODs instead test animation bit 4. Leave weapons and damaged wings alone.
+  // Detailed A-10s and F-15s have three authored, but unpopulated, gear slots.
+  // Lower LODs test animation bit 4. Preserve weapons and missing damaged parts.
   auto const attach{[&](render::model_instance *parent, size_t slot, uint32_t model){
     if(!parent || slot >= parent->children.size()) return;
     auto &child{parent->children[slot]};
@@ -48,10 +48,16 @@ void mission_actors::update_landing_gear(size_t const index) {
       child = std::make_unique<render::model_instance>(render::construct_model(models, model, {mount.translation, mount.rotation}));
     } else if(!down && child && child->id == model) child.reset();
   }};
-  attach(&object, 2, 1219);
-  if(object.children.size() >= 2) {
-    attach(object.children[0].get(), 1, 1217);
-    attach(object.children[1].get(), 3, 1214);
+  if(object.id == 3) {
+    attach(&object, 2, 1219);
+    if(object.children.size() >= 2) {
+      attach(object.children[0].get(), 1, 1217);
+      attach(object.children[1].get(), 3, 1214);
+    }
+  } else {
+    attach(&object, 0, 1228);
+    attach(&object, 1, 1231);
+    if(object.children.size() >= 3) attach(object.children[2].get(), 0, 1229);
   }
   object.flags = down ? object.flags | 4u : object.flags & ~4u;
 }

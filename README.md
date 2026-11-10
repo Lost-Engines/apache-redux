@@ -64,7 +64,7 @@ The renderer runs on the CPU. A lower fixed resolution can improve performance o
 
 ## Gameplay fixes
 
-- A-10s lower their landing gear on approach and keep it down while taxiing or parked, then retract it after takeoff.
+- A-10s and F-15s lower their landing gear on approach and keep it down while taxiing or parked, then retract it after takeoff.
 - Aircraft on the ground no longer release chaff or flares.
 
 ## Multiplayer
