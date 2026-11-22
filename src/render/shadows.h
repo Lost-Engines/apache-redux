@@ -16,7 +16,7 @@ public:
   std::array<int32_t, 2> cast;
   unsigned int cloud_mode{0};
   int32_t cloud_top{6912000};
-  std::function<std::optional<int32_t>(math::vector3 const&)> receiver;
+  std::function<std::optional<int32_t>(math::vector3 const &)> receiver;
   shadow_projection(resources::terrain const &heights, math::trigonometry const &trig, sky_lighting const &light);
   shadow_plane project(math::vector3 const &position, bool check_receivers = false) const;
 };

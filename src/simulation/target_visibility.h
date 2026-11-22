@@ -3,7 +3,12 @@
 #include "terrain_visibility.h"
 
 namespace apache::simulation {
-enum class target_kind : unsigned int { none, scenery, mobile, fixed };
+enum class target_kind : unsigned int {
+  none,
+  scenery,
+  mobile,
+  fixed
+};
 struct target_identity {
   target_kind kind{target_kind::none};
   size_t layer{0};

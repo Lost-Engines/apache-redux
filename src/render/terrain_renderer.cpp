@@ -3,7 +3,11 @@
 #include <stdexcept>
 
 namespace apache::render {
-terrain_renderer::terrain_renderer(framebuffer &target, projection const &viewport, scene_palette const &colours, resources::terrain_textures const &images) : view{viewport}, raster{target}, palette{colours}, textures{images} {}
+terrain_renderer::terrain_renderer(framebuffer &target, projection const &viewport, scene_palette const &colours, resources::terrain_textures const &images)
+  : view{viewport},
+    raster{target},
+    palette{colours},
+    textures{images} {}
 void terrain_renderer::fill(std::span<vertex3 const> const vertices, material const &paint) {
   auto const clipped{view.clip(vertices)};
   if(clipped.empty()) return;
@@ -13,10 +17,13 @@ void terrain_renderer::fill(std::span<vertex3 const> const vertices, material co
   raster.fill(polygon, paint);
 }
 void terrain_renderer::subdivide(std::array<vertex3, 3> const &triangle, unsigned int const kind, std::span<uint8_t const> const colours) {
-  std::array<uint8_t, 7> constexpr major{90, 86, 106, 114, 123, 82, 134}, minor{89, 85, 105, 113, 122, 81, 133};
+  std::array<uint8_t, 7> constexpr major{90, 86, 106, 114, 123, 82, 134};
+  std::array<uint8_t, 7> constexpr minor{89, 85, 105, 113, 122, 81, 133};
   if(kind >= major.size()) throw std::runtime_error{"Invalid terrain material"};
   std::array<vertex3, 81> grid;
-  grid[0] = triangle[1]; grid[8] = triangle[0]; grid[72] = triangle[2];
+  grid[0] = triangle[1];
+  grid[8] = triangle[0];
+  grid[72] = triangle[2];
   auto const interpolate{[&](size_t const begin, size_t const end, size_t const stride, int const divisions, bool const edge){
     auto point{grid[begin]};
     math::vector3 delta;
@@ -41,17 +48,22 @@ void terrain_renderer::subdivide(std::array<vertex3, 3> const &triangle, unsigne
     for(auto const &point : vertices) intensity += static_cast<uint32_t>(point.screen.intensity);
     size_t const level{static_cast<uint8_t>((intensity / 3) >> 23)};
     uint32_t pair{0};
-    if(colours.empty()) pair = palette.intensity[static_cast<size_t>(major[kind]) * 256 + level] | (static_cast<uint32_t>(palette.intensity[static_cast<size_t>(minor[kind]) * 256 + level]) << 8);
-    else pair = palette.intensity[static_cast<size_t>(colours[colour_index]) * 256 + level] * 0x101u;
+    if(colours.empty()) {
+      pair = palette.intensity[static_cast<size_t>(major[kind]) * 256 + level] | (static_cast<uint32_t>(palette.intensity[static_cast<size_t>(minor[kind]) * 256 + level]) << 8);
+    } else {
+      pair = palette.intensity[static_cast<size_t>(colours[colour_index]) * 256 + level] * 0x101u;
+    }
     ++colour_index;
     material paint;
     paint.colours = pair * 0x00010001u;
     fill(vertices, paint);
   }};
-  for(size_t row{0}; row != 8; ++row) for(size_t column{0}; column != 8 - row; ++column) {
-    size_t const index{row + column * 9};
-    emit({grid[index + 1], grid[index], grid[index + 9]});
-    if(column != 7 - row) emit({grid[index + 9], grid[index + 10], grid[index + 1]});
+  for(size_t row{0}; row != 8; ++row) {
+    for(size_t column{0}; column != 8 - row; ++column) {
+      size_t const index{row + column * 9};
+      emit({grid[index + 1], grid[index], grid[index + 9]});
+      if(column != 7 - row) emit({grid[index + 9], grid[index + 10], grid[index + 1]});
+    }
   }
 }
 void terrain_renderer::draw(resources::terrain_post const &post, std::span<vertex3 const, 4> const corners, unsigned int const half, terrain_method const method, terrain_fog const &fog, bool const two_sided) {
@@ -64,16 +76,21 @@ void terrain_renderer::draw(resources::terrain_post const &post, std::span<verte
   for(auto const &point : triangle) clipped |= point.outcode != 0;
   auto const visible{view.clip(triangle)};
   if(visible.empty() || (!two_sided && winding(visible, clipped) < 0)) return;
-  unsigned int const kind{(post.flags >> (half * 3)) & 7u}, selector{post.textures[half] & 127u};
+  unsigned int const kind{(post.flags >> (half * 3)) & 7u};
+  unsigned int const selector{post.textures[half] & 127u};
   if(method == terrain_method::subdivided || method == terrain_method::subdivided_texture) {
-    if(method == terrain_method::subdivided_texture) subdivide(triangle, kind, textures.subdivisions(forward, half, selector));
-    else subdivide(triangle, kind, {});
+    if(method == terrain_method::subdivided_texture) {
+      subdivide(triangle, kind, textures.subdivisions(forward, half, selector));
+    } else {
+      subdivide(triangle, kind, {});
+    }
     return;
   }
   uint32_t const range{approximate_range(view.unmagnify(corners[0].eye))};
   material paint;
-  if(method == terrain_method::constant) paint.colours = fog.constant_colour(range, selector == 127 ? 127 : post.colours[half], palette.visual_remap);
-  else if(method == terrain_method::gouraud) {
+  if(method == terrain_method::constant) {
+    paint.colours = fog.constant_colour(range, selector == 127 ? 127 : post.colours[half], palette.visual_remap);
+  } else if(method == terrain_method::gouraud) {
     paint.colours = fog.shaded_colours(range, kind, palette.visual_remap);
     paint.light = shading::gouraud;
     paint.intensity_map = palette.intensity;
@@ -94,6 +111,8 @@ void terrain_renderer::draw(resources::terrain_post const &post, std::span<verte
     std::vector<perspective_vertex> polygon;
     for(auto const &point : clipped_vertices) polygon.push_back({point.screen, point.eye[1]});
     raster.perspective(polygon, *paint.image, palette.intensity);
-  } else fill(triangle, paint);
+  } else {
+    fill(triangle, paint);
+  }
 }
 } // namespace apache::render

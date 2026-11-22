@@ -7,53 +7,79 @@ namespace apache::simulation {
 std::optional<target_identity> nearest_ground_object(mission_scenery const &scene, int32_t const x, int32_t const y) {
   if(x < 0 || y < 0 || x >= 0x10000000 || y >= 0x10000000) return {};
   unsigned int const sector{static_cast<unsigned int>((x >> 22) * 64 + (y >> 22))};
-  std::optional<target_identity> result; uint32_t best{100};
+  std::optional<target_identity> result;
+  uint32_t best{100};
   for(size_t layer : {size_t{1}, size_t{0}}) {
     auto const &objects{layer ? scene.extra : scene.base};
     for(size_t i{0}; i != objects.size(); ++i) {
       auto const &object{objects[i]};
       if(object.sector != sector || object.model == 13 || object.model == 19 || object.model == 141 || object.model == 144) continue;
-      int64_t const dx{object.x / 256 - x / 256}, dy{object.y / 256 - y / 256};
+      int64_t const dx{object.x / 256 - x / 256};
+      int64_t const dy{object.y / 256 - y / 256};
       auto const distance{math::integer_sqrt(static_cast<uint64_t>(dx * dx + dy * dy))};
-      if(distance < best) { best = distance; result = target_identity{target_kind::scenery, layer, static_cast<uint32_t>(i)}; }
+      if(distance < best) {
+        best = distance;
+        result = target_identity{target_kind::scenery, layer, static_cast<uint32_t>(i)};
+      }
     }
   }
   return result;
 }
 debrief_result evaluate_debrief(mission_runtime const &runtime, debrief_records const &records, uint32_t &random, std::string_view const pilot_name) {
   if(!runtime.pilot || !runtime.timing.player) throw std::runtime_error{"Debrief requires a player mission"};
-  debrief_result result; result.time = records.elapsed();
+  debrief_result result;
+  result.time = records.elapsed();
   std::array<int32_t, 3> counts{};
   auto const player_id{runtime.spatial.mobile_id(*runtime.timing.player)};
   for(auto const &group : runtime.actors.groups) {
     auto const flags{runtime.actors.units.at(group.units.front()).conditions};
-    for(auto index : group.units) if(runtime.actors.units[index].destroyed) {
-      if(flags & 0x1000) ++counts[0];
-      if(flags & 0x2000) ++counts[1];
-      if((flags & 0x4000) && records.player_killed(runtime.spatial.mobile_id(index), player_id)) ++counts[2];
+    for(auto index : group.units) {
+      if(runtime.actors.units[index].destroyed) {
+        if(flags & 0x1000) ++counts[0];
+        if(flags & 0x2000) ++counts[1];
+        if((flags & 0x4000) && records.player_killed(runtime.spatial.mobile_id(index), player_id)) ++counts[2];
+      }
     }
   }
   result.mobiles(counts, {runtime.mission.failure_count, runtime.mission.success_count, runtime.mission.outstanding_count});
-  auto const destroyed{[&](target_identity const &target){ return ((target.layer ? runtime.scene.extra : runtime.scene.base).at(target.index).status & 1) != 0; }};
+  auto const destroyed{[&](target_identity const &target){
+    return ((target.layer ? runtime.scene.extra : runtime.scene.base).at(target.index).status & 1) != 0;
+  }};
   auto const &actor{runtime.actors.units[*runtime.timing.player]};
-  unsigned int required{0}, dead{0};
-  for(auto const &waypoint : runtime.mission.tasks[actor.location.task].actors[actor.location.group].waypoints) if(waypoint.type == 4) {
-    if(auto target{nearest_ground_object(runtime.scene, waypoint.position[0], waypoint.position[1])}) { ++required; dead += destroyed(*target); }
+  unsigned int required{0};
+  unsigned int dead{0};
+  for(auto const &waypoint : runtime.mission.tasks[actor.location.task].actors[actor.location.group].waypoints) {
+    if(waypoint.type == 4) {
+      if(auto target{nearest_ground_object(runtime.scene, waypoint.position[0], waypoint.position[1])}) {
+        ++required;
+        dead += destroyed(*target);
+      }
+    }
   }
   result.required_ground(required, dead);
-  for(unsigned int kind : {8u, 7u}) for(auto const &object : runtime.scene.objects) if(object.kind == kind) {
-    if(auto target{nearest_ground_object(runtime.scene, object.combat.position[0], object.combat.position[1])}) {
-      if(kind == 8) result.extra_ground(destroyed(*target)); else result.prohibited_ground(destroyed(*target));
+  for(unsigned int kind : {8u, 7u}) {
+    for(auto const &object : runtime.scene.objects) {
+      if(object.kind == kind) {
+        if(auto target{nearest_ground_object(runtime.scene, object.combat.position[0], object.combat.position[1])}) {
+          if(kind == 8) {
+            result.extra_ground(destroyed(*target));
+          } else {
+            result.prohibited_ground(destroyed(*target));
+          }
+        }
+      }
     }
   }
   auto const &position{actor.object.world.position};
-  auto const x{position[0] >> 22}, y{position[1] >> 22};
+  auto const x{position[0] >> 22};
+  auto const y{position[1] >> 22};
   auto const distance{x >= 0 && y >= 0 && x < 64 && y < 64 ? runtime.scene.front_distance[static_cast<size_t>(x * 64 + y)] : uint8_t{255}};
   result.final_position(runtime.scene.owner(x, y), position[2], runtime.terrain.elevation(position[0], position[1]), distance);
   auto const collision{runtime.pilot->collision_model};
   std::string_view name;
   if(collision && collision < runtime.models.size() && runtime.models[collision]) {
-    auto const &model{*runtime.models[collision]}; name = model.description;
+    auto const &model{*runtime.models[collision]};
+    name = model.description;
     if(runtime.pilot->death() == 2) {
       // initialise_debrief_ groups wreckage/attachments under their parent name.
       static auto constexpr aliases{[]{
@@ -128,8 +154,11 @@ debrief_result evaluate_debrief(mission_runtime const &runtime, debrief_records 
         return result;
       }()};
       auto const alias{collision < aliases.size() ? aliases[collision] : uint16_t{0}};
-      if(alias && alias < runtime.models.size() && runtime.models[alias]) name = runtime.models[alias]->description;
-      else name = model.name;
+      if(alias && alias < runtime.models.size() && runtime.models[alias]) {
+        name = runtime.models[alias]->description;
+      } else {
+        name = model.name;
+      }
     }
   }
   result.death(runtime.pilot->death(), collision, position[2], runtime.environment.surface(position[0], position[1]), random, name);

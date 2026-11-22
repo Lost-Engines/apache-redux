@@ -64,7 +64,7 @@ model read_model(std::span<uint8_t const> data);
 model_archive read_models(std::span<uint8_t const> data);
 
 struct drawing_callbacks {
-  std::function<int(primitive const&, uint32_t, bool)> face;
+  std::function<int(primitive const &, uint32_t, bool)> face;
   std::function<int(std::span<uint8_t const>)> winding;
   std::function<void(unsigned int)> child;
 };

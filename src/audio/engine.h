@@ -17,11 +17,20 @@ class engine {
   std::map<std::string, std::shared_ptr<resources::bytes const>, std::less<>> cache;
   stream_source theme;
   bool movie_active{false};
-  bool music_enabled{false}, speech_enabled{false}, in_flight{false};
-  enum class transition { none, start, restore, stop };
+  bool music_enabled{false};
+  bool speech_enabled{false};
+  bool in_flight{false};
+  enum class transition {
+    none,
+    start,
+    restore,
+    stop
+  };
   transition pending{transition::none};
   stream_source next;
-  unsigned int fade{0}, fade_volume{63}, resample_phase{0};
+  unsigned int fade{0};
+  unsigned int fade_volume{63};
+  unsigned int resample_phase{0};
   void change(transition action, stream_source source = {});
   void finish_change();
   stream_source source(std::string const &name, unsigned int channels);

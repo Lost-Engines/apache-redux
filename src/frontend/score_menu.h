@@ -3,12 +3,16 @@
 #include "menu.h"
 
 namespace apache::frontend {
-struct score_entry { int32_t score{0}; std::string name{"Blank"}; };
+struct score_entry {
+  int32_t score{0};
+  std::string name{"Blank"};
+};
 class score_menu {
   menu &interface;
   configuration::settings &settings;
   render::menu_font font;
-  std::array<size_t, 10> names{}, numbers{};
+  std::array<size_t, 10> names{};
+  std::array<size_t, 10> numbers{};
   bool editing{false};
   void save();
   void update();

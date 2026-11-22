@@ -4,8 +4,10 @@
 
 namespace apache::simulation {
 struct movement_target {
-  math::vector3 position{}, direction{};
-  int32_t speed{0}, classification{0};
+  math::vector3 position{};
+  math::vector3 direction{};
+  int32_t speed{0};
+  int32_t classification{0};
 };
 math::vector3 intercept_point(math::vector3 const &origin, int32_t speed, movement_target const &target, unsigned int iterations);
 struct movement_callbacks {
@@ -13,11 +15,14 @@ struct movement_callbacks {
   std::function<std::optional<movement_target>(size_t)> target;
   std::function<void(size_t)> kill;
   std::function<void(size_t)> fire_at_waypoint;
-  std::function<void(size_t)> place, unplace;
+  std::function<void(size_t)> place;
+  std::function<void(size_t)> unplace;
   std::function<int32_t(size_t)> weapon;
 };
 struct movement_time {
-  int32_t now{0}, delta{0}, game_flow{0};
+  int32_t now{0};
+  int32_t delta{0};
+  int32_t game_flow{0};
   bool arcade{false};
   std::optional<size_t> player;
 };

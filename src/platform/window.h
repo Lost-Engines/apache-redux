@@ -17,8 +17,8 @@ class glfw_runtime {
 public:
   glfw_runtime();
   ~glfw_runtime();
-  glfw_runtime(glfw_runtime const&) = delete;
-  glfw_runtime &operator=(glfw_runtime const&) = delete;
+  glfw_runtime(glfw_runtime const &) = delete;
+  glfw_runtime &operator=(glfw_runtime const &) = delete;
 };
 class window {
   glfw_runtime runtime;
@@ -27,16 +27,20 @@ class window {
   std::vector<render::rgba> pixels;
   int logical_width{640};
   int logical_height{480};
-  int windowed_x{0}, windowed_y{0}, windowed_width{960}, windowed_height{720};
-  bool windowed_maximized{false}, fullscreen_pending{false};
+  int windowed_x{0};
+  int windowed_y{0};
+  int windowed_width{960};
+  int windowed_height{720};
+  bool windowed_maximized{false};
+  bool fullscreen_pending{false};
   std::array<bool, 2> fullscreen_enter{};
   void toggle_fullscreen();
 
 public:
   window(unsigned int scale, std::optional<configuration::resolution> resolution = {}, bool fullscreen = false);
   ~window();
-  window(window const&) = delete;
-  window &operator=(window const&) = delete;
+  window(window const &) = delete;
+  window &operator=(window const &) = delete;
   GLFWwindow *get() const;
   bool poll();
   // Consume the fullscreen chord in every screen; apply it after event dispatch.

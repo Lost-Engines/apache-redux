@@ -5,7 +5,18 @@
 #include <vector>
 
 namespace apache::render {
-enum class draw_kind { terrain, ground_object, mobile, shadow, crater, explosion, smoke, fireball, cloud, fragment };
+enum class draw_kind {
+  terrain,
+  ground_object,
+  mobile,
+  shadow,
+  crater,
+  explosion,
+  smoke,
+  fireball,
+  cloud,
+  fragment
+};
 struct queued_draw {
   draw_kind kind{draw_kind::terrain};
   uint32_t payload{0};

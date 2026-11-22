@@ -8,7 +8,11 @@
 #include "resources/data_store.h"
 
 namespace apache::render {
-enum class cockpit_section { complete, left, right };
+enum class cockpit_section {
+  complete,
+  left,
+  right
+};
 class cockpit {
   unsigned int mode;
   std::map<std::string, resources::indexed_image, std::less<>> sprites;

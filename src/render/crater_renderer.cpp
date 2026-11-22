@@ -23,7 +23,8 @@ model_instance crater_model(simulation::crater const &crater, math::trigonometry
   result.distance = distance;
   result.flags = crater.model == 0x180 && crater.age < 3 ? 1 : 0;
   result.scale = crater.scale;
-  int32_t const sine{trig.sine(crater.heading)}, cosine{trig.cosine(crater.heading)};
+  int32_t const sine{trig.sine(crater.heading)};
+  int32_t const cosine{trig.cosine(crater.heading)};
   result.relative = {crater.position, {cosine, math::negate(sine), 0, sine, cosine, 0, 0, 0, INT32_MAX}};
   return result;
 }

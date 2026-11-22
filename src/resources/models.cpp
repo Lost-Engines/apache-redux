@@ -109,9 +109,11 @@ model read_model(std::span<uint8_t const> const data) {
       drawing_node node;
       node.opcode = input.u8();
       switch(node.opcode) {
-      case 7: break;
+      case 7:
+        break;
       case 0:
-      case 1: {
+      case 1:
+        {
         auto const skip{node.opcode == 1 ? input.u8() : 0};
         node.packet_offset = static_cast<uint32_t>(input.position());
         node.face = read_primitive(input, result.vertices.size());
@@ -119,11 +121,14 @@ model read_model(std::span<uint8_t const> const data) {
         node.next = static_cast<uint32_t>(input.position());
         break;
       }
-      case 2: {
+      case 2:
+        {
         auto const count{input.u8()};
         auto const plane{input.take(count)};
         node.plane.assign(plane.begin(), plane.end());
-        for(auto const v : node.plane) if(v >= result.vertices.size()) input.fail("Decision plane references an unavailable vertex");
+        for(auto const v : node.plane) {
+          if(v >= result.vertices.size()) input.fail("Decision plane references an unavailable vertex");
+        }
         node.next = relative(input);
         node.branches = {relative(input), relative(input)};
         break;
@@ -135,7 +140,8 @@ model read_model(std::span<uint8_t const> const data) {
         node.branches.push_back(relative(input));
         if(node.opcode == 4) node.branches.push_back(relative(input));
         break;
-      case 5: {
+      case 5:
+        {
         auto const count{input.u8()};
         node.mask = input.u32();
         node.shift = input.u8();
@@ -149,7 +155,8 @@ model read_model(std::span<uint8_t const> const data) {
         if(node.child >= result.children.size()) input.fail("Unavailable attachment slot");
         node.next = static_cast<uint32_t>(input.position());
         break;
-      default: input.fail("Unknown drawing opcode");
+      default:
+        input.fail("Unknown drawing opcode");
       }
       pending.insert(pending.end(), node.branches.begin(), node.branches.end());
       auto const next{node.next};
@@ -164,7 +171,9 @@ model read_model(std::span<uint8_t const> const data) {
     auto const start{result.offsets[slot]};
     if(start) {
       auto end{data.size()};
-      for(auto const offset : result.offsets) if(offset > start) end = std::min(end, static_cast<size_t>(offset));
+      for(auto const offset : result.offsets) {
+        if(offset > start) end = std::min(end, static_cast<size_t>(offset));
+      }
       value.assign(data.begin() + start, data.begin() + static_cast<ptrdiff_t>(end));
     }
     return value;
@@ -180,8 +189,11 @@ model_archive read_models(std::span<uint8_t const> const data) {
   model_archive result;
   result.reserve(offsets.size());
   for(auto const start : offsets) {
-    if(!start) result.emplace_back();
-    else result.push_back(read_model(data.subspan(start, *ends.upper_bound(start) - start)));
+    if(!start) {
+      result.emplace_back();
+    } else {
+      result.push_back(read_model(data.subspan(start, *ends.upper_bound(start) - start)));
+    }
   }
   return result;
 }
@@ -200,7 +212,8 @@ void execute_model(model const &object, uint32_t const flags, int winding, drawi
       if(node.opcode == 7) break;
       pc = node.next;
       switch(node.opcode) {
-      case 0: {
+      case 0:
+        {
         auto const next_winding{callbacks.face(node.face, node.packet_offset, false)};
         if(node.face.type != 0 && node.face.type != 1 && node.face.type != 9 && node.face.type != 10) winding = next_winding;
         break;
@@ -224,15 +237,19 @@ void execute_model(model const &object, uint32_t const flags, int winding, drawi
         pending.push_back(node.next);
         pc = node.branches[flags & node.mask ? 0 : 1];
         break;
-      case 5: {
+      case 5:
+        {
         auto const selection{(flags >> node.shift) & node.mask};
         if(selection >= node.branches.size()) throw std::runtime_error{"Animation state has no authored case"};
         pending.push_back(node.next);
         pc = node.branches[selection];
         break;
       }
-      case 6: callbacks.child(node.child); break;
-      default: throw std::runtime_error{"Invalid decoded drawing opcode"};
+      case 6:
+        callbacks.child(node.child);
+        break;
+      default:
+        throw std::runtime_error{"Invalid decoded drawing opcode"};
       }
     }
   }

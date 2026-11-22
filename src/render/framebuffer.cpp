@@ -24,7 +24,11 @@ void framebuffer::clear(uint8_t const colour) {
   std::ranges::fill(coverage, 1);
 }
 void framebuffer::point(int const x, int const y, uint8_t const colour) {
-  if(clip.contains(x, y) && x >= 0 && y >= 0 && x < static_cast<int>(image.width) && y < static_cast<int>(image.height)) { size_t const at{static_cast<size_t>(y) * image.width + static_cast<unsigned int>(x)}; image.pixels[at] = colour; mark(at); }
+  if(clip.contains(x, y) && x >= 0 && y >= 0 && x < static_cast<int>(image.width) && y < static_cast<int>(image.height)) {
+    size_t const at{static_cast<size_t>(y) * image.width + static_cast<unsigned int>(x)};
+    image.pixels[at] = colour;
+    mark(at);
+  }
 }
 void framebuffer::fill(rectangle area, uint8_t const colour) {
   area = intersect(intersect(area, clip), {0, 0, static_cast<int>(image.width) - 1, static_cast<int>(image.height) - 1});
@@ -55,7 +59,12 @@ void framebuffer::blit(resources::indexed_image const &source, int const x, int 
     auto const to{image.pixels.begin() + static_cast<ptrdiff_t>(yy) * image.width + area.left};
     auto const count{area.right - area.left + 1};
     if(transparent) {
-      for(int i{0}; i != count; ++i) if(from[i]) { to[i] = from[i]; mark(static_cast<size_t>(to - image.pixels.begin()) + i); }
+      for(int i{0}; i != count; ++i) {
+        if(from[i]) {
+          to[i] = from[i];
+          mark(static_cast<size_t>(to - image.pixels.begin()) + i);
+        }
+      }
     } else {
       std::copy_n(from, count, to);
       if(!coverage.empty()) std::fill_n(coverage.begin() + (to - image.pixels.begin()), count, 1);
@@ -70,7 +79,7 @@ void framebuffer::colour_pixels(std::vector<rgba> &pixels) const {
   }
   pixels.resize(image.pixels.size());
   std::transform(image.pixels.begin(), image.pixels.end(), pixels.begin(),
-    [&palette](uint8_t index){ return palette[index]; });
+    [&palette](uint8_t index){return palette[index];});
 }
 std::vector<rgba> framebuffer::colour_pixels() const {
   std::vector<rgba> pixels;

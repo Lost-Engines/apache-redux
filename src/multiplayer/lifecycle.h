@@ -11,7 +11,8 @@ struct actor_link {
 struct lifecycle_events {
   std::function<std::optional<actor_link>(uint32_t)> player;
   std::function<std::optional<actor_link>(int32_t, int32_t)> find;
-  std::function<void(size_t)> remove, leave;
+  std::function<void(size_t)> remove;
+  std::function<void(size_t)> leave;
   std::function<void(size_t, math::pose const &, int32_t)> restart;
   std::function<void(size_t, bool)> countermeasure;
   std::function<void(unsigned int)> death;

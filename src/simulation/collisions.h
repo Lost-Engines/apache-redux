@@ -9,7 +9,8 @@ int32_t perpendicular_distance(math::vector3 const &start, math::vector3 const &
 bool rotated_box_contains(render::model_instance const &object, math::vector3 const &point, resources::model_archive const &models);
 render::model_instance const *bounding_box_hit(render::model_instance const &object, math::vector3 const &point, resources::model_archive const &models);
 struct scenery_hit {
-  size_t layer{0}, index{0};
+  size_t layer{0};
+  size_t index{0};
   math::vector3 position{};
 };
 class scenery_collisions {
@@ -36,7 +37,12 @@ std::optional<uint32_t> mobile_point_collision(render::mobile_scene const &scene
 std::optional<uint32_t> mobile_line_collision(render::mobile_scene const &scene, resources::model_archive const &models, math::trigonometry const &trig, math::vector3 const &start, math::vector3 const &end, std::optional<uint32_t> ignored = {}, std::optional<uint32_t> ignored_second = {});
 bool crater_point_collision(craters const &marks, resources::model_archive const &models, resources::terrain const &terrain, math::vector3 const &position, int32_t tallest);
 bool crater_line_collision(craters const &marks, resources::model_archive const &models, resources::terrain const &terrain, math::trigonometry const &trig, math::vector3 const &start, math::vector3 const &end, int32_t tallest);
-enum class flight_collision_kind { none, mobile, scenery, crater };
+enum class flight_collision_kind {
+  none,
+  mobile,
+  scenery,
+  crater
+};
 struct flight_collision {
   flight_collision_kind kind{flight_collision_kind::none};
   uint32_t model{0};

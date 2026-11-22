@@ -23,7 +23,8 @@ class mission_combat {
   combat_tables const &tables;
   std::span<std::vector<resources::formation_member> const> formations;
   actor_environment const &ground;
-  combat_random &war_random, &weapon_random;
+  combat_random &war_random;
+  combat_random &weapon_random;
   uint32_t *previous_shared_seed;
   std::array<actor_type, 1315> types;
   std::array<weapon_info, 55> weapons;
@@ -31,7 +32,9 @@ class mission_combat {
   std::vector<std::vector<size_t>> task_order;
   std::vector<unsigned int> patrol_slots;
   mission_combat_callbacks events;
-  int32_t now{0}, delta{0}, difficulty{0};
+  int32_t now{0};
+  int32_t delta{0};
+  int32_t difficulty{0};
   uint32_t frame{0};
   actor_targeting_context context(size_t index) const;
   void acquire(size_t index, int mode);

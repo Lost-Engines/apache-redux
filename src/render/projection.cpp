@@ -10,32 +10,49 @@ namespace apache::render {
 namespace {
 int64_t plane_distance(math::vector3 const &p, unsigned int const plane) {
   switch(plane) {
-  case 128: return int64_t{p[1]} - 1;
-  case 8: return int64_t{p[1]} - p[2];
-  case 4: return int64_t{p[1]} + p[2];
-  case 2: return int64_t{p[1]} - p[0];
-  default: return int64_t{p[1]} + p[0];
+  case 128:
+    return int64_t{p[1]} - 1;
+  case 8:
+    return int64_t{p[1]} - p[2];
+  case 4:
+    return int64_t{p[1]} + p[2];
+  case 2:
+    return int64_t{p[1]} - p[0];
+  default:
+    return int64_t{p[1]} + p[0];
   }
 }
 std::optional<vertex3> crossing(vertex3 const &a, vertex3 const &b, unsigned int const plane) {
-  int64_t const numerator{plane_distance(a.eye, plane)}, denominator{numerator - plane_distance(b.eye, plane)};
+  int64_t const numerator{plane_distance(a.eye, plane)};
+  int64_t const denominator{numerator - plane_distance(b.eye, plane)};
   if(!denominator || (numerator < 0) != (denominator < 0) || std::abs(numerator) > std::abs(denominator)) return {};
   vertex3 result;
-  if(numerator == denominator) result = b;
-  else {
+  if(numerator == denominator) {
+    result = b;
+  } else {
     auto const fraction{static_cast<int32_t>((std::abs(numerator) << 31) / std::abs(denominator))};
-    auto const lerp{[&](int32_t const x, int32_t const y){ return math::add(x, math::multiply_q31(math::subtract(y, x), fraction)); }};
+    auto const lerp{[&](int32_t const x, int32_t const y){return math::add(x, math::multiply_q31(math::subtract(y, x), fraction));}};
     for(size_t i{0}; i != 3; ++i) result.eye[i] = lerp(a.eye[i], b.eye[i]);
     result.screen.u = lerp(a.screen.u, b.screen.u);
     result.screen.v = lerp(a.screen.v, b.screen.v);
     result.screen.intensity = lerp(a.screen.intensity, b.screen.intensity);
   }
   switch(plane) {
-  case 128: result.eye[1] = 1; break;
-  case 8: result.eye[2] = result.eye[1]; break;
-  case 4: result.eye[2] = math::negate(result.eye[1]); break;
-  case 2: result.eye[0] = result.eye[1]; break;
-  default: result.eye[0] = math::negate(result.eye[1]); break;
+  case 128:
+    result.eye[1] = 1;
+    break;
+  case 8:
+    result.eye[2] = result.eye[1];
+    break;
+  case 4:
+    result.eye[2] = math::negate(result.eye[1]);
+    break;
+  case 2:
+    result.eye[0] = result.eye[1];
+    break;
+  default:
+    result.eye[0] = math::negate(result.eye[1]);
+    break;
   }
   result.outcode = outcode(result.eye);
   return result;
@@ -69,7 +86,11 @@ int winding(std::span<vertex3 const> const vertices, bool const robust) {
   if((cross_sign(vertices[second], vertices[third], vertices[fourth]) ^ initial) < 0) return cross_sign(vertices[third], vertices[fourth], vertices[different(fourth, fourth + 1)]);
   return initial;
 }
-projection::projection(int const x, int const y, int const w, int const h, double const horizontal_fov, std::optional<rectangle> const reference) : viewport{x, y, x + w - 1, y + h - 1}, width{w}, height{h}, reference_height{reference ? reference->bottom - reference->top + 1 : h} {
+projection::projection(int const x, int const y, int const w, int const h, double const horizontal_fov, std::optional<rectangle> const reference)
+  : viewport{x, y, x + w - 1, y + h - 1},
+    width{w},
+    height{h},
+    reference_height{reference ? reference->bottom - reference->top + 1 : h} {
   if(w < 1 || h < 1 || w > 8192 || h > 8192) throw std::runtime_error{"Invalid projection dimensions"};
   if(!std::isfinite(horizontal_fov) || horizontal_fov <= 0 || horizontal_fov >= 180) throw std::runtime_error{"Invalid field of view"};
   if(reference_height < 1 || reference_height > 8192 || (reference && (reference->left != x || reference->right != x + w - 1))) throw std::runtime_error{"Invalid projection reference"};
@@ -94,10 +115,14 @@ void projection::project(vertex3 &point) const {
   point.screen.y = std::max(viewport.top, viewport.bottom - static_cast<int>(((int64_t{p[2]} + p[1]) * height >> 1) / p[1]));
 }
 math::vector3 projection::scale(math::vector3 eye) const {
-  if(original_scale) eye[2] = std::bit_cast<int32_t>(static_cast<uint32_t>((math::product_bits(eye[2], vertical_scale) + (1ull << 26)) >> 27));
-  else {
-    auto const bounded{[](double value){ return static_cast<int32_t>(std::clamp(std::round(value), double{INT32_MIN}, double{INT32_MAX})); }};
-    eye[0] = bounded(eye[0] * horizontal_factor); eye[2] = bounded(eye[2] * vertical_factor);
+  if(original_scale) {
+    eye[2] = std::bit_cast<int32_t>(static_cast<uint32_t>((math::product_bits(eye[2], vertical_scale) + (1ull << 26)) >> 27));
+  } else {
+    auto const bounded{[](double value){
+      return static_cast<int32_t>(std::clamp(std::round(value), double{INT32_MIN}, double{INT32_MAX}));
+    }};
+    eye[0] = bounded(eye[0] * horizontal_factor);
+    eye[2] = bounded(eye[2] * vertical_factor);
   }
   // Retain the reference scale for fog and undo this shear before unprojecting.
   if(reference_height != height || vertical_offset) {
@@ -113,7 +138,11 @@ math::vector3 projection::unframe(math::vector3 eye) const {
 }
 vertex3 projection::prepare(math::vector3 eye, int32_t const u, int32_t const v, int32_t const intensity) const {
   eye = scale(eye);
-  vertex3 result{eye, {.u{u}, .v{v}, .intensity{intensity}}, outcode(eye)};
+  vertex3 result{eye, {
+    .u{u},
+    .v{v},
+    .intensity{intensity}
+  }, outcode(eye)};
   if(!result.outcode) project(result);
   return result;
 }
@@ -127,23 +156,30 @@ std::optional<screen_vertex> projection::project_unclipped(math::vector3 eye) co
     if(result <= INT32_MIN || result > INT32_MAX) return {};
     return static_cast<int32_t>(result);
   }};
-  auto const x{coordinate(eye[0], width)}, y{coordinate(eye[2], height)};
+  auto const x{coordinate(eye[0], width)};
+  auto const y{coordinate(eye[2], height)};
   if(!x || !y) return {};
   return screen_vertex{math::add(viewport.left, *x), math::subtract(viewport.bottom, *y)};
 }
 math::vector3 projection::unmagnify(math::vector3 eye) const {
   eye = unframe(eye);
-  if(horizontal_factor != 1) for(auto axis : {0, 2}) {
-    eye[axis] = static_cast<int32_t>(std::clamp(std::round(eye[axis] / horizontal_factor), double{INT32_MIN}, double{INT32_MAX}));
+  if(horizontal_factor != 1) {
+    for(auto axis : {0, 2}) {
+      eye[axis] = static_cast<int32_t>(std::clamp(std::round(eye[axis] / horizontal_factor), double{INT32_MIN}, double{INT32_MAX}));
+    }
   }
   return eye;
 }
 math::vector3 projection::unscale(math::vector3 eye) const {
   eye = unframe(eye);
-  if(original_scale) eye[2] = std::bit_cast<int32_t>(static_cast<uint32_t>((math::product_bits(eye[2], inverse_vertical_scale) + (1ull << 26)) >> 27));
-  else {
-    auto const bounded{[](double value){ return static_cast<int32_t>(std::clamp(std::round(value), double{INT32_MIN}, double{INT32_MAX})); }};
-    eye[0] = bounded(eye[0] / horizontal_factor); eye[2] = bounded(eye[2] / vertical_factor);
+  if(original_scale) {
+    eye[2] = std::bit_cast<int32_t>(static_cast<uint32_t>((math::product_bits(eye[2], inverse_vertical_scale) + (1ull << 26)) >> 27));
+  } else {
+    auto const bounded{[](double value){
+      return static_cast<int32_t>(std::clamp(std::round(value), double{INT32_MIN}, double{INT32_MAX}));
+    }};
+    eye[0] = bounded(eye[0] / horizontal_factor);
+    eye[2] = bounded(eye[2] / vertical_factor);
   }
   return eye;
 }
@@ -155,30 +191,38 @@ vertex3 projection::prepare_scaled(math::vector3 const &eye, int32_t const inten
 std::optional<std::array<vertex3, 2>> projection::clip_line(vertex3 a, vertex3 b) const {
   if(a.outcode & b.outcode) return {};
   auto const end{[](vertex3 &point, vertex3 const &other){
-    for(unsigned int const plane : {128u, 8u, 4u, 2u, 1u}) if(point.outcode & plane) {
-      auto const intersection{crossing(point, other, plane)};
-      if(!intersection) return false;
-      point = *intersection;
-      if((point.outcode & plane) || (point.outcode & other.outcode)) return false;
+    for(unsigned int const plane : {128u, 8u, 4u, 2u, 1u}) {
+      if(point.outcode & plane) {
+        auto const intersection{crossing(point, other, plane)};
+        if(!intersection) return false;
+        point = *intersection;
+        if((point.outcode & plane) || (point.outcode & other.outcode)) return false;
+      }
     }
     return point.outcode == 0;
   }};
   auto const original{a};
   if(!end(a, b) || !end(b, original)) return {};
-  project(a); project(b);
+  project(a);
+  project(b);
   return std::array<vertex3, 2>{a, b};
 }
 std::vector<vertex3> projection::clip(std::span<vertex3 const> const vertices) const {
   std::vector<vertex3> result{vertices.begin(), vertices.end()};
   if(result.empty()) return result;
-  unsigned int any{0}, all{255};
-  for(auto const &v : result) { any |= v.outcode; all &= v.outcode; }
+  unsigned int any{0};
+  unsigned int all{255};
+  for(auto const &v : result) {
+    any |= v.outcode;
+    all &= v.outcode;
+  }
   if(all) return {};
   for(unsigned int const plane : {128u, 8u, 4u, 2u, 1u}) {
     if(!(any & plane)) continue;
     std::vector<vertex3> clipped;
     auto previous{result.back()};
-    any = 0; all = 255;
+    any = 0;
+    all = 255;
     for(auto const &current : result) {
       if((current.outcode ^ previous.outcode) & plane) {
         auto const intersection{crossing(current, previous, plane)};
@@ -188,7 +232,10 @@ std::vector<vertex3> projection::clip(std::span<vertex3 const> const vertices) c
       if(!(current.outcode & plane)) clipped.push_back(current);
       previous = current;
     }
-    for(auto const &v : clipped) { any |= v.outcode; all &= v.outcode; }
+    for(auto const &v : clipped) {
+      any |= v.outcode;
+      all &= v.outcode;
+    }
     if(clipped.empty() || (any & plane) || all) return {};
     result = std::move(clipped);
   }

@@ -57,7 +57,11 @@ void close(socket_type handle) {
 struct socket_runtime {};
 #endif // _WIN32
 sockaddr_in native(network_address value) {
-  sockaddr_in result{}; result.sin_family = AF_INET; result.sin_addr.s_addr = htonl(value.host); result.sin_port = htons(value.port); return result;
+  sockaddr_in result{};
+  result.sin_family = AF_INET;
+  result.sin_addr.s_addr = htonl(value.host);
+  result.sin_port = htons(value.port);
+  return result;
 }
 network_address portable(sockaddr_in const &value) {
   return {ntohl(value.sin_addr.s_addr), ntohs(value.sin_port)};
@@ -68,7 +72,8 @@ std::string network_address::text() const {
 }
 network_address network_address::resolve(std::string const &text, uint16_t const default_port) {
   [[maybe_unused]] socket_runtime runtime;
-  std::string host{text}; unsigned int port{default_port};
+  std::string host{text};
+  unsigned int port{default_port};
   if(auto colon{host.find(':')}; colon != std::string::npos) {
     auto const tail{std::string_view{host}.substr(colon + 1)};
     auto const [end, error]{std::from_chars(tail.data(), tail.data() + tail.size(), port)};
@@ -76,7 +81,9 @@ network_address network_address::resolve(std::string const &text, uint16_t const
     host.resize(colon);
   }
   if(host.empty() || host == "*") return {0, static_cast<uint16_t>(port)};
-  addrinfo hints{}; hints.ai_family = AF_INET; hints.ai_socktype = SOCK_DGRAM;
+  addrinfo hints{};
+  hints.ai_family = AF_INET;
+  hints.ai_socktype = SOCK_DGRAM;
   addrinfo *result{nullptr};
   if(getaddrinfo(host.c_str(), nullptr, &hints, &result) || !result) throw std::runtime_error{"Cannot resolve network address: " + host};
   std::unique_ptr<addrinfo, decltype(&freeaddrinfo)> owned{result, freeaddrinfo};
@@ -125,7 +132,9 @@ bool datagram_socket::send(network_address const destination, std::span<uint8_t 
   return static_cast<size_t>(result) == data.size();
 }
 std::optional<datagram> datagram_socket::receive() {
-  std::array<uint8_t, 2049> data{}; sockaddr_in from{}; socket_length size{sizeof from};
+  std::array<uint8_t, 2049> data{};
+  sockaddr_in from{};
+  socket_length size{sizeof from};
   auto const count{recvfrom(impl->handle, reinterpret_cast<char *>(data.data()), static_cast<int>(data.size()), 0, reinterpret_cast<sockaddr *>(&from), &size)};
   if(count < 0) {
     auto const error{last_error()};

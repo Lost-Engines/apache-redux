@@ -15,15 +15,19 @@
 namespace apache::frontend {
 struct mission_connection {
   multiplayer::game_settings game;
-  uint32_t local{0}, server{0};
+  uint32_t local{0};
+  uint32_t server{0};
   std::array<multiplayer::player_replica, 16> players;
   bool defer_initialisation{false};
 };
 struct mission_options {
   configuration::graphics graphics;
   bool arcade{false};
-  bool invulnerable{false}, infinite_weapons{false}, no_crashes{false};
-  unsigned int video_mode{1}, detail{9};
+  bool invulnerable{false};
+  bool infinite_weapons{false};
+  bool no_crashes{false};
+  unsigned int video_mode{1};
+  unsigned int detail{9};
   int difficulty{0};
   simulation::control_configuration controls;
   unsigned int deadband{10};
@@ -44,7 +48,8 @@ class mission_session {
   size_t frame_number{0};
   int32_t next_radio{6000};
   std::array<unsigned int, 54> radio_effects;
-  int32_t last_delta{0}, paused_camera_delta{0};
+  int32_t last_delta{0};
+  int32_t paused_camera_delta{0};
   double frame_time{0.05};
   bool quit_drawn{false};
   std::vector<uint16_t> commands;
@@ -78,13 +83,17 @@ public:
   render::avionics_renderer avionics;
   render::framebuffer frame;
   simulation::view_frame camera;
-  bool paused{false}, finished{false}, night_vision{false};
-  bool quit_prompt{false}, help_requested{false};
+  bool paused{false};
+  bool finished{false};
+  bool night_vision{false};
+  bool quit_prompt{false};
+  bool help_requested{false};
   unsigned int accelerated_time{1};
   std::function<void(unsigned int, int32_t, int32_t)> play_sound;
   std::function<void(simulation::flight_event)> flight_sound;
   // The transport services incoming packets here, at the original render barrier.
-  std::function<void()> wait_network, poll_network;
+  std::function<void()> wait_network;
+  std::function<void()> poll_network;
   std::function<int32_t()> network_clock;
   int32_t network_wait_ticks{0};
   mission_session(resources::data_store const &data, int mission_id, mission_options options = {});

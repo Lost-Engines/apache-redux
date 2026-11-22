@@ -9,9 +9,14 @@ class network_menu {
   menu &interface;
   configuration::settings &settings;
   bool start_requested{false};
-  bool two_player{false}, starting{false}, editing_name{false}, editing_host{false};
+  bool two_player{false};
+  bool starting{false};
+  bool editing_name{false};
+  bool editing_host{false};
   unsigned int channel{0};
-  std::string own_name, host, entry;
+  std::string own_name;
+  std::string host;
+  std::string entry;
   std::array<std::string, 14> messages;
   void visible(std::string_view name, bool value);
   void connect();

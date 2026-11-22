@@ -5,9 +5,29 @@
 
 namespace apache::simulation {
 enum class flight_event {
-  fuel_exhausted, hover_on, hover_off, engine_overheat, left_engine_failed, right_engine_failed,
-  stop_rotor, powered_rotor, windmilling_rotor, overtorque_on, overtorque_off, warning_sound, engines_overheated,
-  overspeed_on, overspeed_off, excessive_sideways_acceleration, pull_up_on, pull_up_off, pull_up_sound, hard_impact, overspeed_fatal, mission_end_check, takeoff
+  fuel_exhausted,
+  hover_on,
+  hover_off,
+  engine_overheat,
+  left_engine_failed,
+  right_engine_failed,
+  stop_rotor,
+  powered_rotor,
+  windmilling_rotor,
+  overtorque_on,
+  overtorque_off,
+  warning_sound,
+  engines_overheated,
+  overspeed_on,
+  overspeed_off,
+  excessive_sideways_acceleration,
+  pull_up_on,
+  pull_up_off,
+  pull_up_sound,
+  hard_impact,
+  overspeed_fatal,
+  mission_end_check,
+  takeoff
 };
 using flight_events = std::vector<flight_event>;
 struct powerplant {

@@ -23,17 +23,27 @@ bool restrict_bounds(sector_bounds &bounds, sector_bounds const &limit, int cons
   bounds.right = std::clamp(bounds.right, limit.left, limit.right);
   bounds.bottom = std::clamp(bounds.bottom, limit.bottom, limit.top);
   bounds.top = std::clamp(bounds.top, limit.bottom, limit.top);
-  if(camera_x + bounds.left >= size || camera_y + bounds.bottom >= size || camera_x + bounds.right < 0 || camera_y + bounds.top < 0) { bounds = {}; return false; }
-  bounds.left = std::max(bounds.left, -camera_x); bounds.right = std::min(bounds.right, size - 1 - camera_x);
-  bounds.bottom = std::max(bounds.bottom, -camera_y); bounds.top = std::min(bounds.top, size - 1 - camera_y);
+  if(camera_x + bounds.left >= size || camera_y + bounds.bottom >= size || camera_x + bounds.right < 0 || camera_y + bounds.top < 0) {
+    bounds = {};
+    return false;
+  }
+  bounds.left = std::max(bounds.left, -camera_x);
+  bounds.right = std::min(bounds.right, size - 1 - camera_x);
+  bounds.bottom = std::max(bounds.bottom, -camera_y);
+  bounds.top = std::min(bounds.top, size - 1 - camera_y);
   return true;
 }
 } // anonymous namespace
 sector_bounds scan_sectors(math::pose const &camera, projection const &view, uint32_t const heading, unsigned int const distance, bool const super) {
   if(distance < 1 || distance > 14) throw std::runtime_error{"Sector distance must be between 1 and 14"};
-  int const size{super ? 16 : 64}, shift{super ? 26 : 22}, mask{super ? 0x3ffffff : 0x3fffff}, offset{super ? 0x18000000 : 0};
-  int const camera_x{math::add(camera.position[0], offset) >> shift}, camera_y{math::add(camera.position[1], offset) >> shift};
-  int const super_x{math::add(camera.position[0], 0x18000000) >> 26}, super_y{math::add(camera.position[1], 0x18000000) >> 26};
+  int const size{super ? 16 : 64};
+  int const shift{super ? 26 : 22};
+  int const mask{super ? 0x3ffffff : 0x3fffff};
+  int const offset{super ? 0x18000000 : 0};
+  int const camera_x{math::add(camera.position[0], offset) >> shift};
+  int const camera_y{math::add(camera.position[1], offset) >> shift};
+  int const super_x{math::add(camera.position[0], 0x18000000) >> 26};
+  int const super_y{math::add(camera.position[1], 0x18000000) >> 26};
   auto const origin{feature_origin(camera, super_x, super_y, true)};
   auto const inverse{math::transpose(camera.rotation)};
   sector_bounds bounds;
@@ -41,7 +51,8 @@ sector_bounds scan_sectors(math::pose const &camera, projection const &view, uin
   sector_bounds limit{-radius, -radius, radius, radius};
   if(super) {
     int const range{camera.position[2] < 0x7d000 ? 1 : camera.position[2] < 0xfa000 ? 2 : 3};
-    int const x_offset{math::add(camera.position[0], offset) & mask}, y_offset{math::add(camera.position[1], offset) & mask};
+    int const x_offset{math::add(camera.position[0], offset) & mask};
+    int const y_offset{math::add(camera.position[1], offset) & mask};
     limit = {x_offset < 0x2000000 ? -1 - range : -range, y_offset < 0x2000000 ? -1 - range : -range, x_offset < 0x2000000 ? range : range + 1, y_offset < 0x2000000 ? range : range + 1};
   }
   auto const add_quad{[&](int const left, int const bottom, int const right, int const top, unsigned int const grid_shift, int const height){
@@ -52,9 +63,12 @@ sector_bounds scan_sectors(math::pose const &camera, projection const &view, uin
     if(clipped.empty()) return false;
     for(auto const &point : clipped) {
       auto const world{math::transform(inverse, view.unscale(point.eye))};
-      int const x{math::add(world[0], camera.position[0] & mask) >> shift}, y{math::add(world[1], camera.position[1] & mask) >> shift};
-      bounds.left = std::min(bounds.left, x); bounds.right = std::max(bounds.right, x);
-      bounds.bottom = std::min(bounds.bottom, y); bounds.top = std::max(bounds.top, y);
+      int const x{math::add(world[0], camera.position[0] & mask) >> shift};
+      int const y{math::add(world[1], camera.position[1] & mask) >> shift};
+      bounds.left = std::min(bounds.left, x);
+      bounds.right = std::max(bounds.right, x);
+      bounds.bottom = std::min(bounds.bottom, y);
+      bounds.top = std::max(bounds.top, y);
     }
     return restrict_bounds(bounds, limit, camera_x, camera_y, size);
   }};
@@ -72,16 +86,26 @@ sector_bounds scan_sectors(math::pose const &camera, projection const &view, uin
     if(!found) {
       bounds = quadrant <= 0x40000000 || (quadrant > 0x80000000 && quadrant <= 0xc0000000) ? sector_bounds{-1, 0, 1, 0} : sector_bounds{0, -1, 0, 1};
       restrict_bounds(bounds, limit, camera_x, camera_y, size);
-    } else if(quadrant <= 0x40000000) { if(bounds.bottom == 1) bounds.bottom = 0; } else if(quadrant <= 0x80000000) { if(bounds.left == 1) bounds.left = 0; } else if(quadrant <= 0xc0000000) { if(bounds.top == -1) bounds.top = 0; } else if(bounds.right == -1) bounds.right = 0;
+    } else if(quadrant <= 0x40000000) {
+      if(bounds.bottom == 1) bounds.bottom = 0;
+    } else if(quadrant <= 0x80000000) {
+      if(bounds.left == 1) bounds.left = 0;
+    } else if(quadrant <= 0xc0000000) {
+      if(bounds.top == -1) bounds.top = 0;
+    } else if(bounds.right == -1) bounds.right = 0;
   }
   return bounds;
 }
 unsigned int sector_visibility(math::matrix3 const &rotation, math::vector3 const &origin, projection const &view, bool const super) {
-  unsigned int all{255}, any{0};
+  unsigned int all{255};
+  unsigned int any{0};
   int const width{super ? 1 : 16};
-  for(int height{0}; height != (super ? 1 : 2); ++height) for(auto const &xy : std::array<std::array<int, 2>, 4>{{{0, 0}, {0, width}, {width, width}, {width, 0}}}) {
-    auto const point{view.prepare(grid_offset(rotation, origin, xy[0], xy[1], super ? 5u : 13u, height * 16))};
-    all &= point.outcode; any |= point.outcode;
+  for(int height{0}; height != (super ? 1 : 2); ++height) {
+    for(auto const &xy : std::array<std::array<int, 2>, 4>{{{0, 0}, {0, width}, {width, width}, {width, 0}}}) {
+      auto const point{view.prepare(grid_offset(rotation, origin, xy[0], xy[1], super ? 5u : 13u, height * 16))};
+      all &= point.outcode;
+      any |= point.outcode;
+    }
   }
   return all ? 0 : any ? 1 : 2;
 }

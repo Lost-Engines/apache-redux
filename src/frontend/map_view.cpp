@@ -4,9 +4,12 @@
 
 namespace apache::frontend {
 void map_view::restrict() {
-  auto &[x, y, scale, angle]{position}; static_cast<void>(angle);
-  int32_t const left{x - scale * 320}, right{x + scale * 320};
-  int32_t const bottom{y - scale * 240}, top{y + scale * 240};
+  auto &[x, y, scale, angle]{position};
+  static_cast<void>(angle);
+  int32_t const left{x - scale * 320};
+  int32_t const right{x + scale * 320};
+  int32_t const bottom{y - scale * 240};
+  int32_t const top{y + scale * 240};
   if(scale * 640 > 0x8000000) scale = 0x33333;
   if(left < 0x2000000) x += 0x2000000 - left;
   if(right > 0xe000000) x += 0xe000000 - right;
@@ -14,25 +17,46 @@ void map_view::restrict() {
   if(top > 0xe000000) y += 0xe000000 - top;
 }
 void map_view::set(int32_t const x, int32_t const y, int32_t const scale, uint32_t const angle) {
-  position = {std::clamp(x, 0, 0xfffffff), std::clamp(y, 0, 0xfffffff), std::clamp(scale, 256, 0x271000), angle}; restrict();
+  position = {std::clamp(x, 0, 0xfffffff), std::clamp(y, 0, 0xfffffff), std::clamp(scale, 256, 0x271000), angle};
+  restrict();
 }
 void map_view::centre(int32_t const x, int32_t const y) {
   set(x, y, position.zoom, position.rotation);
 }
-void map_view::zoom(int32_t const scale) { position.zoom = std::clamp(scale, 256, 0x271000); restrict(); }
-void map_view::rotate(uint32_t const angle) { position.rotation = angle; restrict(); }
-void map_view::push() { restrict(); if(history.size() < 32) history.push_back(position); }
+void map_view::zoom(int32_t const scale) {
+  position.zoom = std::clamp(scale, 256, 0x271000);
+  restrict();
+}
+void map_view::rotate(uint32_t const angle) {
+  position.rotation = angle;
+  restrict();
+}
+void map_view::push() {
+  restrict();
+  if(history.size() < 32) history.push_back(position);
+}
 void map_view::pop() {
-  if(history.empty()) set(0x7ffffff, 0x7ffffff, 0x271000, 0);
-  else { auto const saved{history.back()}; history.pop_back(); set(saved.x, saved.y, saved.zoom, saved.rotation); }
+  if(history.empty()) {
+    set(0x7ffffff, 0x7ffffff, 0x271000, 0);
+  } else {
+    auto const saved{history.back()};
+    history.pop_back();
+    set(saved.x, saved.y, saved.zoom, saved.rotation);
+  }
 }
 void map_view::fit(std::span<render::vertex2 const> const points) {
-  int32_t left{0}, right{0xfffffff}, bottom{0}, top{0xfffffff};
+  int32_t left{0};
+  int32_t right{0xfffffff};
+  int32_t bottom{0};
+  int32_t top{0xfffffff};
   if(!points.empty()) {
-    left = right = points.front().x; bottom = top = points.front().y;
+    left = right = points.front().x;
+    bottom = top = points.front().y;
     for(auto const &point : points) {
-      left = std::min(left, point.x); right = std::max(right, point.x);
-      bottom = std::min(bottom, point.y); top = std::max(top, point.y);
+      left = std::min(left, point.x);
+      right = std::max(right, point.x);
+      bottom = std::min(bottom, point.y);
+      top = std::max(top, point.y);
     }
   }
   clear();
@@ -40,13 +64,16 @@ void map_view::fit(std::span<render::vertex2 const> const points) {
 }
 render::window2 map_view::window(int const width, int const height) const {
   if(width < 2 || height < 2 || width > 640 || height > 480) throw std::invalid_argument{"Invalid briefing map dimensions"};
-  int32_t const w{position.zoom * (width - 1)}, h{position.zoom * (height - 1)};
-  int32_t const left{position.x - w / 2}, bottom{position.y - h / 2};
+  int32_t const w{position.zoom * (width - 1)};
+  int32_t const h{position.zoom * (height - 1)};
+  int32_t const left{position.x - w / 2};
+  int32_t const bottom{position.y - h / 2};
   return {left, bottom, left + w, bottom + h};
 }
 render::projection2 map_view::projection(math::trigonometry const &trig, int const width, int const height) const {
   render::projection2 view{{0, 0, width - 1, height - 1}, window(width, height)};
-  view.sine = trig.sine(position.rotation); view.cosine = trig.cosine(position.rotation);
+  view.sine = trig.sine(position.rotation);
+  view.cosine = trig.cosine(position.rotation);
   return view;
 }
 } // namespace apache::frontend

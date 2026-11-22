@@ -7,8 +7,13 @@ namespace apache::frontend {
 class map_camera {
 public:
   math::pose camera{{0x8200000, 0x8200000, 256000}, {}};
-  int32_t target_x{0}, target_y{0}, speed{0};
-  uint32_t heading{0}, pitch{0}, roll{0}, angle{0};
+  int32_t target_x{0};
+  int32_t target_y{0};
+  int32_t speed{0};
+  uint32_t heading{0};
+  uint32_t pitch{0};
+  uint32_t roll{0};
+  uint32_t angle{0};
   unsigned int mode{3};
   void select(unsigned int tool);
   void target(int32_t x, int32_t y) {

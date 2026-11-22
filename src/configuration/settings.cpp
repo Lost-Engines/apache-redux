@@ -6,7 +6,10 @@
 
 namespace apache::configuration {
 settings::settings(resources::data_store const &data) {
-  if(data.contains("PREFS.CFG")) { auto const bytes{data.read("PREFS.CFG")}; values.load({reinterpret_cast<char const*>(bytes.data()), bytes.size()}); }
+  if(data.contains("PREFS.CFG")) {
+    auto const bytes{data.read("PREFS.CFG")};
+    values.load({reinterpret_cast<char const*>(bytes.data()), bytes.size()});
+  }
   // Redux's initial choices override the CD defaults; saved player preferences load later.
   values.set("Visual Detail", 9);
   values.set("Model ID", 0);
@@ -21,21 +24,36 @@ void settings::apply() {
   graphics.field_of_view = 90;
   graphics.lod_distance_multiplier = 6;
   if(auto value{values.get("Redux FOV")}) {
-    try { graphics.field_of_view = parse_field_of_view(*value); } catch(std::runtime_error const &) {}
+    try {
+      graphics.field_of_view = parse_field_of_view(*value);
+    } catch(std::runtime_error const&) {}
   }
   if(auto value{values.get("Redux LOD distance")}) {
-    try { graphics.lod_distance_multiplier = parse_lod_distance_multiplier(*value); } catch(std::runtime_error const &) {}
+    try {
+      graphics.lod_distance_multiplier = parse_lod_distance_multiplier(*value);
+    } catch(std::runtime_error const&) {}
   }
   if(fov_override) graphics.field_of_view = *fov_override;
   if(lod_override) graphics.lod_distance_multiplier = *lod_override;
-  auto const integer{[&](std::string_view key, int fallback, int maximum){ return static_cast<unsigned int>(std::clamp(values.integer(key).value_or(fallback), 0, maximum)); }};
-  video_mode = integer("Visual Resolution", 1, 1); detail = integer("Visual Detail", 9, 9);
+  auto const integer{[&](std::string_view key, int fallback, int maximum){
+    return static_cast<unsigned int>(std::clamp(values.integer(key).value_or(fallback), 0, maximum));
+  }};
+  video_mode = integer("Visual Resolution", 1, 1);
+  detail = integer("Visual Detail", 9, 9);
   model = values.integer("Model ID").value_or(0) == 0 ? 0u : 2u;
-  forces = integer("Forces Type", 0, 9); volume = integer("Sound Volume", 63, 63); deadband = integer("Control Deadband Size", 0, 126);
-  planner = integer("Mission Planner", 0, 1); animations = integer("Animations", 1, 1);
-  speech = integer("Sound Speech", 1, 1); music = integer("Sound Music", 1, 1);
-  effects = integer("Sound effects", 1, 1); minimal_effects = integer("Sound effects level", 0, 1);
-  controls.cyclic = integer("Cyclic control", 0, 4); controls.collective = integer("Collective control", 0, 6); controls.tail_rotor = integer("Tailrotor control", 0, 5); controls.resolve();
+  forces = integer("Forces Type", 0, 9);
+  volume = integer("Sound Volume", 63, 63);
+  deadband = integer("Control Deadband Size", 0, 126);
+  planner = integer("Mission Planner", 0, 1);
+  animations = integer("Animations", 1, 1);
+  speech = integer("Sound Speech", 1, 1);
+  music = integer("Sound Music", 1, 1);
+  effects = integer("Sound effects", 1, 1);
+  minimal_effects = integer("Sound effects level", 0, 1);
+  controls.cyclic = integer("Cyclic control", 0, 4);
+  controls.collective = integer("Collective control", 0, 6);
+  controls.tail_rotor = integer("Tailrotor control", 0, 5);
+  controls.resolve();
   std::array<std::string, 4> const names{"Ax", "Ay", "Bx", "By"};
   for(size_t i{0}; i != axes.size(); ++i) {
     std::string const prefix{"Joystick " + names[i]};
@@ -48,17 +66,26 @@ void settings::apply() {
 void settings::load(std::filesystem::path const &directory) {
   auto const path{directory / "prefs.cfg"};
   if(std::filesystem::exists(path)) {
-    auto const size{std::filesystem::file_size(path)}; if(size > 1024 * 1024) throw std::runtime_error{"Preference file is too large"};
-    std::ifstream input{path, std::ios::binary}; std::string text(static_cast<size_t>(size), '\0');
+    auto const size{std::filesystem::file_size(path)};
+    if(size > 1024 * 1024) throw std::runtime_error{"Preference file is too large"};
+    std::ifstream input{path, std::ios::binary};
+    std::string text(static_cast<size_t>(size), '\0');
     if(!input.read(text.data(), static_cast<std::streamsize>(size))) throw std::runtime_error{"Cannot read preferences: " + path.string()};
-    values.load(text); apply();
+    values.load(text);
+    apply();
   }
   filename = path;
 }
 void settings::save() const {
   if(filename.empty()) return;
-  std::filesystem::create_directories(filename.parent_path()); auto temporary{filename}; temporary += ".tmp";
-  { std::ofstream output{temporary, std::ios::binary | std::ios::trunc}; auto const text{values.serialise()}; if(!output || !output.write(text.data(), static_cast<std::streamsize>(text.size())) || !output.flush()) throw std::runtime_error{"Cannot save preferences: " + filename.string()}; }
+  std::filesystem::create_directories(filename.parent_path());
+  auto temporary{filename};
+  temporary += ".tmp";
+  {
+    std::ofstream output{temporary, std::ios::binary | std::ios::trunc};
+    auto const text{values.serialise()};
+    if(!output || !output.write(text.data(), static_cast<std::streamsize>(text.size())) || !output.flush()) throw std::runtime_error{"Cannot save preferences: " + filename.string()};
+  }
   std::filesystem::rename(temporary, filename);
 }
 void settings::set(std::string_view const key, int const value) {
@@ -68,14 +95,20 @@ void settings::set(std::string_view const key, int const value) {
 void settings::set_field_of_view(double const value) {
   auto const text{std::format("{}", value)};
   parse_field_of_view(text);
-  fov_override.reset(); values.set("Redux FOV", text); apply();
+  fov_override.reset();
+  values.set("Redux FOV", text);
+  apply();
 }
 void settings::set_lod_distance_multiplier(double const value) {
   auto const text{std::format("{}", value)};
   parse_lod_distance_multiplier(text);
-  lod_override.reset(); values.set("Redux LOD distance", text); apply();
+  lod_override.reset();
+  values.set("Redux LOD distance", text);
+  apply();
 }
 void settings::override_graphics(std::optional<double> const fov, std::optional<double> const lod) {
-  fov_override = fov; lod_override = lod; apply();
+  fov_override = fov;
+  lod_override = lod;
+  apply();
 }
 } // namespace apache::configuration

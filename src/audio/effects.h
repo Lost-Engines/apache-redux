@@ -7,7 +7,8 @@ namespace apache::audio {
 struct effect {
   resources::bytes pcm;
   uint32_t rate{0};
-  bool repeat{false}, minimal{false};
+  bool repeat{false};
+  bool minimal{false};
 };
 std::array<effect, 189> load_effects(resources::data_store const &data);
 int volume_decibels(unsigned int volume);
@@ -15,7 +16,8 @@ float volume_gain(unsigned int volume);
 struct effect_channel {
   int id{-1};
   bool active{false};
-  uint32_t rate{0}, volume{0};
+  uint32_t rate{0};
+  uint32_t volume{0};
   uint64_t phase{0};
   float gain{0};
 };
@@ -24,9 +26,14 @@ class effects {
 public:
   static unsigned int constexpr output_rate{48000};
   std::array<effect_channel, 16> channels;
-  bool enabled{true}, minimal{false}, voices{true}, paused{false};
+  bool enabled{true};
+  bool minimal{false};
+  bool voices{true};
+  bool paused{false};
   unsigned int master{63};
-  int radio_channel{-1}, cockpit_channel{-1}, cockpit_effect{-1};
+  int radio_channel{-1};
+  int cockpit_channel{-1};
+  int cockpit_effect{-1};
   explicit effects(resources::data_store const &data) : bank{load_effects(data)} {}
   effect const &sample(size_t id) const {
     return bank.at(id);

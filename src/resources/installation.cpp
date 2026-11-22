@@ -18,10 +18,16 @@
 
 namespace apache::resources {
 namespace {
-struct entry { char const *name; uint32_t sector, size; uint64_t hash; };
-constexpr entry files[]{
-#include "reference_files.inc"
+struct entry {
+  char const *name;
+  uint32_t sector;
+  uint32_t size;
+  uint64_t hash;
 };
+constexpr entry files[] {
+#include "reference_files.inc"
+}
+;
 bool looks_installed(std::filesystem::path const &directory) {
   std::error_code error;
   for(auto const *path : {"3DDATA/3DOBJS.BIN", "3ddata/3dobjs.bin"}) {
@@ -38,7 +44,7 @@ bytes read_file(std::filesystem::path const &path) {
   auto const size{std::filesystem::file_size(path)};
   if(size > 256 * 1024 * 1024) throw std::runtime_error{"File is too large: " + path.string()};
   bytes result(static_cast<size_t>(size));
-  if(!input.read(reinterpret_cast<char*>(result.data()), static_cast<std::streamsize>(size))) throw std::runtime_error{"Cannot read " + path.string()};
+  if(!input.read(reinterpret_cast<char *>(result.data()), static_cast<std::streamsize>(size))) throw std::runtime_error{"Cannot read " + path.string()};
   return result;
 }
 std::filesystem::path checked_destination(std::filesystem::path const &directory, std::filesystem::path const &path) {
@@ -63,13 +69,16 @@ std::filesystem::path default_game_directory() {
 }
 std::filesystem::path select_game_directory(std::optional<std::filesystem::path> const &requested, std::filesystem::path const &save_directory) {
   if(requested) return *requested;
-  for(auto const *candidate : {".", "data"}) if(looks_installed(candidate)) return candidate;
+  for(auto const *candidate : {".", "data"}) {
+    if(looks_installed(candidate)) return candidate;
+  }
   auto const record{save_directory / "game-directory.txt"};
   std::error_code error;
   if(std::filesystem::is_regular_file(record, error) && std::filesystem::file_size(record, error) < 32768) {
-    std::ifstream input{record}; std::string path;
+    std::ifstream input{record};
+    std::string path;
     if(std::getline(input, path) && !path.empty()) {
-      std::filesystem::path const remembered{std::u8string{reinterpret_cast<char8_t const*>(path.data()), path.size()}};
+      std::filesystem::path const remembered{std::u8string{reinterpret_cast<char8_t const *>(path.data()), path.size()}};
       if(looks_installed(remembered)) return remembered;
     }
   }
@@ -83,7 +92,7 @@ void remember_game_directory(std::filesystem::path const &directory, std::filesy
   std::filesystem::create_directories(save_directory);
   // A small preference only: no original resources are copied or changed here.
   std::ofstream output{save_directory / "game-directory.txt", std::ios::binary | std::ios::trunc};
-  if(!output.write(reinterpret_cast<char const*>(path.data()), static_cast<std::streamsize>(path.size())) || !output.put('\n').flush()) throw std::runtime_error{"Cannot remember the game data directory"};
+  if(!output.write(reinterpret_cast<char const *>(path.data()), static_cast<std::streamsize>(path.size())) || !output.put('\n').flush()) throw std::runtime_error{"Cannot remember the game data directory"};
 }
 void check_reference_installation(std::filesystem::path const &directory) {
   data_store data{directory};
@@ -102,7 +111,7 @@ void install_reference_cd(std::filesystem::path const &image, std::filesystem::p
     for(size_t offset{0}; offset < result.size(); offset += 2048) {
       uint64_t const sector{file.sector + offset / 2048};
       source.seekg(static_cast<std::streamoff>(sector * (raw ? 2352 : 2048) + (raw ? 16 : 0)));
-      if(!source.read(reinterpret_cast<char*>(result.data() + offset), static_cast<std::streamsize>(std::min(size_t{2048}, result.size() - offset)))) throw std::runtime_error{"Truncated CD image"};
+      if(!source.read(reinterpret_cast<char *>(result.data() + offset), static_cast<std::streamsize>(std::min(size_t{2048}, result.size() - offset)))) throw std::runtime_error{"Truncated CD image"};
     }
     if(fingerprint(result) != file.hash) throw std::runtime_error{"CD content does not match the reference: " + std::string{file.name}};
     return result;
@@ -110,7 +119,7 @@ void install_reference_cd(std::filesystem::path const &image, std::filesystem::p
   std::unique_ptr<data_store> existing;
   if(std::filesystem::exists(directory)) existing = std::make_unique<data_store>(directory);
   // Validate the entire source and every existing destination before writing.
-  std::vector<entry const*> missing;
+  std::vector<entry const *> missing;
   for(auto const &file : files) {
     read(file);
     auto const name{existing ? resource_name(*existing, file) : std::string{file.name}};
@@ -133,7 +142,7 @@ void install_reference_cd(std::filesystem::path const &image, std::filesystem::p
       auto const temporary{staging / file->name};
       std::filesystem::create_directories(temporary.parent_path());
       std::ofstream output{temporary, std::ios::binary};
-      if(!output.write(reinterpret_cast<char const*>(contents.data()), static_cast<std::streamsize>(contents.size())) || !output.flush()) throw std::runtime_error{"Cannot extract " + std::string{file->name}};
+      if(!output.write(reinterpret_cast<char const *>(contents.data()), static_cast<std::streamsize>(contents.size())) || !output.flush()) throw std::runtime_error{"Cannot extract " + std::string{file->name}};
       output.close();
       if(fingerprint(read_file(temporary)) != file->hash) throw std::runtime_error{"Extracted file failed verification: " + std::string{file->name}};
     }
@@ -145,7 +154,9 @@ void install_reference_cd(std::filesystem::path const &image, std::filesystem::p
     }
     std::filesystem::remove_all(staging);
   } catch(...) {
-    std::error_code ignored; std::filesystem::remove_all(staging, ignored); throw;
+    std::error_code ignored;
+    std::filesystem::remove_all(staging, ignored);
+    throw;
   }
 }
 } // namespace apache::resources

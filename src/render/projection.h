@@ -16,10 +16,13 @@ int winding(std::span<vertex3 const> vertices, bool robust = false);
 class projection {
   rectangle viewport;
   int width{0};
-  int height{0}, reference_height{0}, vertical_offset{0};
+  int height{0};
+  int reference_height{0};
+  int vertical_offset{0};
   int32_t vertical_scale{0};
   int32_t inverse_vertical_scale{0};
-  double horizontal_factor{1}, vertical_factor{1};
+  double horizontal_factor{1};
+  double vertical_factor{1};
   bool original_scale{true};
   math::vector3 scale(math::vector3 eye) const;
   math::vector3 unframe(math::vector3 eye) const;

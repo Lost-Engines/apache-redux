@@ -8,10 +8,14 @@ void player_route::cycle(std::span<resources::route_waypoint const> const route,
 void player_route::update(std::span<resources::route_waypoint const> const route, std::optional<size_t> &current, math::vector3 const &position, route_events const &events) {
   if(!current || *current >= route.size()) return;
   auto const &point{route[*current]};
-  int32_t const x{math::subtract(point.position[0], position[0])}, y{math::subtract(point.position[1], position[1])};
+  int32_t const x{math::subtract(point.position[0], position[0])};
+  int32_t const y{math::subtract(point.position[1], position[1])};
   int32_t const distance{std::bit_cast<int32_t>(math::integer_sqrt(math::product_bits(x, x) + math::product_bits(y, y)))};
   if(distance >= 0x14a000) return;
-  if(distance <= last_distance) { last_distance = distance; return; }
+  if(distance <= last_distance) {
+    last_distance = distance;
+    return;
+  }
   last_distance = INT32_MAX;
   if(*current + 1 < route.size()) {
     if(events.achieved) events.achieved(*current);

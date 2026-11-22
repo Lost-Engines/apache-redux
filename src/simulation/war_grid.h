@@ -5,7 +5,8 @@ namespace apache::simulation {
 struct war_sector {
   shared_target radar;
   std::array<int32_t, 9> floor;
-  contact_bucket air, ground;
+  contact_bucket air;
+  contact_bucket ground;
   war_sector() {
     floor.fill(INT32_MAX);
   }
@@ -16,7 +17,8 @@ struct war_sector {
 struct war_contact {
   shared_target target;
   uint32_t flags{0};
-  int32_t classification{0}, task{0};
+  int32_t classification{0};
+  int32_t task{0};
   bool player{false};
 };
 bool radar_model(uint32_t model);
@@ -24,7 +26,8 @@ int32_t radar_range(uint32_t model);
 int32_t radar_floor(uint32_t model);
 class war_grid {
   std::array<std::array<std::unique_ptr<war_sector>, 2>, 4096> cells;
-  std::array<size_t, 2> used{}, maximum{};
+  std::array<size_t, 2> used{};
+  std::array<size_t, 2> maximum{};
   war_sector *ensure(int32_t x, int32_t y, unsigned int side);
   void radar_patch(unsigned int side, shared_target const &target, uint32_t model, std::array<int32_t, 2> const &source, std::array<int32_t, 2> const &destination, std::function<int32_t(int32_t, int32_t)> const &height);
 public:

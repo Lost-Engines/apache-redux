@@ -24,13 +24,15 @@ uint32_t magnitude(int32_t value) {
 }
 } // anonymous namespace
 math::pose camera_geometry::head(math::pose body, uint32_t const heading, uint32_t const pitch) const {
-  body.rotation = math::multiply(trig.transformation(heading, pitch, 0), body.rotation); return body;
+  body.rotation = math::multiply(trig.transformation(heading, pitch, 0), body.rotation);
+  return body;
 }
 math::pose camera_geometry::tracking(orbit_camera &state, math::pose const &body, uint32_t const model, int32_t const radius, camera_input const &input) const {
   state.heading -= static_cast<uint32_t>(increment(input.turn, 0x40000000, input.delta));
   state.pitch = std::clamp(math::add(state.pitch, increment(input.pitch, 0x40000000, input.delta)), -0x40000000, 0x40000000);
   int32_t const zoom{increment(math::negate(input.zoom), 0x40000000, input.delta)};
-  state.zoom = math::add(state.zoom, zoom); if(state.zoom < 0) state.zoom = zoom < 0 ? 0 : INT32_MAX;
+  state.zoom = math::add(state.zoom, zoom);
+  if(state.zoom < 0) state.zoom = zoom < 0 ? 0 : INT32_MAX;
   math::pose result{body.position, trig.transformation(trig.arctangent(body.rotation[3], body.rotation[4]) + state.heading, static_cast<uint32_t>(state.pitch), 0)};
   int32_t const distance{model == 103 || model == 607 ? math::add(0x3000, math::multiply_q31(0xa000, state.zoom)) : math::add(std::bit_cast<int32_t>(static_cast<uint32_t>(radius) * 4), math::multiply_q31(std::bit_cast<int32_t>(static_cast<uint32_t>(radius) << 5), state.zoom))};
   for(size_t i{0}; i != 3; ++i) result.position[i] = math::add(result.position[i], math::multiply_q31(result.rotation[3 + i], math::negate(distance)));
@@ -46,14 +48,16 @@ math::pose camera_geometry::remote(math::vector3 const &position, math::vector3 
   return {position, trig.transformation(trig.arctangent(unit[0], unit[1]), trig.arcsine(unit[2]), 0)};
 }
 math::pose camera_geometry::missile_target(math::vector3 const &missile, math::vector3 const &target, int32_t const target_height) const {
-  auto const unit{math::normalise_q31(difference(missile, target))}; auto position{target};
+  auto const unit{math::normalise_q31(difference(missile, target))};
+  auto position{target};
   int32_t const distance{std::bit_cast<int32_t>(static_cast<uint32_t>(target_height) * 3)};
   for(size_t i{0}; i != 3; ++i) position[i] = math::subtract(position[i], math::multiply_q31(unit[i], distance));
   position[2] = std::max(position[2], math::add(height(position[0], position[1]), distance / 4));
   return remote(position, missile);
 }
 math::pose camera_geometry::target_lock(math::vector3 const &body, math::vector3 const &target) const {
-  auto const unit{math::normalise_q31(difference(target, body))}; auto position{body};
+  auto const unit{math::normalise_q31(difference(target, body))};
+  auto position{body};
   for(size_t i{0}; i != 3; ++i) position[i] = math::subtract(position[i], math::multiply_q31(unit[i], 0x5000));
   position[2] = std::max(math::add(position[2], 0x1400), math::add(height(position[0], position[1]), 0x400));
   return remote(position, target);
@@ -68,26 +72,34 @@ math::pose camera_geometry::crash(orbit_camera &state, math::vector3 const &posi
 math::pose camera_geometry::helmet(look_camera &state, math::pose const &body, camera_input const &input, std::optional<math::vector3> const &locked) const {
   if(locked) {
     auto const local{math::transform(body.rotation, difference(*locked, body.position))};
-    auto const horizontal{math::integer_sqrt(square(local[0]) + square(local[1]))}, length{math::integer_sqrt(uint64_t{horizontal} * horizontal + square(local[2]))};
+    auto const horizontal{math::integer_sqrt(square(local[0]) + square(local[1]))};
+    auto const length{math::integer_sqrt(uint64_t{horizontal} * horizontal + square(local[2]))};
     state.heading = !horizontal ? 0 : magnitude(local[0]) >= horizontal ? local[0] < 0 ? -0x40000000 : 0x40000000 : arc(trig, local[0], horizontal);
     state.pitch = !length ? 0 : magnitude(local[2]) >= length ? local[2] < 0 ? -0x20000000 : 0xe38e38e : arc(trig, local[2], length);
   } else {
-    state.heading = math::add(state.heading, increment(input.turn, 0x40000000, input.delta)); state.pitch = math::add(state.pitch, increment(input.pitch, 0x40000000, input.delta));
+    state.heading = math::add(state.heading, increment(input.turn, 0x40000000, input.delta));
+    state.pitch = math::add(state.pitch, increment(input.pitch, 0x40000000, input.delta));
   }
-  state.heading = std::clamp(state.heading, -0x40000000, 0x40000000); state.pitch = std::clamp(state.pitch, -0x20000000, 0x38e38e39);
+  state.heading = std::clamp(state.heading, -0x40000000, 0x40000000);
+  state.pitch = std::clamp(state.pitch, -0x20000000, 0x38e38e39);
   return head(body, static_cast<uint32_t>(state.heading), static_cast<uint32_t>(state.pitch));
 }
 math::pose camera_geometry::goggles(look_camera &state, math::pose const &body, camera_input const &input, std::optional<math::vector3> const &locked, int32_t const rate, int32_t const distance) const {
   if(locked) {
     auto const local{math::transform(body.rotation, difference(*locked, body.position))};
-    auto const horizontal{math::integer_sqrt(square(local[0]) + square(local[1]))}, length{math::integer_sqrt(uint64_t{horizontal} * horizontal + square(local[2]))};
+    auto const horizontal{math::integer_sqrt(square(local[0]) + square(local[1]))};
+    auto const length{math::integer_sqrt(uint64_t{horizontal} * horizontal + square(local[2]))};
     state.heading = !horizontal ? 0 : magnitude(local[0]) >= horizontal ? local[0] < 0 ? -0x40000000 : 0x40000000 : local[1] < 0 ? local[0] < 0 ? math::subtract(-0x40000000, arc(trig, math::negate(local[1]), horizontal)) : math::add(0x40000000, arc(trig, math::negate(local[1]), horizontal)) : arc(trig, local[0], horizontal);
     state.pitch = !length ? 0 : magnitude(local[2]) > length ? local[2] < 0 ? -0x2aaaaaab : 0x15555555 : arc(trig, local[2], length);
   } else {
-    state.heading = math::add(state.heading, increment(input.turn, rate, input.delta)); state.pitch = math::add(state.pitch, increment(input.pitch, rate, input.delta));
+    state.heading = math::add(state.heading, increment(input.turn, rate, input.delta));
+    state.pitch = math::add(state.pitch, increment(input.pitch, rate, input.delta));
   }
-  state.heading = std::clamp(state.heading, -0x60000000, 0x60000000); state.pitch = std::clamp(state.pitch, -0x2aaaaaab, 0x15555555);
-  auto result{head(body, static_cast<uint32_t>(state.heading), static_cast<uint32_t>(state.pitch))}; magnify(result, distance); return result;
+  state.heading = std::clamp(state.heading, -0x60000000, 0x60000000);
+  state.pitch = std::clamp(state.pitch, -0x2aaaaaab, 0x15555555);
+  auto result{head(body, static_cast<uint32_t>(state.heading), static_cast<uint32_t>(state.pitch))};
+  magnify(result, distance);
+  return result;
 }
 void camera_geometry::magnify(math::pose &view, int32_t const distance) const {
   for(size_t i{0}; i != 3; ++i) view.position[i] = math::add(view.position[i], math::multiply_q31(view.rotation[3 + i], distance));

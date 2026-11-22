@@ -5,7 +5,10 @@
 #include "landscape.h"
 
 namespace apache::render {
-mfd_renderer::mfd_renderer(cockpit const &artwork, resources::executable_data const &executable) : panels{artwork}, font{executable, artwork.video_mode() != 0}, high{artwork.video_mode() != 0} {}
+mfd_renderer::mfd_renderer(cockpit const &artwork, resources::executable_data const &executable)
+  : panels{artwork},
+    font{executable, artwork.video_mode() != 0},
+    high{artwork.video_mode() != 0} {}
 rectangle mfd_renderer::area(mfd_panel const panel) const {
   std::array<std::array<int, 4>, 5> const low{{{75, 162, 69, 69}, {176, 162, 69, 69}, {23, 161, 69, 69}, {228, 161, 69, 69}, {135, 177, 50, 50}}};
   std::array<std::array<int, 4>, 5> const large{{{149, 323, 140, 140}, {351, 323, 140, 140}, {45, 321, 140, 140}, {455, 321, 140, 140}, {270, 354, 100, 100}}};
@@ -23,21 +26,29 @@ void mfd_renderer::corners(framebuffer &target, bool const gunner) const {
       target.blit(panels.sprite(prefix + "3.640"), box.left, box.bottom - 4, true);
       target.blit(panels.sprite(prefix + "4.640"), box.right - 4, box.bottom - 4, true);
     } else {
-      target.point(box.left, box.top, 226); target.point(box.right, box.top, 226);
-      target.point(box.left, box.bottom, 227); target.point(box.right, box.bottom, 227);
+      target.point(box.left, box.top, 226);
+      target.point(box.right, box.top, 226);
+      target.point(box.left, box.bottom, 227);
+      target.point(box.right, box.bottom, 227);
     }
   }
 }
 void mfd_renderer::off(framebuffer &target, rectangle const area) const {
-  target.reset_clip(); target.clip = intersect(target.clip, area); target.fill(area, 208);
+  target.reset_clip();
+  target.clip = intersect(target.clip, area);
+  target.fill(area, 208);
 }
 void mfd_renderer::damaged(framebuffer &target, rectangle const area, uint32_t &seed) const {
-  target.reset_clip(); target.clip = intersect(target.clip, area);
-  uint32_t mask{0}, random{0};
+  target.reset_clip();
+  target.clip = intersect(target.clip, area);
+  uint32_t mask{0};
+  uint32_t random{0};
   for(int y{area.top}; y <= area.bottom; ++y) {
     if(!mask) {
-      seed = seed * 0x41c64e6du + 0x3039u; random = seed & 0x7fff0000u;
-      seed = seed * 0x41c64e6du + 0x3039u; random |= (seed >> 16) & 0x7fffu;
+      seed = seed * 0x41c64e6du + 0x3039u;
+      random = seed & 0x7fff0000u;
+      seed = seed * 0x41c64e6du + 0x3039u;
+      random |= (seed >> 16) & 0x7fffu;
       mask = 1;
     }
     target.fill({area.left, y, area.right, y}, (random & mask) ? 215 : 208);
@@ -66,8 +77,10 @@ void mfd_renderer::flir(framebuffer &target, rectangle const area, landscape &wo
     // The image was drawn directly into the native framebuffer. Only its label
     // and the bezel corners should be copied from the logical cockpit overlay.
     auto const box{target.clip};
-    for(int y{box.top}; y <= box.bottom; ++y) for(int x{box.left}; x <= box.right; ++x) {
-      target.coverage[size_t(y) * target.image.width + x] = 0;
+    for(int y{box.top}; y <= box.bottom; ++y) {
+      for(int x{box.left}; x <= box.right; ++x) {
+        target.coverage[size_t(y) * target.image.width + x] = 0;
+      }
     }
   }
   projection2 const plane{area, object ? window2{-0x100000, -0x100000, 0x100000, 0x100000} : window2{-1000, -1000, 1000, 1000}};
@@ -85,27 +98,42 @@ void mfd_renderer::status(framebuffer &target, rectangle const area, uint32_t co
   off(target, area);
   projection2 const plane{area, {-0x100000, -0x100000, 0x100000, 0x100000}};
   auto const text{[&](std::string_view const value, int32_t const x, int32_t const y, bool const right = false){
-    auto const point{plane.project({x, y})}; font.draw(target, value, point.x - (right ? font.width(value) - 1 : 0), point.y, 222);
+    auto const point{plane.project({x, y})};
+    font.draw(target, value, point.x - (right ? font.width(value) - 1 : 0), point.y, 222);
   }};
-  auto const field{[&](std::string_view const name, std::string_view const value, int32_t const y){ text(name, -0xf3333, y); text(value, 0xf3333, y, true); }};
+  auto const field{[&](std::string_view const name, std::string_view const value, int32_t const y){
+    text(name, -0xf3333, y);
+    text(value, 0xf3333, y, true);
+  }};
   text("Status:", -0xf3333, 0xe6666);
   if(auto const line{plane.clip_line({-0xf3333, 0xb3333}, {0xf3333, 0xb3333})}) rasterizer{target}.line((*line)[0], (*line)[1], 222);
   field("RADAR:", (faults & 0x200) ? "FAILED" : ground_radar ? "GROUND" : air_radar ? "AIR" : "OFF", 0x8cccc);
   int row{1};
-  if(faults & 0x400) { field("LOW FUEL", "", 0x5851e); ++row; }
-  struct warning { uint32_t bit; std::string_view name; };
+  if(faults & 0x400) {
+    field("LOW FUEL", "", 0x5851e);
+    ++row;
+  }
+  struct warning {
+    uint32_t bit;
+    std::string_view name;
+  };
   std::array const warnings{warning{0x80000, "GUN:"}, warning{0x4000, "PNVS:"}, warning{0x2000, "TADS:"}, warning{0x10000, "ECM:"}, warning{0x8000, "FLIR:"}, warning{0x800, "TV:"}, warning{0x20000, "COMMS:"}, warning{0x1000, "IHADSS:"}};
-  for(auto const &warning : warnings) if(faults & warning.bit) {
-    int32_t const y{static_cast<int32_t>(576716.8 - row * 214958.08)};
-    field(warning.name, warning.bit == 0x1000 ? "DAMAGED" : "FAILED", y); ++row;
+  for(auto const &warning : warnings) {
+    if(faults & warning.bit) {
+      int32_t const y{static_cast<int32_t>(576716.8 - row * 214958.08)};
+      field(warning.name, warning.bit == 0x1000 ? "DAMAGED" : "FAILED", y);
+      ++row;
+    }
   }
 }
 void mfd_renderer::scores(framebuffer &target, rectangle const area, multiplayer_scores &state, int32_t const delta) const {
   off(target, area);
-  auto const saved_clip{target.clip}; target.clip = area;
+  auto const saved_clip{target.clip};
+  target.clip = area;
   projection2 const plane{area, {-0x100000, -0x100000, 0x100000, 0x100000}};
   auto const text{[&](std::string_view value, int32_t x, int32_t y, bool right = false){
-    auto const point{plane.project({x, y})}; font.draw(target, value, point.x - (right ? font.width(value) - 1 : 0), point.y, 222);
+    auto const point{plane.project({x, y})};
+    font.draw(target, value, point.x - (right ? font.width(value) - 1 : 0), point.y, 222);
   }};
   text("KILLS:", -0xf3333, 0xe6666);
   if(auto const line{plane.clip_line({-0xf3333, 0xb3333}, {0xf3333, 0xb3333})}) rasterizer{target}.line((*line)[0], (*line)[1], 222);
@@ -117,7 +145,8 @@ void mfd_renderer::scores(framebuffer &target, rectangle const area, multiplayer
   size_t const first{second ? 8u : 0u};
   for(size_t i{first}; i < state.players.size(); ++i) {
     int32_t const y{static_cast<int32_t>(576716.8 - static_cast<double>(i - first) * 214958.08)};
-    text(state.players[i].first, -0xf3333, y); text(std::to_string(state.players[i].second), 0xf3333, y, true);
+    text(state.players[i].first, -0xf3333, y);
+    text(std::to_string(state.players[i].second), 0xf3333, y, true);
   }
   target.clip = saved_clip;
 }
