@@ -26,7 +26,7 @@ void advance(actor_state &unit, int32_t const delta, actor_environment const &en
   for(size_t i{0}; i != 3; ++i) amount[i] = math::multiply_q31(unit.velocity[i], delta);
   translate(unit, amount, environment);
 }
-}
+} // anonymous namespace
 ground_movement::ground_movement(std::vector<actor_state> &actors, actor_group const &actor_group, resources::mission_task const &orders, std::span<resources::formation_member const> const members, math::trigonometry const &angles, actor_environment const &world) : units{actors}, group{actor_group}, task{orders}, formation{members}, trig{angles}, environment{world} {}
 std::span<size_t const> ground_movement::members(actor_state const &unit) const {
   return &unit == &units[group.units.front()] ? std::span<size_t const>{group.units}.subspan(1) : std::span<size_t const>{};
@@ -87,8 +87,7 @@ void ground_movement::past_waypoint(actor_state &unit, int32_t const movement) {
   if(task.battle_cell && route[previous].type == 4) { unit.conditions &= ~6u; zero_speed(unit, true); return; }
   if(unit.conditions & 2) unit.waypoint = previous ? std::optional{previous - 1} : std::nullopt;
   else unit.waypoint = previous + 1 < route.size() ? std::optional{previous + 1} : task.type == 21 ? std::optional<size_t>{0} : std::nullopt;
-  if(!unit.waypoint) { unit.route_distance = 0; unit.waypoint = previous; unit.speed = 0; }
-  else {
+  if(!unit.waypoint) { unit.route_distance = 0; unit.waypoint = previous; unit.speed = 0; } else {
     auto const &next{route[*unit.waypoint]}; auto const &position{unit.object.world.position};
     unit.speed = next.speed; auto const dx{math::subtract(next.position[0], position[0])}, dy{math::subtract(next.position[1], position[1])}, dz{math::subtract(next.position[2], position[2])};
     unit.angles[0] = trig.arctangent(dx, dy); unit.angles[1] = dz ? trig.arctangent(dz, approximate_distance(dx, dy)) : 0;

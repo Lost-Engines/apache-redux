@@ -1,6 +1,6 @@
 #include "player_warnings.h"
-#include "weapon_info.h"
 #include <algorithm>
+#include "weapon_info.h"
 
 namespace apache::simulation {
 void player_warnings::begin() {

@@ -41,8 +41,9 @@ bool help_menu::activate(widget const &object) {
   else if(object.action == "notify_control_summary_") select(3001);
   else if(object.action == "notify_interactive_contents_page_selection_") generic(object.item);
   else if(object.action == "notify_help_move_") {
-    for(auto const &[name, direction] : std::array<std::pair<std::string_view, int>, 4>{{{"_help_back_one_chapter_button", -2}, {"_help_back_one_page_button", -1}, {"_help_forward_one_page_button", 1}, {"_help_forward_one_chapter_button", 2}}})
+    for(auto const &[name, direction] : std::array<std::pair<std::string_view, int>, 4>{{{"_help_back_one_chapter_button", -2}, {"_help_back_one_page_button", -1}, {"_help_forward_one_page_button", 1}, {"_help_forward_one_chapter_button", 2}}}) {
       if(&object == &interface.named(name)) move(direction);
+    }
   } else if(object.action == "notify_help_exit_button_") interface.back();
   else return false;
   return true;

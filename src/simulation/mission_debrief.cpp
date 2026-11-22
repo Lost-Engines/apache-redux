@@ -1,7 +1,7 @@
 #include "mission_debrief.h"
-#include "mission_runtime.h"
 #include <algorithm>
 #include <stdexcept>
+#include "mission_runtime.h"
 
 namespace apache::simulation {
 std::optional<target_identity> nearest_ground_object(mission_scenery const &scene, int32_t const x, int32_t const y) {
@@ -37,13 +37,15 @@ debrief_result evaluate_debrief(mission_runtime const &runtime, debrief_records 
   auto const destroyed{[&](target_identity const &target){ return ((target.layer ? runtime.scene.extra : runtime.scene.base).at(target.index).status & 1) != 0; }};
   auto const &actor{runtime.actors.units[*runtime.timing.player]};
   unsigned int required{0}, dead{0};
-  for(auto const &waypoint : runtime.mission.tasks[actor.location.task].actors[actor.location.group].waypoints) if(waypoint.type == 4)
+  for(auto const &waypoint : runtime.mission.tasks[actor.location.task].actors[actor.location.group].waypoints) if(waypoint.type == 4) {
     if(auto target{nearest_ground_object(runtime.scene, waypoint.position[0], waypoint.position[1])}) { ++required; dead += destroyed(*target); }
+  }
   result.required_ground(required, dead);
-  for(unsigned int kind : {8u, 7u}) for(auto const &object : runtime.scene.objects) if(object.kind == kind)
+  for(unsigned int kind : {8u, 7u}) for(auto const &object : runtime.scene.objects) if(object.kind == kind) {
     if(auto target{nearest_ground_object(runtime.scene, object.combat.position[0], object.combat.position[1])}) {
       if(kind == 8) result.extra_ground(destroyed(*target)); else result.prohibited_ground(destroyed(*target));
     }
+  }
   auto const &position{actor.object.world.position};
   auto const x{position[0] >> 22}, y{position[1] >> 22};
   auto const distance{x >= 0 && y >= 0 && x < 64 && y < 64 ? runtime.scene.front_distance[static_cast<size_t>(x * 64 + y)] : uint8_t{255}};
@@ -54,7 +56,7 @@ debrief_result evaluate_debrief(mission_runtime const &runtime, debrief_records 
     auto const &model{*runtime.models[collision]}; name = model.description;
     if(runtime.pilot->death() == 2) {
       // initialise_debrief_ groups wreckage/attachments under their parent name.
-      static auto constexpr aliases{[](){
+      static auto constexpr aliases{[]{
         std::array<uint16_t, 1314> result{};
         for(size_t i{0}; i != result.size(); ++i) result[i] = static_cast<uint16_t>(i);
         result[13] = 0;

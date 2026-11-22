@@ -1,11 +1,13 @@
 #include "mission_link.h"
-#include <bit>
 #include <algorithm>
+#include <bit>
 #include <stdexcept>
 
 namespace apache::frontend {
 namespace {
-bool due(int32_t now, int32_t deadline) { return math::subtract(now, deadline) >= 0; }
+bool due(int32_t now, int32_t deadline) {
+  return math::subtract(now, deadline) >= 0;
+}
 }
 mission_link::mission_link(multiplayer::peer_group &group, mission_session &session, std::function<int32_t()> timer)
   : peers{group}, mission{session}, clock{std::move(timer)} {
@@ -23,8 +25,8 @@ mission_link::mission_link(multiplayer::peer_group &group, mission_session &sess
   mission.network->lifecycle.events.unregister = [this](uint32_t slot){ peers.forget(slot); };
   mission.network->lifecycle.events.next_server = [this](uint32_t slot){ return next_server(slot); };
   mission.network_clock = clock;
-  mission.poll_network = [this](){ poll(); };
-  mission.wait_network = [this](){ wait(); };
+  mission.poll_network = [this]{ poll(); };
+  mission.wait_network = [this]{ wait(); };
   deadline = clock();
 }
 mission_link::~mission_link() {
@@ -118,7 +120,7 @@ void mission_link::wait() {
   if(!ready() || !state.active || mission.finished) return;
   if(state.client_server && state.server == state.local) { mission.send_server_frame(); return; }
   auto const started{clock()}; int32_t retry{math::add(started, 200)}; unsigned int failures{0};
-  auto waiting{[&](){ return state.client_server ? state.server_in_game && !state.new_server_data : state.number_synced < static_cast<uint32_t>(std::max(0, mission.network->lifecycle.other_players)); }};
+  auto waiting{[&]{ return state.client_server ? state.server_in_game && !state.new_server_data : state.number_synced < static_cast<uint32_t>(std::max(0, mission.network->lifecycle.other_players)); }};
   while(state.active && !mission.finished && waiting()) {
     poll(); auto const now{clock()};
     if(state.client_server && due(now, state.answer_deadline)) { state.server = next_server(state.server); state.answer_deadline = math::add(now, 2000); peers.state.server = state.server; break; }

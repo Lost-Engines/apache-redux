@@ -40,7 +40,7 @@ std::vector<feature_face> read_faces(reader &input, size_t const vertex_count) {
   }
   return result;
 }
-} // namespace
+} // anonymous namespace
 feature_layer::feature_layer(data_store const &data, std::string_view const zone, bool const is_super) : super{is_super} {
   std::string const prefix{std::string{zone} + ".WZ/"};
   auto const file{data.read(prefix + (super ? "SUPER.BIN" : "FEATURES.BIN"))};
@@ -49,7 +49,7 @@ feature_layer::feature_layer(data_store const &data, std::string_view const zone
   std::ranges::sort(ordered);
   ordered.erase(std::unique(ordered.begin(), ordered.end()), ordered.end());
   ordered.push_back(static_cast<uint32_t>(file.size()));
-  records.resize(offsets.size() + 1); // On-disk feature numbers start at one.
+  records.resize(offsets.size() + 1);                                          // On-disk feature numbers start at one.
   for(size_t i{0}; i != offsets.size(); ++i) {
     auto const offset{offsets[i]};
     if(!offset) continue;
@@ -71,8 +71,7 @@ feature_layer::feature_layer(data_store const &data, std::string_view const zone
           value = static_cast<int16_t>(static_cast<int>(byte) - centre);
         }
       }};
-      if(super) { component(0, 8, 16); component(1, 128, 255); }
-      else {
+      if(super) { component(0, 8, 16); component(1, 128, 255); } else {
         component(1, 128, 255);
         if(vertex.flags & 4) {
           component(2, 32, 64);

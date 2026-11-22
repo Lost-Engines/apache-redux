@@ -4,8 +4,12 @@
 
 namespace apache::simulation {
 namespace {
-int32_t multiply(int32_t value, unsigned int factor) { return std::bit_cast<int32_t>(static_cast<uint32_t>(value) * factor); }
-bool same(target_identity const &a, target_identity const &b) { return a.kind == b.kind && a.index == b.index && (a.kind != target_kind::scenery || a.layer == b.layer); }
+int32_t multiply(int32_t value, unsigned int factor) {
+  return std::bit_cast<int32_t>(static_cast<uint32_t>(value) * factor);
+}
+bool same(target_identity const &a, target_identity const &b) {
+  return a.kind == b.kind && a.index == b.index && (a.kind != target_kind::scenery || a.layer == b.layer);
+}
 }
 blast_damage::blast_damage(unsigned int const id, damage_source const &origin, damage_environment const &settings, damage_random &rng, resources::model_archive const &definitions, scenery_collisions const &structures, render::mobile_scene const &objects, blast_callbacks handlers) : weapon_id{id}, weapon{weapon_definitions().at(id)}, source{origin}, environment{settings}, random{rng}, models{definitions}, scenery{structures}, mobiles{objects}, callbacks{std::move(handlers)} {
   if(!callbacks.read || !callbacks.write || !callbacks.action) throw std::runtime_error{"Blast damage requires live object handlers"};

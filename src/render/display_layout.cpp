@@ -28,8 +28,9 @@ rectangle display_layout::map(rectangle const logical) const {
 void display_layout::background(framebuffer const &world, framebuffer &overlay) const {
   auto const w{artwork.right - artwork.left + 1}, h{artwork.bottom - artwork.top + 1};
   std::vector<unsigned int> columns(source_width);
-  for(unsigned int x{0}; x != source_width; ++x)
+  for(unsigned int x{0}; x != source_width; ++x) {
     columns[x] = static_cast<unsigned int>(artwork.left) + static_cast<unsigned int>(uint64_t{x} * w / source_width);
+  }
   for(unsigned int y{0}; y != source_height; ++y) {
     auto const sy{artwork.top + static_cast<int>(uint64_t{y} * h / source_height)};
     auto const *row{world.image.pixels.data() + size_t(sy) * world.image.width};
@@ -63,8 +64,9 @@ void display_layout::composite(framebuffer const &overlay, framebuffer &world) c
         ++x;
       }
       int const count{columns[x] - start};
-      if(count) for(int yy{top + 1}; yy != bottom; ++yy)
+      if(count) for(int yy{top + 1}; yy != bottom; ++yy) {
         std::copy_n(out + start, count, out + size_t(yy - top) * world.image.width + start);
+      }
     }
   }
 }
@@ -79,8 +81,9 @@ void display_layout::composite_hud(framebuffer const &overlay, framebuffer &worl
   double const source_y{reference_view.bottom - (reference_view.bottom - reference_view.top + 1) / 2.0};
   auto const clip{intersect(scene, {0, 0, static_cast<int>(world.image.width) - 1, static_cast<int>(world.image.height) - 1})};
   std::vector<int> columns(source_width + 1);
-  for(unsigned int x{0}; x <= source_width; ++x)
+  for(unsigned int x{0}; x <= source_width; ++x) {
     columns[x] = static_cast<int>(std::ceil(centre_x + (x - source_x) * scale_x));
+  }
   for(unsigned int y{0}; y != source_height; ++y) {
     int const first{static_cast<int>(std::ceil(centre_y + (y - source_y) * scale_y))};
     int const next{static_cast<int>(std::ceil(centre_y + (y + 1 - source_y) * scale_y))};
@@ -102,8 +105,9 @@ void display_layout::composite_hud(framebuffer const &overlay, framebuffer &worl
         ++x;
       }
       int const count{end - start};
-      if(count) for(int yy{top + 1}; yy != bottom; ++yy)
+      if(count) for(int yy{top + 1}; yy != bottom; ++yy) {
         std::copy_n(out + start, count, out + size_t(yy - top) * world.image.width + start);
+      }
     }
   }
 }

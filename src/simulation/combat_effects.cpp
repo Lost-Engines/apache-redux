@@ -4,8 +4,12 @@
 
 namespace apache::simulation {
 namespace {
-bool inside(math::vector3 const &p) { return p[0] >= 0 && p[0] < 0x10000000 && p[1] >= 0 && p[1] < 0x10000000; }
-int32_t magnitude(int32_t x) { return x < 0 ? math::negate(x) : x; }
+bool inside(math::vector3 const &p) {
+  return p[0] >= 0 && p[0] < 0x10000000 && p[1] >= 0 && p[1] < 0x10000000;
+}
+int32_t magnitude(int32_t x) {
+  return x < 0 ? math::negate(x) : x;
+}
 int32_t approximate2(int32_t x, int32_t y) {
   x = magnitude(x); y = magnitude(y);
   return std::bit_cast<int32_t>(static_cast<uint32_t>(std::max(x, y)) * 4u + static_cast<uint32_t>(std::min(x, y))) >> 2;
@@ -19,7 +23,7 @@ int32_t remainder(int32_t value, int32_t divisor) {
   // Degenerate model dimensions cause division faults in the original.
   return divisor == 0 ? 0 : static_cast<int32_t>(int64_t{value} % divisor);
 }
-}
+} // anonymous namespace
 combat_effects::combat_effects(resources::model_archive const &definitions, resources::terrain const &ground, math::trigonometry const &angles, effects &sprites, craters &crater_pool, combat_random &rng, std::function<uint8_t(int32_t, int32_t)> materials) : models{definitions}, terrain{ground}, trig{angles}, visuals{sprites}, marks{crater_pool}, random{rng}, surface{std::move(materials)} {}
 math::vector3 combat_effects::random_point(math::vector3 const &origin, int32_t const radius) {
   math::vector3 result;
@@ -59,7 +63,9 @@ explosion_audio combat_effects::audio(math::vector3 const &position, int32_t con
   }
   return {volume, relative < 0 ? math::subtract(32768, shift) : math::add(32768, shift)};
 }
-void combat_effects::sound(math::vector3 const &position, int32_t const radius) const { if(radius && play_sound) play_sound(audio(position, radius)); }
+void combat_effects::sound(math::vector3 const &position, int32_t const radius) const {
+  if(radius && play_sound) play_sound(audio(position, radius));
+}
 void combat_effects::crater(math::vector3 const &position, int32_t const radius, uint32_t const heading) {
   if(!inside(position)) return;
   auto const material{surface(position[0], position[1])};

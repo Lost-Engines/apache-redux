@@ -19,7 +19,9 @@ bool contact_bucket::remove(shared_target const &target) {
   --count;
   return found && overflow;
 }
-std::span<shared_target const> contact_bucket::candidates() const { return std::span<shared_target const>{targets}.first(std::min<size_t>(count, targets.size())); }
+std::span<shared_target const> contact_bucket::candidates() const {
+  return std::span<shared_target const>{targets}.first(std::min<size_t>(count, targets.size()));
+}
 namespace {
 int32_t approximate_distance(math::vector3 const &a, math::vector3 const &b) {
   int32_t x{math::subtract(a[0], b[0])}, y{math::subtract(a[1], b[1])};
@@ -30,7 +32,7 @@ int32_t approximate_distance(math::vector3 const &a, math::vector3 const &b) {
 shared_target random_entry(std::span<shared_target const> const targets, std::function<int32_t()> const &random) {
   return targets.empty() ? shared_target{} : targets[static_cast<uint32_t>(random()) % targets.size()];
 }
-}
+} // anonymous namespace
 shared_target choose_sector_target(sector_search_inputs const &sector, math::vector3 const &origin, int32_t const side, search_kind const kind, bool const randomised, target_search_callbacks const &callbacks) {
   if(kind == search_kind::air_defence) {
     auto const first{randomised ? search_kind::mobile_air_defence : search_kind::static_air_defence};

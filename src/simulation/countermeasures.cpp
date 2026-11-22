@@ -8,7 +8,9 @@ size_t slot(unsigned int const weapon) {
   if(weapon != 7 && weapon != 8) throw std::runtime_error{"Invalid countermeasure weapon"};
   return weapon - 7;
 }
-int32_t &deadline(countermeasure_actor &actor, unsigned int weapon) { return weapon == 7 ? actor.chaff_at : actor.flare_at; }
+int32_t &deadline(countermeasure_actor &actor, unsigned int weapon) {
+  return weapon == 7 ? actor.chaff_at : actor.flare_at;
+}
 int32_t delay(countermeasure_actor &actor, weapon_info const &weapon, forces_info const &skill, uint32_t &seed) {
   combat_random random{actor.random, seed}; auto const result{countermeasure_delay(weapon, skill, random)};
   actor.random = random.value; seed = random.global_seed; return result;
@@ -20,7 +22,7 @@ bool emit(countermeasure_actor &actor, unsigned int weapon, int32_t now, forces_
   deadline(actor, weapon) = math::add(now, actor.player ? definition.fire_interval_ticks : delay(actor, definition, skill, seed));
   return true;
 }
-}
+} // anonymous namespace
 int32_t countermeasure_delay(weapon_info const &weapon, forces_info const &skill, combat_random &random) {
   auto const product{std::bit_cast<int32_t>(static_cast<uint32_t>(weapon.fire_interval_ticks) * static_cast<uint32_t>(skill.decoy_interval_percent))};
   // get_drone_random_ returns the negated old value; weapon and round RNGs do not.

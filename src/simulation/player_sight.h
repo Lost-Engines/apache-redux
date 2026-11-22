@@ -31,7 +31,9 @@ class player_impact_times {
   std::array<weapon_info, 55> definitions{weapon_definitions()};
 public:
   std::vector<missile_impact_time> entries;
-  void clear() { entries.clear(); }
+  void clear() {
+    entries.clear();
+  }
   void launch(size_t round, unsigned int weapon, math::vector3 const &position, std::optional<math::vector3> const &target, int32_t now);
   void remove(size_t round, unsigned int weapon);
   int32_t current(int32_t now) const;

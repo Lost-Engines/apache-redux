@@ -20,12 +20,11 @@ animation::animation(bytes data) : source{std::move(data)} {
 }
 void animation::palette_frame(std::span<uint8_t const> const data, bool const runs) {
   reader input{data, "ANIM palette"};
-  auto const colours{[&](unsigned int start, unsigned int count) {
+  auto const colours{[&](unsigned int start, unsigned int count){
     if(start + count > 256) input.fail("Palette run exceeds 256 colours");
     for(unsigned int i{start}; i != start + count; ++i) image.colours[i] = {static_cast<uint8_t>(input.u8() * 4), static_cast<uint8_t>(input.u8() * 4), static_cast<uint8_t>(input.u8() * 4)};
   }};
-  if(runs) { auto const count{input.u8()}; for(unsigned int i{0}; i != count; ++i) { auto const start{input.u8()}, size{input.u8()}; colours(start, size); } }
-  else colours(0, 256);
+  if(runs) { auto const count{input.u8()}; for(unsigned int i{0}; i != count; ++i) { auto const start{input.u8()}, size{input.u8()}; colours(start, size); } } else colours(0, 256);
   if(input.remaining()) input.fail("Unexpected palette bytes");
 }
 void animation::blocks(std::span<uint8_t const> const data) {

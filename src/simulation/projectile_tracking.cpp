@@ -12,7 +12,7 @@ target_reference *resolve(projectile_record &round, projectile_target_binding co
   auto *target{binding.selected ? (round.selected ? &*round.selected : nullptr) : binding.target.get()};
   return target && world.valid(*target) ? target : nullptr;
 }
-}
+} // anonymous namespace
 projectile_target_binding selected_projectile_target(projectile_record &round, weapon_info const &weapon, target_world const &world, target_slot_lookup const &slots) {
   if(weapon.movement_class != 2) return {};
   auto *target{round.selected ? &*round.selected : nullptr};
@@ -53,9 +53,9 @@ projectile_aim track_projectile(projectile_record &round, weapon_info const &wea
     combat_random random{round.state.random, random_seed};
     seeker_queries queries;
     queries.visible = [&](auto const &from, auto const &to){ return terrain_visibility(from, to, 3, true, terrain.maximum_height(), [&](int32_t x, int32_t y){ return terrain.elevation(x, y); }).clear; };
-    queries.distracted = [&](){ return decoy_distracts(weapon, environment.mode, source.side == 2, environment.decoy_modifier, random); };
-    queries.random = [&](){ return random.next(); };
-    queries.classification = [&](){ return world.describe(*target, environment.now).movement.classification; };
+    queries.distracted = [&]{ return decoy_distracts(weapon, environment.mode, source.side == 2, environment.decoy_modifier, random); };
+    queries.random = [&]{ return random.next(); };
+    queries.classification = [&]{ return world.describe(*target, environment.now).movement.classification; };
     if(update_seeker(state, weapon, input, queries)) {
       switch(state.adjusted) {
         case seeker_target::none: round.adjusted = {}; break;

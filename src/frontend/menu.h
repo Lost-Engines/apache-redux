@@ -7,8 +7,8 @@
 #include <string_view>
 #include <vector>
 #include "render/framebuffer.h"
-#include "render/menu_font.h"
 #include "render/instrument_font.h"
+#include "render/menu_font.h"
 #include "resources/data_store.h"
 #include "widget.h"
 
@@ -62,7 +62,9 @@ public:
   std::function<void(render::framebuffer &)> finish;
   std::function<bool(widget &, pointer_action, int, int)> pointer;
   widget &named(std::string_view global);
-  std::span<widget> objects() { return widgets; }
+  std::span<widget> objects() {
+    return widgets;
+  }
   std::string_view current() const;
   void show(std::string_view global);
   void popup(std::vector<std::pair<std::string, int>> choices, std::function<void(int)> selected);

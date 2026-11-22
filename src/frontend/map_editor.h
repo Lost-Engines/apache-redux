@@ -12,7 +12,12 @@ public:
   int selected{-1};
   bool modified{false};
   void attach(resources::mission_task &source, size_t actor);
-  void detach() { task = nullptr; group = 0; selected = -1; modified = false; }
+  void detach() {
+    task = nullptr;
+    group = 0;
+    selected = -1;
+    modified = false;
+  }
   resources::mission_actor *actor();
   resources::mission_actor const *actor() const;
   resources::route_waypoint *point();

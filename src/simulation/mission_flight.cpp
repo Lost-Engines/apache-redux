@@ -23,11 +23,10 @@ mission_flight::mission_flight(resources::mission_definition const &definition, 
     auto const &route{mission.tasks.at(unit.location.task).actors.at(unit.location.group).waypoints};
     auto const &target{route.at(*unit.waypoint).position}; start.heading = trig.arctangent(math::subtract(target[0], position[0]), math::subtract(target[1], position[1]));
   }
-  realistic_world.landing_award = arcade_world.landing_award = [this](){ if(landing_award) landing_award(); };
+  realistic_world.landing_award = arcade_world.landing_award = [this]{ if(landing_award) landing_award(); };
   realistic_world.carrier_deck = deck();
-  if(arcade_mode) { arcade.initialise(start, trig, arcade_world); unit.angles[1] = unit.angles[2] = 0; }
-  else realistic.initialise(start, trig, realistic_world);
-  realistic.died = arcade.died = [this](){ if(died) died(); };
+  if(arcade_mode) { arcade.initialise(start, trig, arcade_world); unit.angles[1] = unit.angles[2] = 0; } else realistic.initialise(start, trig, realistic_world);
+  realistic.died = arcade.died = [this]{ if(died) died(); };
   synchronize();
 }
 int32_t mission_flight::deck() const {
@@ -62,7 +61,9 @@ math::pose mission_flight::place(math::pose const &position) {
   if(on_carrier()) { auto const &unit{actors.units[player]}; auto const &ship{actors.units[actors.carriers.at(*unit.carrier).actor]}; result = math::attach(ship.object.world, carrier_relative); result.position[2] = math::add(result.position[2], 2304); }
   auto &unit{actors.units[player]}; unit.object.world.rotation = result.rotation; spatial.move(unit, result.position); return result;
 }
-void mission_flight::leave_carrier() { actors.units[player].conditions &= ~0x400u; }
+void mission_flight::leave_carrier() {
+  actors.units[player].conditions &= ~0x400u;
+}
 void mission_flight::synchronize() {
   auto &object{actors.units[player].object}; object.relative = object.world = readings().position;
   // Moving the root does not update attachment transforms. The original gun
@@ -84,8 +85,7 @@ void mission_flight::receive_shared(flight_readings const &state, bool const lan
   if(arcade_mode) arcade.landed = landed; else realistic.landed = landed;
 }
 void mission_flight::reposition(math::vector3 const &position) {
-  if(arcade_mode) { arcade.x = position[0]; arcade.y = position[1]; arcade.z = position[2]; }
-  else { realistic.dynamics.x = position[0] / 256; realistic.dynamics.y = position[1] / 256; realistic.dynamics.z = position[2] / 256; }
+  if(arcade_mode) { arcade.x = position[0]; arcade.y = position[1]; arcade.z = position[2]; } else { realistic.dynamics.x = position[0] / 256; realistic.dynamics.y = position[1] / 256; realistic.dynamics.z = position[2] / 256; }
   auto &display{arcade_mode ? arcade.readings : realistic.readings};
   display.position.position = position; display.position = place(display.position); synchronize();
 }
@@ -124,7 +124,7 @@ void mission_flight::restart(int const flow, double const fuel) {
     realistic.infinite_fuel = old.infinite_fuel; realistic.invulnerable = old.invulnerable; realistic.no_crashes = old.no_crashes; realistic.game_mode = old.game_mode;
     realistic.pull_up_timer = old.pull_up_timer; realistic.dynamics.power.warning_timer = old.dynamics.power.warning_timer;
   }
-  realistic.died = arcade.died = [this](){ if(died) died(); };
+  realistic.died = arcade.died = [this]{ if(died) died(); };
   collision_model = 0; hit_actor.reset(); synchronize();
 }
 void mission_flight::request_death(unsigned int const cause) {
@@ -144,8 +144,7 @@ void mission_flight::land_on_carrier(size_t const owner, render::model_instance 
   }
   if(!nearest) unit.carrier = carrier_index;
   else if(unit.carrier == carrier_index && unit.carrier_slot == nearest) swap_slots(player);
-  else if(!carrier.slots[*nearest].reserved) { unit.carrier = carrier_index; unit.carrier_slot = nearest; }
-  else {
+  else if(!carrier.slots[*nearest].reserved) { unit.carrier = carrier_index; unit.carrier_slot = nearest; } else {
     if(!unit.carrier_slot) for(size_t i{0}; i != actors.carriers.size(); ++i) {
       auto &available{actors.carriers[i]}; if(!available.available) continue;
       unit.carrier = i; unit.carrier_slot = --available.available; available.slots[*unit.carrier_slot].reserved = player; break;

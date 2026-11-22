@@ -1,7 +1,7 @@
 #pragma once
+#include "configuration/settings.h"
 #include "menu.h"
 #include "mission_session.h"
-#include "configuration/settings.h"
 #include "multiplayer/peer_group.h"
 
 namespace apache::frontend {
@@ -35,8 +35,14 @@ public:
   void message(std::string_view text);
   mission_connection connection() const;
   void completed(simulation::mission_network const &network);
-  bool selecting() const { return starting; }
-  bool remote_controlled() const { return peers && two_player && peers->room.rank == 2; }
-  void send_selection(unsigned int code, int value = 0) { announce_selection(code, value); }
+  bool selecting() const {
+    return starting;
+  }
+  bool remote_controlled() const {
+    return peers && two_player && peers->room.rank == 2;
+  }
+  void send_selection(unsigned int code, int value = 0) {
+    announce_selection(code, value);
+  }
 };
 } // namespace apache::frontend

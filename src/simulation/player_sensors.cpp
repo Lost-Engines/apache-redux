@@ -3,8 +3,14 @@
 
 namespace apache::simulation {
 namespace {
-math::vector3 difference(math::vector3 const &a, math::vector3 const &b) { math::vector3 v; for(size_t i{0}; i != 3; ++i) v[i] = math::subtract(a[i], b[i]); return v; }
-int64_t magnitude(int32_t value) { return value < 0 ? -int64_t{value} : value; }
+math::vector3 difference(math::vector3 const &a, math::vector3 const &b) {
+  math::vector3 v;
+  for(size_t i{0}; i != 3; ++i) v[i] = math::subtract(a[i], b[i]);
+  return v;
+}
+int64_t magnitude(int32_t value) {
+  return value < 0 ? -int64_t{value} : value;
+}
 math::vector3 horizontal(math::vector3 const &v, int32_t sine, int32_t cosine) {
   return {math::rounded_q31(math::product_bits(v[0], cosine) - math::product_bits(v[1], sine)), math::rounded_q31(math::product_bits(v[1], cosine) + math::product_bits(v[0], sine)), v[2]};
 }
@@ -126,7 +132,7 @@ void player_sensors::update(math::pose const &body, uint32_t const heading, std:
 }
 void player_sensors::pick_optical(math::pose const &view, uint32_t const heading, render::projection const &projection, unsigned int const control_mode, uint32_t const faults) {
   optical_symbol.reset(); if(!control_mode) return;
-  auto const lose_lock{[&](){ state.current.identity.kind = target_kind::none; state.locked = false; optical.identity.kind = target_kind::none; if(message) message("TARGET LOST"); }};
+  auto const lose_lock{[&]{ state.current.identity.kind = target_kind::none; state.locked = false; optical.identity.kind = target_kind::none; if(message) message("TARGET LOST"); }};
   if((faults & 0x2000) && state.tads) {
     if(state.locked) lose_lock();
     state.locked = state.tads = false; state.current.identity.kind = optical.identity.kind = target_kind::none; return;

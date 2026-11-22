@@ -1,11 +1,11 @@
 #pragma once
-#include "map_layers.h"
+#include "configuration/settings.h"
 #include "map_camera.h"
 #include "map_editor.h"
+#include "map_layers.h"
 #include "map_routes.h"
 #include "menu.h"
 #include "mission_session.h"
-#include "configuration/settings.h"
 
 namespace apache::frontend {
 class briefing_map {
@@ -43,10 +43,17 @@ public:
   void number_changed(widget &object, bool final);
   map_camera preview_camera;
   void tick(double seconds);
-  std::pair<size_t, size_t> preview_issues() const { return preview_world ? std::pair{preview_world->missing_normals, preview_world->invalid_texture_samples} : std::pair<size_t, size_t>{}; }
+  std::pair<size_t, size_t> preview_issues() const {
+    return preview_world ? std::pair{preview_world->missing_normals, preview_world->invalid_texture_samples} : std::pair<size_t, size_t>{};
+  }
   briefing_map(resources::data_store const &data, menu &interface, configuration::settings &settings);
   void open(mission_session &session);
-  void close() { mission = nullptr; dragging = 0; preview_world.reset(); editor.detach(); }
+  void close() {
+    mission = nullptr;
+    dragging = 0;
+    preview_world.reset();
+    editor.detach();
+  }
   void paint(render::framebuffer &target, widget const &object);
   void finish(render::framebuffer &target);
   bool activate(widget &object);

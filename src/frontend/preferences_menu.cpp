@@ -74,9 +74,8 @@ void preferences_menu::calibration(std::array<int32_t, 4> values, unsigned int c
   for(auto name : hats) visible(name, false);
   if(controls.cyclic >= 2) visible(hats[hat & 1 ? 1u : hat & 2 ? 2u : hat & 4 ? 3u : hat & 8 ? 4u : 0u], true);
 }
-void preferences_menu::dropdown(widget const &button, std::string const &key, std::vector<std::pair<std::string, int>> choices) {
+void preferences_menu::dropdown(widget const &/*button*/, std::string const &key, std::vector<std::pair<std::string, int>> choices) {
   interface.popup(std::move(choices), [this, key](int value){ settings.set(key, value); update(); settings.save(); });
-  (void)button;
 }
 bool preferences_menu::activate(widget &object) {
   auto const &action{object.action};
@@ -92,8 +91,7 @@ bool preferences_menu::activate(widget &object) {
   } else if(action == "notify_preferences_collective_button_") dropdown(object, "Collective control", {{"Keyboard", 0}, {"Throttle Stick", 6}});
   else if(action == "notify_preferences_tailrotor_button_") dropdown(object, "Tailrotor control", {{"Keyboard", 0}, {"Pedals", 5}});
   else if(action == "notify_preferences_cyclic_button_") dropdown(object, "Cyclic control", {{"Keyboard", 0}, {"Joystick", 1}, {"Thrustmaster FCS", 2}, {"Flightstick Pro", 3}, {"Virtual Pilot Pro", 4}});
-  else if(action == "notify_preferences_visual_detail_bar_") { settings.set("Visual Detail", object.range[2] / 10); preview(); }
-  else if(action == "notify_preferences_visual_button_") preview();
+  else if(action == "notify_preferences_visual_detail_bar_") { settings.set("Visual Detail", object.range[2] / 10); preview(); } else if(action == "notify_preferences_visual_button_") preview();
   else if(action == "notify_preferences_forces_bar_") settings.set("Forces Type", object.range[2] / 10);
   else if(action == "notify_preferences_volume_bar_") settings.set("Sound Volume", object.range[2]);
   else if(action == "notify_preferences_visual_resolution_button_") settings.set("Visual Resolution", &object == &interface.named("_preferences_visual_640_button"));
@@ -103,8 +101,7 @@ bool preferences_menu::activate(widget &object) {
   else if(action == "notify_preferences_sound_speech_button_") settings.set("Sound Speech", !settings.speech);
   else if(action == "notify_preferences_sound_music_button_") settings.set("Sound Music", !settings.music);
   else if(action == "notify_preferences_sound_effects_off_button_") settings.set("Sound effects", 0);
-  else if(action == "notify_preferences_sound_effects_min_button_" || action == "notify_preferences_sound_effects_full_button_") { settings.set("Sound effects", 1); settings.set("Sound effects level", action == "notify_preferences_sound_effects_min_button_"); }
-  else return false;
+  else if(action == "notify_preferences_sound_effects_min_button_" || action == "notify_preferences_sound_effects_full_button_") { settings.set("Sound effects", 1); settings.set("Sound effects level", action == "notify_preferences_sound_effects_min_button_"); } else return false;
   update(); settings.save(); return true;
 }
 } // namespace apache::frontend

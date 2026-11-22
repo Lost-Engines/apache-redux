@@ -6,11 +6,13 @@
 
 namespace apache::render {
 namespace {
-scan_edge edge(screen_vertex const &v) { return {v.x, v.u, v.v, v.intensity}; }
+scan_edge edge(screen_vertex const &v) {
+  return {v.x, v.u, v.v, v.intensity};
+}
 void require_inside(screen_vertex const &v, framebuffer const &target) {
   if(v.x < 0 || v.y < 0 || v.x >= static_cast<int>(target.image.width) || v.y >= static_cast<int>(target.image.height)) throw std::runtime_error{"Raster input must be clipped to the screen"};
 }
-} // namespace
+} // anonymous namespace
 rasterizer::rasterizer(framebuffer &destination) : target{destination}, left(destination.image.height), right(destination.image.height), perspective_left(destination.image.height), perspective_right(destination.image.height) {}
 void rasterizer::line(screen_vertex a, screen_vertex const b, uint8_t const colour) {
   require_inside(a, target);
@@ -144,8 +146,9 @@ void rasterizer::paint_scans(material const &paint) {
   if(paint.image && (!paint.image->width || paint.image->pixels.empty() || paint.image->pixels.size() % paint.image->width)) throw std::runtime_error{"Texture dimensions disagree with its pixels"};
   bool const flat{!paint.image && paint.light != shading::gouraud};
   std::array<uint8_t, 2> colours{static_cast<uint8_t>(paint.colours), static_cast<uint8_t>(paint.colours >> 8)};
-  if(flat && paint.light == shading::constant) for(auto &colour : colours)
+  if(flat && paint.light == shading::constant) for(auto &colour : colours) {
     colour = paint.intensity_map[(size_t{colour} << 8) | (static_cast<uint32_t>(std::max(paint.intensity, 0)) >> 23)];
+  }
   uint8_t heat{std::array<uint8_t, 4>{204, 102, 51, 153}[paint.heat_phase & 3]};
   for(int y{std::max(first_row, target.clip.top)}; y <= std::min(last_row, target.clip.bottom); ++y) {
     int const lhs{std::min(left[y].x, right[y].x)}, rhs{std::max(left[y].x, right[y].x)};
@@ -158,8 +161,7 @@ void rasterizer::paint_scans(material const &paint) {
         uint8_t previous{target.image.pixels[row + start]};
         for(int x{start}; x <= end; ++x) {
           auto &pixel{target.image.pixels[row + x]}; target.mark(row + x);
-          if(shift_right) { auto const old{pixel}; pixel = previous; previous = old; }
-          else pixel = target.image.pixels[std::min(row + static_cast<size_t>(x) + 1, target.image.pixels.size() - 1)];
+          if(shift_right) { auto const old{pixel}; pixel = previous; previous = old; } else pixel = target.image.pixels[std::min(row + static_cast<size_t>(x) + 1, target.image.pixels.size() - 1)];
         }
       }
       if(shift_right) ++y;
@@ -209,8 +211,9 @@ void rasterizer::paint_scans(material const &paint) {
           if(address >= paint.image->pixels.size()) { ++invalid_texture_samples; continue; }
           uint8_t colour{paint.image->pixels[address]};
           if(paint.masked && !colour) continue;
-          if constexpr(light != shading::none)
+          if constexpr(light != shading::none) {
             colour = paint.intensity_map[(size_t{colour} << 8) | (static_cast<uint32_t>(std::max(intensity, 0)) >> 23)];
+          }
           out[x] = colour;
           if(coverage) coverage[x] = 1;
         }

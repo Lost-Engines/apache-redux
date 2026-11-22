@@ -1,9 +1,9 @@
 #pragma once
-#include "weapon_info.h"
-#include "math/geometry.h"
-#include "resources/executable.h"
 #include <functional>
 #include <optional>
+#include "math/geometry.h"
+#include "resources/executable.h"
+#include "weapon_info.h"
 
 namespace apache::simulation {
 struct player_pylon { unsigned int weapon{0}; int32_t ammunition{0}; };

@@ -1,17 +1,33 @@
-#include "multiplayer/packet.h"
-#include "multiplayer/crew.h"
-#include "multiplayer/casualties.h"
-#include "multiplayer/lifecycle.h"
 #include <algorithm>
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
+#include "multiplayer/casualties.h"
+#include "multiplayer/crew.h"
+#include "multiplayer/lifecycle.h"
+#include "multiplayer/packet.h"
 
 namespace {
-void require(bool condition, char const *message) { if(!condition) throw std::runtime_error{message}; }
+void require(bool condition, char const *message) {
+  if(!condition) throw std::runtime_error{message};
+}
 }
 int main() try {
-  using namespace apache::multiplayer;
+  using apache::multiplayer::actor_link;
+  using apache::multiplayer::aircraft_state;
+  using apache::multiplayer::casualties;
+  using apache::multiplayer::crew_role;
+  using apache::multiplayer::crew_state;
+  using apache::multiplayer::decode_crew;
+  using apache::multiplayer::encode_crew;
+  using apache::multiplayer::event;
+  using apache::multiplayer::kills;
+  using apache::multiplayer::lifecycle;
+  using apache::multiplayer::message_type;
+  using apache::multiplayer::packet;
+  using apache::multiplayer::replication;
+  using apache::multiplayer::server_state;
+  using apache::multiplayer::two_player_settings;
   std::array<aircraft_state, 16> players;
   auto &first{players[0]}; first.location.position = {0x1234567, -1, 0xfedcba9};
   first.location.rotation = {INT32_MAX, 0, 0, 0, -INT32_MAX, 0, 0, 0, INT32_MAX}; first.speed = -12345; first.model = -1;
@@ -41,7 +57,7 @@ int main() try {
   auto sent{queue.take_mobile(0, "Pilot")}; require(sent && !queue.take_mobile(0, "Pilot"), "casualties sent once");
   replication replica; replica.local = 0; replica.active = true;
   lifecycle life{replica}; size_t removed{99};
-  life.events.find = [](int32_t serial, int32_t task) -> std::optional<actor_link> { if(serial == 2 && task == 3) return actor_link{7, 0, false}; return {}; };
+  life.events.find = [](int32_t serial, int32_t task)->std::optional<actor_link> { if(serial == 2 && task == 3) return actor_link{7, 0, false}; return {}; };
   life.events.remove = [&](size_t id){ removed = id; };
   auto collided{event(message_type::collision, 1, "Pilot", 2, 3)};
   require(life.receive(collided) && removed == 7, "collision resolves the transmitted task and drone identity");

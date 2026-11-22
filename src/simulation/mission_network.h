@@ -1,9 +1,9 @@
 #pragma once
 #include "mission_runtime.h"
+#include "multiplayer/casualties.h"
+#include "multiplayer/lifecycle.h"
 #include "multiplayer/replication.h"
 #include "multiplayer/rules.h"
-#include "multiplayer/lifecycle.h"
-#include "multiplayer/casualties.h"
 
 namespace apache::simulation {
 // Connects APNET state to the mission's existing render, collision and target objects.

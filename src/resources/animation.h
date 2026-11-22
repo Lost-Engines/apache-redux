@@ -14,8 +14,12 @@ class animation {
 public:
   indexed_image image;
   explicit animation(bytes data);
-  size_t count() const { return packets.size(); }
-  size_t position() const { return next_frame; }
+  size_t count() const {
+    return packets.size();
+  }
+  size_t position() const {
+    return next_frame;
+  }
   bool advance();
 };
 } // namespace apache::resources

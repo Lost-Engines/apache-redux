@@ -5,7 +5,7 @@ namespace apache::frontend {
 std::vector<presentation_clip> intro_clips(resources::data_store const &data, bool const animations, bool const skip) {
   std::vector<presentation_clip> result;
   bool di{false}, imagic{false};
-  auto const add{[&](std::string const &path, bool movie, bool title = false) {
+  auto const add{[&](std::string const &path, bool movie, bool title = false){
     if(!data.contains(path)) return false;
     result.push_back({path, movie, title}); return true;
   }};

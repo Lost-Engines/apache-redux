@@ -4,7 +4,9 @@
 
 namespace apache::simulation {
 namespace {
-bool stationary(int32_t const task) { return task == 10 || task == 11 || task == 16 || task == 20; }
+bool stationary(int32_t const task) {
+  return task == 10 || task == 11 || task == 16 || task == 20;
+}
 int32_t distance(math::vector3 const &a, math::vector3 const &b) {
   uint64_t sum{0};
   for(size_t i{0}; i != 2; ++i) { int64_t const d{math::subtract(a[i], b[i])}; sum += static_cast<uint64_t>(d * d); }
@@ -22,11 +24,11 @@ uint32_t random_pair(uint32_t &seed) {
   return high | ((seed >> 16) & 0x7fff);
 }
 
-}
+} // anonymous namespace
 bool mission_actors::on_ground(size_t const index) const {
   auto const &unit{units.at(index)};
   if(unit.classification != 1 && unit.classification != 2) return false;
-  if(unit.conditions & 0x400) return true; // Attached to a carrier deck.
+  if(unit.conditions & 0x400) return true;                                     // Attached to a carrier deck.
   auto const &position{unit.object.world.position};
   return int64_t{position[2]} <= int64_t{environment.height(position[0], position[1])} + 256;
 }
@@ -121,8 +123,7 @@ mission_actors::mission_actors(resources::mission_definition const &mission, std
         auto const &type{types.at(model)};
         actor_state unit; unit.location = {task_index, group_index, member}; unit.serial = static_cast<int32_t>(member ? (group_index + 1) * 100 + member : group_index); unit.classification = type.classification;
         std::array<uint32_t, 20> attachments{};
-        if(model == 607) { attachments[0] = 614; attachments[2] = 620; }
-        else if(model == 990) attachments[0] = 859;
+        if(model == 607) { attachments[0] = 614; attachments[2] = 620; } else if(model == 990) attachments[0] = 859;
         unit.object = render::construct_model(models, model, {}, attachments);
         unit.object.status = static_cast<uint32_t>((task.side & 3) << 1);
         unit.object.alternate_colours = task.side == 2 && map != 2 && (type.flags & 2);
@@ -135,8 +136,7 @@ mission_actors::mission_actors(resources::mission_definition const &mission, std
         }
         if(task.type == 18) { if(!unit.ammunition[1]) ++weapons; unit.ammunition[1] = 10; }
         if(weapons == 1) unit.conditions |= 0xc0;
-        else if(weapons > 1) { unit.conditions |= 0x40; unit.weapon = 0; unit.weapon_slot = 0; }
-        else { unit.weapon = 0; unit.weapon_slot = -1; }
+        else if(weapons > 1) { unit.conditions |= 0x40; unit.weapon = 0; unit.weapon_slot = 0; } else { unit.weapon = 0; unit.weapon_slot = -1; }
         unit.conditions &= ~0x30000u;
         if(unit.ammunition[0] > 0 || unit.ammunition[1] > 0) unit.conditions |= 0x20000;
         if(unit.ammunition[0] > 0) unit.conditions |= 0x10000;

@@ -5,11 +5,23 @@
 
 namespace apache::multiplayer {
 namespace {
-int32_t signed_word(packet const &message, size_t offset) { return std::bit_cast<int32_t>(message.word(offset)); }
-double real_word(packet const &message, size_t offset) { return std::bit_cast<double>(uint64_t{message.word(offset)} | (uint64_t{message.word(offset + 4)} << 32)); }
+int32_t signed_word(packet const &message, size_t offset) {
+  return std::bit_cast<int32_t>(message.word(offset));
 }
-void replication::reset_server() { all_synced = false; server_in_game = false; new_server_data = true; server_waiting = false; }
-void replication::begin_frame() { synced.fill(false); number_synced = 0; }
+double real_word(packet const &message, size_t offset) {
+  return std::bit_cast<double>(uint64_t{message.word(offset)} | (uint64_t{message.word(offset + 4)} << 32));
+}
+}
+void replication::reset_server() {
+  all_synced = false;
+  server_in_game = false;
+  new_server_data = true;
+  server_waiting = false;
+}
+void replication::begin_frame() {
+  synced.fill(false);
+  number_synced = 0;
+}
 bool replication::receive(packet const &message, int32_t const now) {
   if(local >= players.size() || server >= players.size()) return false;
   uint32_t const sender{message.sender()};

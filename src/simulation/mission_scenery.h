@@ -1,6 +1,6 @@
 #pragma once
-#include "combat_update.h"
 #include <array>
+#include "combat_update.h"
 
 namespace apache::simulation {
 struct gameplay_sector {

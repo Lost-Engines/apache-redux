@@ -1,8 +1,8 @@
 #pragma once
-#include "menu.h"
-#include "render/landscape.h"
 #include <memory>
 #include "configuration/settings.h"
+#include "menu.h"
+#include "render/landscape.h"
 
 namespace apache::frontend {
 class preferences_menu {
@@ -18,7 +18,9 @@ class preferences_menu {
 public:
   int zone{2};
   preferences_menu(resources::data_store const &data, menu &interface, configuration::settings &settings) : data{data}, interface{interface}, settings{settings} {}
-  std::pair<size_t, size_t> preview_issues() const { return world ? std::pair{world->missing_normals, world->invalid_texture_samples} : std::pair<size_t, size_t>{}; }
+  std::pair<size_t, size_t> preview_issues() const {
+    return world ? std::pair{world->missing_normals, world->invalid_texture_samples} : std::pair<size_t, size_t>{};
+  }
   void update();
   void calibration(std::array<int32_t, 4> values, unsigned int hat);
   void paint(render::framebuffer &frame, widget const &object);

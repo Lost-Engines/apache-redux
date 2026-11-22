@@ -1,19 +1,3 @@
-#include "inspect_network.h"
-#include "inspect_menu.h"
-#include "inspect_briefing.h"
-#include "inspect_audio.h"
-#include "inspect_session.h"
-#include "resources/animation.h"
-#include "frontend/presentation.h"
-#include "inspect_logbook.h"
-#include "inspect_debrief.h"
-#include "inspect_cameras.h"
-#include "inspect_flight.h"
-#include "inspect_controls.h"
-#include "inspect_targeting.h"
-#include "inspect_sensors.h"
-#include "inspect_player_weapons.h"
-#include "inspect_arcade.h"
 #include <cstdlib>
 #include <fstream>
 #include <iomanip>
@@ -22,67 +6,83 @@
 #include <stdexcept>
 #include <string_view>
 #include "math/trigonometry.h"
-#include "render/clouds.h"
+#include "frontend/presentation.h"
+#include "inspect_actor_firing.h"
+#include "inspect_actor_reactions.h"
+#include "inspect_actor_targeting.h"
+#include "inspect_arcade.h"
+#include "inspect_audio.h"
+#include "inspect_battles.h"
+#include "inspect_blasts.h"
+#include "inspect_briefing.h"
+#include "inspect_cameras.h"
+#include "inspect_collisions.h"
+#include "inspect_combat_effects.h"
+#include "inspect_combat_update.h"
+#include "inspect_controls.h"
+#include "inspect_countermeasures.h"
+#include "inspect_damage.h"
+#include "inspect_debrief.h"
+#include "inspect_firing.h"
+#include "inspect_flight.h"
+#include "inspect_logbook.h"
+#include "inspect_menu.h"
+#include "inspect_mission_combat.h"
+#include "inspect_mission_radar.h"
+#include "inspect_mission_scenery.h"
+#include "inspect_mission_spatial.h"
+#include "inspect_mission_targets.h"
+#include "inspect_navigation.h"
+#include "inspect_network.h"
+#include "inspect_patrol.h"
+#include "inspect_player_weapons.h"
+#include "inspect_projectile_pool.h"
+#include "inspect_projectiles.h"
+#include "inspect_seekers.h"
+#include "inspect_sensors.h"
+#include "inspect_session.h"
+#include "inspect_target_search.h"
+#include "inspect_targeting.h"
+#include "inspect_targets.h"
+#include "inspect_tracking.h"
+#include "inspect_war_grid.h"
+#include "inspect_weapons.h"
 #include "render/avionics.h"
+#include "render/clouds.h"
+#include "render/cockpit.h"
 #include "render/crater_renderer.h"
 #include "render/draw_queue.h"
 #include "render/effect_renderer.h"
 #include "render/feature_renderer.h"
-#include "render/horizon.h"
 #include "render/helmet_display.h"
-#include "render/cockpit.h"
+#include "render/horizon.h"
 #include "render/instrument_font.h"
 #include "render/landscape.h"
+#include "render/mfd.h"
 #include "render/model_renderer.h"
+#include "render/panel_instruments.h"
 #include "render/projection.h"
 #include "render/projection2.h"
-#include "render/panel_instruments.h"
-#include "render/mfd.h"
-#include "simulation/mfd_state.h"
-#include "simulation/instrument_state.h"
 #include "render/rasterizer.h"
 #include "render/sector_scan.h"
 #include "render/shadows.h"
 #include "render/terrain_projection.h"
 #include "render/terrain_renderer.h"
 #include "render/terrain_shading.h"
+#include "resources/animation.h"
 #include "resources/data_store.h"
 #include "resources/image.h"
-#include "resources/models.h"
 #include "resources/missions.h"
-#include "simulation/actor_types.h"
-#include "inspect_weapons.h"
-#include "inspect_navigation.h"
-#include "inspect_collisions.h"
-#include "inspect_seekers.h"
-#include "inspect_projectiles.h"
-#include "inspect_projectile_pool.h"
-#include "inspect_targets.h"
-#include "inspect_tracking.h"
-#include "inspect_countermeasures.h"
-#include "inspect_damage.h"
-#include "inspect_blasts.h"
-#include "inspect_combat_effects.h"
-#include "inspect_firing.h"
-#include "inspect_actor_firing.h"
-#include "inspect_actor_reactions.h"
-#include "inspect_target_search.h"
-#include "inspect_actor_targeting.h"
-#include "inspect_patrol.h"
-#include "inspect_battles.h"
-#include "inspect_war_grid.h"
-#include "inspect_combat_update.h"
-#include "inspect_mission_scenery.h"
-#include "inspect_mission_radar.h"
-#include "inspect_mission_spatial.h"
-#include "inspect_mission_targets.h"
-#include "inspect_mission_combat.h"
-#include "simulation/battles.h"
-#include "simulation/mission_actors.h"
-#include "simulation/ground_movement.h"
-#include "simulation/actor_movement.h"
+#include "resources/models.h"
 #include "resources/terrain.h"
 #include "resources/terrain_textures.h"
+#include "simulation/actor_movement.h"
+#include "simulation/actor_types.h"
+#include "simulation/battles.h"
+#include "simulation/ground_movement.h"
+#include "simulation/instrument_state.h"
+#include "simulation/mfd_state.h"
+#include "simulation/mission_actors.h"
 
 namespace {
 bool read_helmet(unsigned int &mode, unsigned int &component, apache::render::helmet_instruments &state, apache::math::trigonometry const &trig, bool const extended) {
@@ -171,37 +171,35 @@ int main(int const argc, char const *const argv[]) try {
   }
   apache::resources::data_store const data{argv[1]};
   std::string_view const command{argv[2]};
-  if(inspect_briefing(data, command, std::cin, std::cout, argc > 3 ? argv[3] : "")) return 0;
-  if(command == "chat") { apache::inspect_chat(data, std::cin, std::cout); return 0; }
-  if(command == "network-group") { apache::inspect_network_group(data, argc > 3 ? static_cast<unsigned int>(std::stoul(argv[3])) : 3, std::cout); return 0; }
-  if(command == "network-incomplete-flag") { apache::inspect_network_live(data, 5, std::cout, true); return 0; }
-  if(command == "network-loopback") { apache::inspect_network_live(data, argc > 3 ? static_cast<unsigned int>(std::stoul(argv[3])) : 4, std::cout); return 0; }
-  if(command == "network") { apache::inspect_network(std::cin, std::cout); return 0; }
-  if(command == "frontend") { inspect_frontend(data, std::cin, std::cout); return 0; }
+  if(inspect_briefing(data, command, std::cin, std::cout, argc > 3 ? argv[3] : "")) return EXIT_SUCCESS;
+  if(command == "chat") { apache::inspect_chat(data, std::cin, std::cout); return EXIT_SUCCESS; }
+  if(command == "network-group") { apache::inspect_network_group(data, argc > 3 ? static_cast<unsigned int>(std::stoul(argv[3])) : 3, std::cout); return EXIT_SUCCESS; }
+  if(command == "network-incomplete-flag") { apache::inspect_network_live(data, 5, std::cout, true); return EXIT_SUCCESS; }
+  if(command == "network-loopback") { apache::inspect_network_live(data, argc > 3 ? static_cast<unsigned int>(std::stoul(argv[3])) : 4, std::cout); return EXIT_SUCCESS; }
+  if(command == "network") { apache::inspect_network(std::cin, std::cout); return EXIT_SUCCESS; }
+  if(command == "frontend") { inspect_frontend(data, std::cin, std::cout); return EXIT_SUCCESS; }
   if(command == "menu") {
-    inspect_menu(data, std::cin, std::cout); return 0;
-  } else if(command == "debrief") { inspect_debrief(std::cin, std::cout); return 0; }
-  if(command == "logbook") { inspect_logbook(data, std::cin, std::cout); return 0; }
-  if(command == "audio") { inspect_audio(data, std::cin, std::cout); return 0; }
-  if(command == "communications") { inspect_communications(std::cin, std::cout); return 0; }
-  if(command == "session-network") { if(argc < 8) throw std::runtime_error{"session-network requires mission, video, flight model, game mode and connection slot"}; inspect_session(data, std::stoi(argv[3]), static_cast<unsigned int>(std::stoul(argv[4])), std::stoi(argv[5]) == 2, std::cin, std::cout, -1, std::stoi(argv[6]), static_cast<unsigned int>(std::stoul(argv[7])), argc > 8 ? static_cast<unsigned int>(std::stoul(argv[8])) : 2); return 0; }
-  if(command == "session-shared") { if(argc < 7) throw std::runtime_error{"session-shared requires mission, video mode, flight model and seat"}; inspect_session(data, std::stoi(argv[3]), static_cast<unsigned int>(std::stoul(argv[4])), std::stoi(argv[5]) == 2, std::cin, std::cout, std::stoi(argv[6])); return 0; }
-  if(command == "session") { if(argc < 6) throw std::runtime_error{"session requires mission, video mode and flight model"}; inspect_session(data, std::stoi(argv[3]), static_cast<unsigned int>(std::stoul(argv[4])), std::stoi(argv[5]) == 2, std::cin, std::cout); return 0; }
-  if(command == "mission-sensors") { if(argc < 5) throw std::runtime_error{"mission-sensors requires a warzone and mission path"}; inspect_sensors(data, argv[3], argv[4], std::cin, std::cout); return 0; }
-  if(command == "cameras") { inspect_cameras(data, std::cin, std::cout); return 0; }
-  if(command == "targeting") { inspect_targeting(data, std::cin, std::cout); return 0; }
-  if(command == "player-warnings") { inspect_player_warnings(std::cin, std::cout); return 0; }
-  if(command == "player-sight") { inspect_player_sight(data, std::cin, std::cout); return 0; }
-  if(command == "player-mounts") { inspect_player_mounts(data, std::cin, std::cout); return 0; }
-  if(command == "player-weapons") { inspect_player_weapons(data, std::cin, std::cout); return 0; }
+    inspect_menu(data, std::cin, std::cout); return EXIT_SUCCESS;
+  } else if(command == "debrief") { inspect_debrief(std::cin, std::cout); return EXIT_SUCCESS; }
+  if(command == "logbook") { inspect_logbook(data, std::cin, std::cout); return EXIT_SUCCESS; }
+  if(command == "audio") { inspect_audio(data, std::cin, std::cout); return EXIT_SUCCESS; }
+  if(command == "communications") { inspect_communications(std::cin, std::cout); return EXIT_SUCCESS; }
+  if(command == "session-network") { if(argc < 8) throw std::runtime_error{"session-network requires mission, video, flight model, game mode and connection slot"}; inspect_session(data, std::stoi(argv[3]), static_cast<unsigned int>(std::stoul(argv[4])), std::stoi(argv[5]) == 2, std::cin, std::cout, -1, std::stoi(argv[6]), static_cast<unsigned int>(std::stoul(argv[7])), argc > 8 ? static_cast<unsigned int>(std::stoul(argv[8])) : 2); return EXIT_SUCCESS; }
+  if(command == "session-shared") { if(argc < 7) throw std::runtime_error{"session-shared requires mission, video mode, flight model and seat"}; inspect_session(data, std::stoi(argv[3]), static_cast<unsigned int>(std::stoul(argv[4])), std::stoi(argv[5]) == 2, std::cin, std::cout, std::stoi(argv[6])); return EXIT_SUCCESS; }
+  if(command == "session") { if(argc < 6) throw std::runtime_error{"session requires mission, video mode and flight model"}; inspect_session(data, std::stoi(argv[3]), static_cast<unsigned int>(std::stoul(argv[4])), std::stoi(argv[5]) == 2, std::cin, std::cout); return EXIT_SUCCESS; }
+  if(command == "mission-sensors") { if(argc < 5) throw std::runtime_error{"mission-sensors requires a warzone and mission path"}; inspect_sensors(data, argv[3], argv[4], std::cin, std::cout); return EXIT_SUCCESS; }
+  if(command == "cameras") { inspect_cameras(data, std::cin, std::cout); return EXIT_SUCCESS; }
+  if(command == "targeting") { inspect_targeting(data, std::cin, std::cout); return EXIT_SUCCESS; }
+  if(command == "player-warnings") { inspect_player_warnings(std::cin, std::cout); return EXIT_SUCCESS; }
+  if(command == "player-sight") { inspect_player_sight(data, std::cin, std::cout); return EXIT_SUCCESS; }
+  if(command == "player-mounts") { inspect_player_mounts(data, std::cin, std::cout); return EXIT_SUCCESS; }
+  if(command == "player-weapons") { inspect_player_weapons(data, std::cin, std::cout); return EXIT_SUCCESS; }
   if(command == "presentation") {
     std::string action;
     while(std::cin >> action) {
-      if(action == "intro") { bool animations, skip; std::cin >> animations >> skip; for(auto const &clip : apache::frontend::intro_clips(data, animations, skip)) std::cout << clip.path << ' ' << clip.movie << ' ' << clip.title << '\n'; }
-      else if(action == "campaign") { int zone, level; std::cin >> zone >> level; std::cout << apache::frontend::campaign_movie(data, zone, level) << '\n'; }
-      else throw std::runtime_error{"Unknown presentation inspection command"};
+      if(action == "intro") { bool animations, skip; std::cin >> animations >> skip; for(auto const &clip : apache::frontend::intro_clips(data, animations, skip)) std::cout << clip.path << ' ' << clip.movie << ' ' << clip.title << '\n'; } else if(action == "campaign") { int zone, level; std::cin >> zone >> level; std::cout << apache::frontend::campaign_movie(data, zone, level) << '\n'; } else throw std::runtime_error{"Unknown presentation inspection command"};
     }
-    return 0;
+    return EXIT_SUCCESS;
   }
   if(command == "animation") {
     if(argc < 4) throw std::runtime_error{"animation requires an original resource path"};
@@ -210,28 +208,28 @@ int main(int const argc, char const *const argv[]) try {
       apache::resources::bytes palette; for(auto const &c : movie.image.colours) { palette.push_back(c.r); palette.push_back(c.g); palette.push_back(c.b); }
       std::cout << movie.position() - 1 << ' ' << apache::resources::fingerprint(movie.image.pixels) << ' ' << apache::resources::fingerprint(palette) << '\n';
     }
-    return 0;
+    return EXIT_SUCCESS;
   }
-  if(command == "controls") { inspect_controls(std::cin, std::cout); return 0; }
-  if(command == "mission-combat" || command == "mission-weapons" || command == "mission-battle") { if(argc < 5) throw std::runtime_error{"Expected zone and mission path"}; inspect_mission_combat(std::cin, std::cout, data, argv[3], argv[4], command != "mission-combat", command == "mission-battle"); return 0; }
-  if(command == "mission-targets") { if(argc < 5) throw std::runtime_error{"Expected zone and mission path"}; inspect_mission_targets(std::cin, std::cout, data, argv[3], argv[4]); return 0; }
-  if(command == "mission-spatial") { if(argc < 5) throw std::runtime_error{"Expected zone and mission path"}; inspect_mission_spatial(std::cin, std::cout, data, argv[3], argv[4]); return 0; }
-  if(command == "mission-radar") { if(argc < 5) throw std::runtime_error{"Expected zone and mission path"}; inspect_mission_radar(std::cout, data, argv[3], argv[4]); return 0; }
-  if(command == "mission-scenery") { if(argc < 5) throw std::runtime_error{"Expected zone and mission path"}; inspect_mission_scenery(std::cout, data, argv[3], argv[4]); return 0; }
-  if(command == "combat-update") { inspect_combat_update(std::cin, std::cout, data); return 0; }
-  if(command == "war-grid") { inspect_war_grid(std::cin, std::cout, data); return 0; }
-  if(command == "battles") { inspect_battles(std::cin, std::cout, data); return 0; }
-  if(command == "patrol") { inspect_patrol(std::cin, std::cout, data); return 0; }
-  if(command == "actor-targeting") { inspect_actor_targeting(std::cin, std::cout, data); return 0; }
-  if(command == "target-search") { inspect_target_search(std::cin, std::cout); return 0; }
-  if(command == "actor-reactions") { inspect_actor_reactions(std::cin, std::cout, data); return 0; }
-  if(command == "actor-firing") { inspect_actor_firing(std::cin, std::cout, data); return 0; }
-  if(command == "firing") { inspect_firing(std::cin, std::cout, data); return 0; }
-  if(command == "combat-effects") { inspect_combat_effects(std::cin, std::cout, data); return 0; }
-  if(command == "blasts") { inspect_blasts(std::cin, std::cout, data); return 0; }
-    if(command == "damage") { inspect_damage(std::cin, std::cout, data); return 0; }
-    if(command == "countermeasures") { inspect_countermeasures(std::cin, std::cout, data); return 0; }
-    if(command == "tracking") { inspect_tracking(std::cin, std::cout, data); return 0; }
+  if(command == "controls") { inspect_controls(std::cin, std::cout); return EXIT_SUCCESS; }
+  if(command == "mission-combat" || command == "mission-weapons" || command == "mission-battle") { if(argc < 5) throw std::runtime_error{"Expected zone and mission path"}; inspect_mission_combat(std::cin, std::cout, data, argv[3], argv[4], command != "mission-combat", command == "mission-battle"); return EXIT_SUCCESS; }
+  if(command == "mission-targets") { if(argc < 5) throw std::runtime_error{"Expected zone and mission path"}; inspect_mission_targets(std::cin, std::cout, data, argv[3], argv[4]); return EXIT_SUCCESS; }
+  if(command == "mission-spatial") { if(argc < 5) throw std::runtime_error{"Expected zone and mission path"}; inspect_mission_spatial(std::cin, std::cout, data, argv[3], argv[4]); return EXIT_SUCCESS; }
+  if(command == "mission-radar") { if(argc < 5) throw std::runtime_error{"Expected zone and mission path"}; inspect_mission_radar(std::cout, data, argv[3], argv[4]); return EXIT_SUCCESS; }
+  if(command == "mission-scenery") { if(argc < 5) throw std::runtime_error{"Expected zone and mission path"}; inspect_mission_scenery(std::cout, data, argv[3], argv[4]); return EXIT_SUCCESS; }
+  if(command == "combat-update") { inspect_combat_update(std::cin, std::cout, data); return EXIT_SUCCESS; }
+  if(command == "war-grid") { inspect_war_grid(std::cin, std::cout, data); return EXIT_SUCCESS; }
+  if(command == "battles") { inspect_battles(std::cin, std::cout, data); return EXIT_SUCCESS; }
+  if(command == "patrol") { inspect_patrol(std::cin, std::cout, data); return EXIT_SUCCESS; }
+  if(command == "actor-targeting") { inspect_actor_targeting(std::cin, std::cout, data); return EXIT_SUCCESS; }
+  if(command == "target-search") { inspect_target_search(std::cin, std::cout); return EXIT_SUCCESS; }
+  if(command == "actor-reactions") { inspect_actor_reactions(std::cin, std::cout, data); return EXIT_SUCCESS; }
+  if(command == "actor-firing") { inspect_actor_firing(std::cin, std::cout, data); return EXIT_SUCCESS; }
+  if(command == "firing") { inspect_firing(std::cin, std::cout, data); return EXIT_SUCCESS; }
+  if(command == "combat-effects") { inspect_combat_effects(std::cin, std::cout, data); return EXIT_SUCCESS; }
+  if(command == "blasts") { inspect_blasts(std::cin, std::cout, data); return EXIT_SUCCESS; }
+    if(command == "damage") { inspect_damage(std::cin, std::cout, data); return EXIT_SUCCESS; }
+    if(command == "countermeasures") { inspect_countermeasures(std::cin, std::cout, data); return EXIT_SUCCESS; }
+    if(command == "tracking") { inspect_tracking(std::cin, std::cout, data); return EXIT_SUCCESS; }
     if(command == "targets") {
     inspect_targets(std::cin, std::cout, data);
   } else if(command == "projectile-pool") {
@@ -267,7 +265,7 @@ int main(int const argc, char const *const argv[]) try {
         for(auto const &side : battles[i].sides) std::cout << ' ' << (side.task ? static_cast<int64_t>(*side.task) : -1) << ' ' << side.initial << ' ' << side.opponent_position[0] << ' ' << side.opponent_position[1] << ' ' << side.release_time;
         std::cout << '\n';
       }
-      return 0;
+      return EXIT_SUCCESS;
     }
     if(command == "ground-trace" || command == "actor-trace") {
       bool const all{command == "actor-trace"};
@@ -286,8 +284,7 @@ int main(int const argc, char const *const argv[]) try {
       while(std::cin >> operation) {
         if(operation == "step" || operation == "snapshot") {
           int32_t now{0}, delta{0}; bool snapshot{operation == "snapshot"}; if(operation == "step") std::cin >> now >> delta >> snapshot;
-          if(operation == "step" && all) { timing.now = now; timing.delta = delta; movement.update(timing); actors.synchronize_models(); }
-          else if(operation == "step") for(auto const &group : actors.groups) {
+          if(operation == "step" && all) { timing.now = now; timing.delta = delta; movement.update(timing); actors.synchronize_models(); } else if(operation == "step") for(auto const &group : actors.groups) {
             apache::simulation::ground_movement movement{actors.units, group, mission.tasks[group.task], formations[group.definition.formation], trig, environment};
             movement.update(now, delta);
           }
@@ -552,8 +549,7 @@ int main(int const argc, char const *const argv[]) try {
           bool tree{false}; uint32_t model{0}, flags{0}, h{0}, p{0}, r{0}; apache::math::pose pose;
           std::cin >> tree >> model >> flags >> pose.position[0] >> pose.position[1] >> pose.position[2] >> h >> p >> r;
           pose.rotation = trig.transformation(h, p, r);
-          if(tree) { auto object{apache::render::construct_model(fragment_models, model, pose)}; object.flags = flags; apache::render::maintain_model(object); apache::render::fracture_model(object, world->fragments, seed); }
-          else world->fragments.create(model, flags, pose, seed);
+          if(tree) { auto object{apache::render::construct_model(fragment_models, model, pose)}; object.flags = flags; apache::render::maintain_model(object); apache::render::fracture_model(object, world->fragments, seed); } else world->fragments.create(model, flags, pose, seed);
         }
         for(size_t i{0}; i != steps; ++i) world->advance(delta, seed);
       }
@@ -729,11 +725,9 @@ int main(int const argc, char const *const argv[]) try {
     auto const models{apache::resources::read_models(data.read("3DDATA/3DOBJS.BIN"))};
     std::unique_ptr<apache::render::landscape> world; uint32_t seed{1}; std::string operation;
     while(std::cin >> operation) {
-      if(operation == "reset") { std::string zone; std::cin >> zone >> seed; world = std::make_unique<apache::render::landscape>(data, zone); }
-      else {
+      if(operation == "reset") { std::string zone; std::cin >> zone >> seed; world = std::make_unique<apache::render::landscape>(data, zone); } else {
         if(!world) throw std::runtime_error{"Reset the fragment scene first"};
-        if(operation == "advance") { int32_t delta{0}; std::cin >> delta; world->advance(delta, seed); }
-        else if(operation == "state") {
+        if(operation == "advance") { int32_t delta{0}; std::cin >> delta; world->advance(delta, seed); } else if(operation == "state") {
           apache::resources::bytes bytes; size_t pieces{0}, splashes{0};
           for(size_t i{0}; i != world->fragments.pieces.size(); ++i) {
             auto const &piece{world->fragments.pieces[i]}; if(!piece.active) continue;
@@ -801,10 +795,7 @@ int main(int const argc, char const *const argv[]) try {
         if(!terrain) throw std::runtime_error{"Reset the crater scene first"};
         apache::math::vector3 position; for(auto &v : position) std::cin >> v;
         int32_t model{0}; bool temporary{false};
-        if(operation == "scale") { int32_t radius{0}; bool heave{false}; std::cin >> radius >> heave; craters.add_scalable(position, radius, heave, *terrain, seed); }
-        else if(operation == "random") { std::cin >> model >> temporary; craters.add_random(position, model, temporary, *terrain, seed); }
-        else if(operation == "add") { uint32_t heading{0}; std::cin >> model >> heading >> temporary; craters.add(position, model, heading, temporary, *terrain); }
-        else throw std::runtime_error{"Unknown crater-state operation"};
+        if(operation == "scale") { int32_t radius{0}; bool heave{false}; std::cin >> radius >> heave; craters.add_scalable(position, radius, heave, *terrain, seed); } else if(operation == "random") { std::cin >> model >> temporary; craters.add_random(position, model, temporary, *terrain, seed); } else if(operation == "add") { uint32_t heading{0}; std::cin >> model >> heading >> temporary; craters.add(position, model, heading, temporary, *terrain); } else throw std::runtime_error{"Unknown crater-state operation"};
       }
     }
   } else if(command == "craters") {
@@ -930,10 +921,7 @@ int main(int const argc, char const *const argv[]) try {
         apache::math::vector3 position;
         int32_t radius{0};
         std::cin >> position[0] >> position[1] >> position[2] >> radius;
-        if(operation == "smoke") { int32_t lifetime{0}; std::cin >> lifetime; effects.add_smoke(position, radius, lifetime, seed); }
-        else if(operation == "ground") { if(!terrain) throw std::runtime_error{"Reset the effect scene before ground placement"}; effects.add_ground_explosion(position, radius, *terrain); }
-        else if(operation == "air") { apache::math::vector3 velocity; for(auto &value : velocity) std::cin >> value; effects.add_air_explosion(position, radius, velocity); }
-        else throw std::runtime_error{"Unknown effect-state operation"};
+        if(operation == "smoke") { int32_t lifetime{0}; std::cin >> lifetime; effects.add_smoke(position, radius, lifetime, seed); } else if(operation == "ground") { if(!terrain) throw std::runtime_error{"Reset the effect scene before ground placement"}; effects.add_ground_explosion(position, radius, *terrain); } else if(operation == "air") { apache::math::vector3 velocity; for(auto &value : velocity) std::cin >> value; effects.add_air_explosion(position, radius, velocity); } else throw std::runtime_error{"Unknown effect-state operation"};
       }
     }
   } else if(command == "billboards") {

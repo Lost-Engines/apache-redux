@@ -5,7 +5,7 @@
 
 namespace apache::simulation {
 namespace {
-constexpr double tau{6.28318530718}, radians_per_unit{2.328306437080797e-10};
+double constexpr tau{6.28318530718}, radians_per_unit{2.328306437080797e-10};
 int32_t integer(double const value) {
   if(!std::isfinite(value) || value < -0x1p63 || value >= 0x1p63) throw std::runtime_error{"Invalid flight-model conversion"};
   return std::bit_cast<int32_t>(static_cast<uint32_t>(static_cast<int64_t>(value)));
@@ -15,7 +15,7 @@ math::matrix3 fixed_attitude(std::array<double, 9> const &matrix) {
   for(size_t i{0}; i != result.size(); ++i) result[i] = integer(matrix[i] * 2147483647.0);
   return result;
 }
-}
+} // anonymous namespace
 std::array<double, 9> flight_attitude(double const heading, double const pitch, double const roll) {
   double const sh{std::sin(heading)}, ch{std::cos(heading)}, sp{std::sin(pitch)}, cp{std::cos(pitch)}, sr{std::sin(roll)}, cr{std::cos(roll)};
   return {cr * ch + sr * sp * sh, sr * sp * ch + -cr * sh, -sr * cp, cp * sh, cp * ch, sp, sr * ch - cr * sp * sh, -sr * sh - cr * sp * ch, cr * cp};
@@ -67,7 +67,7 @@ flight_step_result realistic_flight::advance(double const dt, int32_t const delt
   if(dt <= 0 || !std::isfinite(dt) || delta_time <= 0) throw std::runtime_error{"Invalid flight timestep"};
   flight_step_result result;
   auto &d{dynamics}; auto &power{d.power}; auto &events{result.events};
-  auto const relative_height{[&](){ return environment.height(integer(d.x * 256), integer(d.y * 256)); }};
+  auto const relative_height{[&]{ return environment.height(integer(d.x * 256), integer(d.y * 256)); }};
   d.controls.update(input.controls, on_carrier);
   d.update_rates(dt, relative_height() / 256, on_carrier, landed, input.absolute_throttle, input.type, input.controls[0], events);
   d.update_aerodynamics(dt, delta_time, relative_height() / 256, on_carrier, random_sample, events);

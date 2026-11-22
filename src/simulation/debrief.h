@@ -1,6 +1,6 @@
 #pragma once
-#include "pilot_log.h"
 #include "math/geometry.h"
+#include "pilot_log.h"
 
 namespace apache::simulation {
 struct debrief_record { std::array<uint32_t, 6> words{}; };

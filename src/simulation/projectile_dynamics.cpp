@@ -1,11 +1,15 @@
 #include "projectile_dynamics.h"
-#include "collisions.h"
 #include <algorithm>
 #include <cmath>
+#include "collisions.h"
 
 namespace apache::simulation {
 namespace {
-math::vector3 subtract(math::vector3 const &a, math::vector3 const &b) { math::vector3 v; for(size_t i{0}; i != 3; ++i) v[i] = math::subtract(a[i], b[i]); return v; }
+math::vector3 subtract(math::vector3 const &a, math::vector3 const &b) {
+  math::vector3 v;
+  for(size_t i{0}; i != 3; ++i) v[i] = math::subtract(a[i], b[i]);
+  return v;
+}
 int32_t range3(math::vector3 const &v) {
   double const x{static_cast<double>(v[0])}, y{static_cast<double>(v[1])}, z{static_cast<double>(v[2])};
   return std::bit_cast<int32_t>(static_cast<uint32_t>(static_cast<uint64_t>(std::sqrt(x * x + y * y + z * z))));
@@ -28,7 +32,7 @@ void unguided(projectile_step &step, projectile_state &round, math::trigonometry
   if(round.motion.flags & 4) pitch_projectile_down(round, trig, delta);
   step.displacement = straight_move(round, delta);
 }
-}
+} // anonymous namespace
 closest_approach closest_point(math::vector3 const &start, math::vector3 const &end, math::vector3 const &target, math::trigonometry const &trig) {
   closest_approach result{perpendicular_distance(start, end, target, trig), end};
   if(result.distance == INT32_MAX) return result;

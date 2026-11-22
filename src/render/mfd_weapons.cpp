@@ -1,6 +1,6 @@
-#include "mfd.h"
 #include <algorithm>
 #include <format>
+#include "mfd.h"
 
 namespace apache::render {
 void mfd_renderer::weapons(framebuffer &target, rectangle const area, weapon_instruments const &state) const {

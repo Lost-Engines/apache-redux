@@ -42,8 +42,7 @@ void draw_map_overlay(render::framebuffer &target, map_view const &map, math::tr
         bool const enabled{sector.side == 1 ? (kind == 1 ? options.allied_aaa : options.allied_sam) : (kind == 1 ? options.enemy_aaa : options.enemy_sam)};
         if(enabled) circle({p[0], p[1]}, kind == 1 ? 0x2f7800 : 0x76ac00, colour);
       } else {
-        if(kind == 3 || kind == 4) { if(!(sector.side == 1 ? options.allied_tanks : options.enemy_tanks)) continue; }
-        else if(kind < 5 || kind > 8) continue;
+        if(kind == 3 || kind == 4) { if(!(sector.side == 1 ? options.allied_tanks : options.enemy_tanks)) continue; } else if(kind < 5 || kind > 8) continue;
         int const dx{kind == 3 || kind == 4 ? 0x3200 : kind == 5 ? 0x3e800 : 0xc800};
         int const dy{kind == 3 || kind == 4 ? 0x1900 : dx};
         render::vertex2 const a{p[0] - dx, p[1] - dy}, b{p[0] + dx, p[1] - dy}, c{p[0] + dx, p[1] + dy}, d{p[0] - dx, p[1] + dy};

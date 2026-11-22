@@ -6,7 +6,7 @@
 namespace apache::render {
 namespace {
 struct sprite_definition { std::string_view name; unsigned int width; unsigned int height; unsigned int mode; };
-constexpr std::array sprite_definitions{
+std::array constexpr sprite_definitions{
   sprite_definition{"PLT_1.320", 320, 116, 0},
   sprite_definition{"PLT_2.320", 320, 4, 0},
   sprite_definition{"PLT_3.320", 85, 120, 0},
@@ -85,7 +85,7 @@ constexpr std::array sprite_definitions{
   sprite_definition{"END_YN.640", 222, 22, 1},
 };
 struct panel_part { unsigned int mode; unsigned int view; std::string_view name; int x; int y; bool opaque; cockpit_section section{cockpit_section::complete}; };
-constexpr std::array panel_parts{
+std::array constexpr panel_parts{
   panel_part{0, 0, "PLT_1.320", 0, 124, true},
   panel_part{0, 0, "PLT_2.320", 0, 120, false},
   panel_part{0, 0, "PLT_3.320", 0, 0, false},
@@ -137,7 +137,7 @@ constexpr std::array panel_parts{
   panel_part{1, 8, "CPGR45_3.640", 0, 435, false},
   panel_part{1, 9, "CPGR90_1.640", 0, 0, false},
 };
-} // namespace
+} // anonymous namespace
 cockpit::cockpit(resources::data_store const &data, unsigned int const video_mode) : mode{video_mode} {
   if(mode > 1) throw std::runtime_error{"Unsupported cockpit video mode"};
   auto const rgb{data.read("COCKPITS/COCKPITS.RGB")};
@@ -163,7 +163,9 @@ void cockpit::copy(framebuffer &target, std::string_view const name, size_t cons
     if(!masked || colour) target.point(x, y, colour);
   }
 }
-void cockpit::install_palette(palette_rgb &palette) const { std::ranges::copy(colours, palette.begin() + 224 * 3); }
+void cockpit::install_palette(palette_rgb &palette) const {
+  std::ranges::copy(colours, palette.begin() + 224 * 3);
+}
 std::array<palette_fader, 3> cockpit::faders(int32_t const night, bool const night_vision) const {
   int32_t const light{night_vision ? 0 : night};
   int32_t const half{math::multiply_q31(light, 0x40000000)}, quarter{math::multiply_q31(light, 0x20000000)};

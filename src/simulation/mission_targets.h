@@ -18,7 +18,9 @@ public:
   mission_targets(mission_targets const &) = delete;
   mission_targets &operator=(mission_targets const &) = delete;
   mobile_target_state mobile_state(uint32_t id) const;
-  target_description describe(target_reference const &target) const { return world.describe(target, now); }
+  target_description describe(target_reference const &target) const {
+    return world.describe(target, now);
+  }
   shared_target in_sector(int32_t x, int32_t y, int32_t side, math::vector3 const &origin, search_kind kind, bool randomised = true);
   shared_target search(math::vector3 const &origin, int32_t side, int32_t minimum, int32_t maximum, search_kind kind, bool randomised = true);
 };

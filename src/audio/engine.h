@@ -1,10 +1,10 @@
 #pragma once
 #include <map>
 #include <mutex>
-#include "effects.h"
-#include "stream.h"
 #include "configuration/settings.h"
+#include "effects.h"
 #include "simulation/flight_systems.h"
+#include "stream.h"
 
 namespace apache::audio {
 std::string speech_name(resources::executable_data const &executable, int kind, int flow, int zone, int level, int mission);

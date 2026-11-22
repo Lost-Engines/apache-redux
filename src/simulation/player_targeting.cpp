@@ -4,7 +4,10 @@
 
 namespace apache::simulation {
 namespace {
-uint32_t magnitude(int32_t value) { auto const bits{static_cast<uint32_t>(value)}; return value < 0 ? 0u - bits : bits; }
+uint32_t magnitude(int32_t value) {
+  auto const bits{static_cast<uint32_t>(value)};
+  return value < 0 ? 0u - bits : bits;
+}
 }
 int32_t radar_target_priority(target_priority_inputs const &f, math::trigonometry const &trig) {
   if((f.kind != target_kind::scenery && f.kind != target_kind::mobile) || !f.enabled) return -1;
@@ -43,8 +46,7 @@ void player_targeting::update(std::span<target_reference const> const ranked, ta
     else current.identity.kind = target_kind::none;
   } else if(!tads) {
     auto const it{std::find_if(ranked.begin(), ranked.end(), [&](auto const &entry){ return equivalent_targets(current, entry); })};
-    if(it == ranked.end()) { current = ranked.front(); automatic = true; }
-    else if(cycle_direction) {
+    if(it == ranked.end()) { current = ranked.front(); automatic = true; } else if(cycle_direction) {
       auto const index{static_cast<size_t>(it - ranked.begin())};
       current = ranked[(index + (cycle_direction == 1 ? 1 : ranked.size() - 1)) % ranked.size()]; cycle_direction = 0;
     }
@@ -56,16 +58,16 @@ void player_targeting::update(std::span<target_reference const> const ranked, ta
     auto const description{describe(current)}; name = "TGT: " + std::string{description.name}; laser = current.identity.kind == target_kind::scenery && description.designated;
   } else laser = false;
 }
-void player_targeting::cycle_target(bool const forward, unsigned int const mode) { if(mode && !tads) { automatic = false; cycle_direction = forward ? 1 : 2; } }
+void player_targeting::cycle_target(bool const forward, unsigned int const mode) {
+  if(mode && !tads) { automatic = false; cycle_direction = forward ? 1 : 2; }
+}
 void player_targeting::toggle_automatic(unsigned int const mode, uint32_t const faults) {
   if(!mode) return;
-  if(!automatic) { tads = locked = false; cycle_direction = 0; automatic = true; }
-  else if(!(faults & 0x2000)) { tads = true; locked = false; cycle_direction = 0; automatic = false; }
+  if(!automatic) { tads = locked = false; cycle_direction = 0; automatic = true; } else if(!(faults & 0x2000)) { tads = true; locked = false; cycle_direction = 0; automatic = false; }
 }
 void player_targeting::toggle_lock(uint16_t const key, unsigned int const mode, uint32_t const faults, targeting_events const &events) {
   if((faults & 0x2000) || !accept(key, mode, events) || current.identity.kind == target_kind::none) return;
-  if(!locked) { previous_tads = tads; tads = true; automatic = false; locked = true; }
-  else { locked = false; if(!previous_tads) { tads = false; automatic = true; } }
+  if(!locked) { previous_tads = tads; tads = true; automatic = false; locked = true; } else { locked = false; if(!previous_tads) { tads = false; automatic = true; } }
 }
 void player_targeting::cycle_radar(uint16_t const key, unsigned int const mode, targeting_events const &events) {
   if(!accept(key, mode, events)) return;
@@ -93,7 +95,7 @@ void player_targeting::toggle_ecm(uint16_t const key, unsigned int const mode, t
 void player_targeting::cycle_ground_range(uint16_t const key, unsigned int const mode, targeting_events const &events) {
   if(!accept(key, mode, events)) return;
   ground_range_index = ground_range_index == 0 ? 1 : ground_range_index == 1 ? 2 : 0;
-  static constexpr std::array<int32_t, 3> ranges{0x1dab00, 0x3b5600, 0x76ac00}, corners{0x29f4f3, 0x53e9e7, 0xa7d3ce}, marks{0xfd2a, 0x1fa55, 0x3f4aa};
+  static std::array<int32_t, 3> constexpr ranges{0x1dab00, 0x3b5600, 0x76ac00}, corners{0x29f4f3, 0x53e9e7, 0xa7d3ce}, marks{0xfd2a, 0x1fa55, 0x3f4aa};
   ground_range = ranges[ground_range_index]; ground_corner = corners[ground_range_index]; ground_mark = marks[ground_range_index];
 }
 void player_targeting::toggle_tactical_range() {

@@ -1,9 +1,9 @@
 #pragma once
 #include <functional>
 #include <optional>
-#include "rotor_dynamics.h"
 #include "math/geometry.h"
 #include "math/trigonometry.h"
+#include "rotor_dynamics.h"
 
 namespace apache::simulation {
 struct flight_readings {

@@ -147,8 +147,7 @@ void scene_palette::update(palette_conditions const &conditions) {
       else if(conditions.weather == 3) weather_level = (weather_level >> 3) + 0x30000000;
     } else if(conditions.cloud_mode == 1) {
       int64_t const distance{int64_t{conditions.cloud_top} - conditions.altitude};
-      if(distance < 0x10000) { weather_colour = 255; weather_level = static_cast<int32_t>(std::clamp((0xffff - distance) * 0x8000, int64_t{0}, int64_t{INT32_MAX})); }
-      else weather_level = INT32_MAX;
+      if(distance < 0x10000) { weather_colour = 255; weather_level = static_cast<int32_t>(std::clamp((0xffff - distance) * 0x8000, int64_t{0}, int64_t{INT32_MAX})); } else weather_level = INT32_MAX;
     } else {
       weather_colour = 255;
       int64_t const distance{int64_t{conditions.altitude} - conditions.cloud_top};

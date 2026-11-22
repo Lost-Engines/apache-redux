@@ -1,7 +1,7 @@
 #pragma once
 #include <functional>
-#include "actor_types.h"
 #include "math/trigonometry.h"
+#include "actor_types.h"
 #include "render/model_renderer.h"
 #include "resources/missions.h"
 
@@ -42,7 +42,9 @@ struct actor_environment {
   std::function<int32_t(int32_t, int32_t)> height;
   std::function<unsigned int(int32_t, int32_t)> surface;
   std::function<void(actor_state &, math::vector3 const &)> relocate;
-  void set_position(actor_state &actor, math::vector3 const &position) const { if(relocate) relocate(actor, position); else actor.object.world.position = position; }
+  void set_position(actor_state &actor, math::vector3 const &position) const {
+    if(relocate) relocate(actor, position); else actor.object.world.position = position;
+  }
 };
 class mission_actors {
   resources::mission_definition const &mission;

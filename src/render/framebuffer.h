@@ -27,7 +27,9 @@ public:
   // Extend the render area without moving the cockpit's optical axis.
   std::optional<rectangle> projection_reference;
   std::vector<uint8_t> coverage;
-  void mark(size_t index) { if(!coverage.empty()) coverage[index] = 1; }
+  void mark(size_t index) {
+    if(!coverage.empty()) coverage[index] = 1;
+  }
   framebuffer(unsigned int width, unsigned int height);
   void reset_clip();
   void clear(uint8_t colour = 0);

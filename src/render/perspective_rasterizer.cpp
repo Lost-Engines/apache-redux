@@ -1,8 +1,8 @@
-#include "rasterizer.h"
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
 #include "math/fixed.h"
+#include "rasterizer.h"
 
 namespace apache::render {
 namespace {
@@ -14,7 +14,7 @@ int32_t nearest(double const value) {
   if(rounded < INT32_MIN || rounded > INT32_MAX || !std::isfinite(rounded)) throw std::runtime_error{"Perspective interpolant exceeds the fixed-point range"};
   return static_cast<int32_t>(rounded);
 }
-} // namespace
+} // anonymous namespace
 void rasterizer::scan_perspective(std::span<perspective_vertex const> const vertices) {
   first_row = static_cast<int>(target.image.height); last_row = -1;
   for(auto const &point : vertices) if(point.depth < 1 || point.screen.x < 0 || point.screen.y < 0 || point.screen.x >= static_cast<int>(target.image.width) || point.screen.y >= static_cast<int>(target.image.height)) throw std::runtime_error{"Perspective input must be clipped to the screen"};

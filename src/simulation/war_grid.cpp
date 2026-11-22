@@ -4,15 +4,32 @@
 
 namespace apache::simulation {
 namespace {
-bool valid(int32_t x, int32_t y, unsigned int side) { return x >= 0 && y >= 0 && x < 64 && y < 64 && side >= 1 && side <= 2; }
-bool air(int32_t classification) { return classification == 1 || classification == 2; }
-bool ground(int32_t classification) { return classification == 3 || classification == 4 || classification == 5 || classification == 7 || classification == 8; }
-size_t floor_index(int32_t x, int32_t y) { return static_cast<size_t>((x % 3) * 3 + y % 3); }
-int32_t patch_distance(std::array<int32_t, 2> const &a, std::array<int32_t, 2> const &b) { int32_t const x{std::abs(a[0] - b[0])}, y{std::abs(a[1] - b[1])}; return std::max(x, y) + std::min(x, y) / 4; }
+bool valid(int32_t x, int32_t y, unsigned int side) {
+  return x >= 0 && y >= 0 && x < 64 && y < 64 && side >= 1 && side <= 2;
 }
-bool radar_model(uint32_t const model) { return model == 46 || model == 77 || model == 111 || model == 328 || model == 526; }
-int32_t radar_range(uint32_t const model) { return model == 46 || model == 111 ? 10 : radar_model(model) ? 5 : 0; }
-int32_t radar_floor(uint32_t const model) { return model == 46 || model == 111 ? 128000 : model == 328 ? 76800 : model == 77 || model == 526 ? 12800 : 0; }
+bool air(int32_t classification) {
+  return classification == 1 || classification == 2;
+}
+bool ground(int32_t classification) {
+  return classification == 3 || classification == 4 || classification == 5 || classification == 7 || classification == 8;
+}
+size_t floor_index(int32_t x, int32_t y) {
+  return static_cast<size_t>((x % 3) * 3 + y % 3);
+}
+int32_t patch_distance(std::array<int32_t, 2> const &a, std::array<int32_t, 2> const &b) {
+  int32_t const x{std::abs(a[0] - b[0])}, y{std::abs(a[1] - b[1])};
+  return std::max(x, y) + std::min(x, y) / 4;
+}
+}
+bool radar_model(uint32_t const model) {
+  return model == 46 || model == 77 || model == 111 || model == 328 || model == 526;
+}
+int32_t radar_range(uint32_t const model) {
+  return model == 46 || model == 111 ? 10 : radar_model(model) ? 5 : 0;
+}
+int32_t radar_floor(uint32_t const model) {
+  return model == 46 || model == 111 ? 128000 : model == 328 ? 76800 : model == 77 || model == 526 ? 12800 : 0;
+}
 war_sector const *war_grid::sector(int32_t const x, int32_t const y, unsigned int const side) const {
   return valid(x, y, side) ? cells[static_cast<size_t>(x * 64 + y)][side - 1].get() : nullptr;
 }
@@ -80,11 +97,17 @@ void war_grid::insert_radar(int32_t const x, int32_t const y, unsigned int const
     radar_patch(side, target, model, source, {source[0] + r - i, source[1] - r}, height);
   }
 }
-shared_target war_grid::radar(int32_t const x, int32_t const y, unsigned int const side) const { auto const *cell{sector(x >> 22, y >> 22, side)}; return cell ? cell->radar : shared_target{}; }
+shared_target war_grid::radar(int32_t const x, int32_t const y, unsigned int const side) const {
+  auto const *cell{sector(x >> 22, y >> 22, side)};
+  return cell ? cell->radar : shared_target{};
+}
 int32_t war_grid::floor(int32_t const x, int32_t const y, unsigned int const side) const {
   if(x < 0 || y < 0) return INT32_MAX;
   int32_t const px{x / 0x155555}, py{y / 0x155555}; auto const *cell{sector(px / 3, py / 3, side)};
   return cell ? cell->floor[floor_index(px, py)] : INT32_MAX;
 }
-int32_t war_grid::status(int32_t const x, int32_t const y, unsigned int const side, std::function<int32_t(target_reference const &)> const &target_status) const { auto const *cell{sector(x, y, side)}; return cell && cell->radar ? target_status(*cell->radar) : 1; }
+int32_t war_grid::status(int32_t const x, int32_t const y, unsigned int const side, std::function<int32_t(target_reference const &)> const &target_status) const {
+  auto const *cell{sector(x, y, side)};
+  return cell && cell->radar ? target_status(*cell->radar) : 1;
+}
 } // namespace apache::simulation
