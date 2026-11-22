@@ -4,7 +4,9 @@
 
 namespace apache::simulation {
 class daylight {
-  int32_t mission_time{0}, start{0}, next_update{0};
+  int32_t mission_time{0};
+  int32_t start{0};
+  int32_t next_update{0};
 public:
   render::sky_lighting light;
   daylight(resources::executable_data const &executable, int32_t mission_time, int32_t now = 0);

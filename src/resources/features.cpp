@@ -11,7 +11,8 @@ std::vector<feature_face> read_faces(reader &input, size_t const vertex_count) {
   result.reserve(count);
   for(unsigned int i{0}; i != count; ++i) {
     feature_face face;
-    face.type = input.u8(); face.surface = input.u8();
+    face.type = input.u8();
+    face.surface = input.u8();
     unsigned int const points{input.u8()};
     if(!points || (face.type > 5 && face.type != 17) || (face.type == 1 && points < 2)) input.fail("Invalid terrain feature face");
     face.colours[0] = face.colours[1] = input.u8();
@@ -22,8 +23,9 @@ std::vector<feature_face> read_faces(reader &input, size_t const vertex_count) {
       face.indices.push_back(index);
       if(face.type == 17) face.intensities.push_back(input.u8());
     }
-    if(face.type < 2) face.render_indices = face.indices;
-    else {
+    if(face.type < 2) {
+      face.render_indices = face.indices;
+    } else {
       std::array<int, 256> links;
       links.fill(-1);
       for(size_t j{0}; j != face.indices.size(); ++j) links[face.indices[j]] = j + 1 < face.indices.size() ? face.indices[j + 1] : -1;
@@ -55,7 +57,9 @@ feature_layer::feature_layer(data_store const &data, std::string_view const zone
     if(!offset) continue;
     auto const end{*std::upper_bound(ordered.begin(), ordered.end(), offset)};
     reader input{std::span<uint8_t const>{file}.subspan(offset, end - offset), "Terrain feature"};
-    size_t const vertex_offset{input.u32()}, face_offset{input.u32()}, distant_offset{input.u32()};
+    size_t const vertex_offset{input.u32()};
+    size_t const face_offset{input.u32()};
+    size_t const distant_offset{input.u32()};
     input.seek(vertex_offset);
     size_t const count{input.u16()};
     if(count > 256) input.fail("Terrain feature exceeds the vertex index range");
@@ -71,7 +75,10 @@ feature_layer::feature_layer(data_store const &data, std::string_view const zone
           value = static_cast<int16_t>(static_cast<int>(byte) - centre);
         }
       }};
-      if(super) { component(0, 8, 16); component(1, 128, 255); } else {
+      if(super) {
+        component(0, 8, 16);
+        component(1, 128, 255);
+      } else {
         component(1, 128, 255);
         if(vertex.flags & 4) {
           component(2, 32, 64);
@@ -86,7 +93,11 @@ feature_layer::feature_layer(data_store const &data, std::string_view const zone
     if(distant_offset) {
       if(input.position() != distant_offset) input.fail("Terrain feature distant-face boundary disagrees");
       object.distant = read_faces(input, count);
-      for(auto const &face : object.distant) for(auto const index : face.indices) if(!(object.vertices[index].flags & 16)) input.fail("Distant feature references a vertex omitted by its scanner");
+      for(auto const &face : object.distant) {
+        for(auto const index : face.indices) {
+          if(!(object.vertices[index].flags & 16)) input.fail("Distant feature references a vertex omitted by its scanner");
+        }
+      }
     }
     if(input.remaining() > 3) input.fail("Unexpected trailing terrain feature data");
     records[i + 1] = std::move(object);
@@ -107,7 +118,9 @@ uint8_t feature_surface(feature const &object, int32_t const x, int32_t const y)
   for(auto const &v : object.vertices) {
     std::array<int32_t, 2> point{0, 0};
     std::array<int32_t, 4> constexpr scales{1 << 26, 1 << 18, 1 << 12, 1 << 6};
-    for(size_t level{0}; level != 4; ++level) for(size_t axis{0}; axis != 2; ++axis) point[axis] += v.components[level][axis] * scales[level];
+    for(size_t level{0}; level != 4; ++level) {
+      for(size_t axis{0}; axis != 2; ++axis) point[axis] += v.components[level][axis] * scales[level];
+    }
     points.push_back(point);
   }
   for(auto const &face : object.faces) {
@@ -116,19 +129,27 @@ uint8_t feature_surface(feature const &object, int32_t const x, int32_t const y)
     bool inside{true};
     auto const &indices{face.render_indices};
     for(size_t i{0}; i != indices.size(); ++i) {
-      auto const &a{points.at(indices[i])}, &b{points.at(indices[(i + 1) % indices.size()])};
+      auto const &a{points.at(indices[i])};
+      auto const &b{points.at(indices[(i + 1) % indices.size()])};
       int64_t const cross{int64_t{math::subtract(b[0], x)} * math::subtract(a[1], b[1]) - int64_t{math::subtract(a[0], b[0])} * math::subtract(b[1], y)};
-      if(cross < 0) { inside = false; break; }
+      if(cross < 0) {
+        inside = false;
+        break;
+      }
     }
     if(inside && !indices.empty()) return face.surface;
   }
   return 0;
 }
 uint8_t feature_layer::surface_type(int32_t x, int32_t y) const {
-  int32_t const offset{super ? 0x18000000 : 0}, limit{super ? 0x40000000 : 0x10000000};
-  x = math::add(x, offset); y = math::add(y, offset);
+  int32_t const offset{super ? 0x18000000 : 0};
+  int32_t const limit{super ? 0x40000000 : 0x10000000};
+  x = math::add(x, offset);
+  y = math::add(y, offset);
   if(x < 0 || y < 0 || x >= limit || y >= limit) return 0;
-  int const shift{super ? 26 : 22}, side{super ? 16 : 64}, mask{(1 << shift) - 1};
+  int const shift{super ? 26 : 22};
+  int const side{super ? 16 : 64};
+  int const mask{(1 << shift) - 1};
   auto const index{placements.at(static_cast<size_t>((x >> shift) * side + (y >> shift)))};
   return index ? feature_surface(*records.at(index), x & mask, y & mask) : 0;
 }

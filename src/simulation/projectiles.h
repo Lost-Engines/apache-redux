@@ -4,7 +4,11 @@
 #include "target_visibility.h"
 
 namespace apache::simulation {
-enum class target_slot : uint8_t { current, chaff, flare };
+enum class target_slot : uint8_t {
+  current,
+  chaff,
+  flare
+};
 struct projectile_target_binding {
   bool selected{false};
   std::shared_ptr<target_reference> target;
@@ -12,7 +16,8 @@ struct projectile_target_binding {
 struct projectile_record {
   projectile_launch_state state;
   target_reference source;
-  std::optional<target_reference> selected, designator;
+  std::optional<target_reference> selected;
+  std::optional<target_reference> designator;
   std::optional<uint32_t> mobile;
   projectile_target_binding adjusted;
 };
@@ -20,14 +25,25 @@ struct projectile_request {
   unsigned int weapon{0};
   projectile_launch_inputs launch;
   target_reference source;
-  std::optional<target_reference> selected, designator;
+  std::optional<target_reference> selected;
+  std::optional<target_reference> designator;
   bool guided_constructor{false};
 };
 struct projectile_aim {
   std::optional<movement_target> target;
   bool actor{false};
 };
-enum class projectile_event : unsigned int { notify, proximity, map_edge, mobile, scenery, expired, terrain, ballistic, removed };
+enum class projectile_event : unsigned int {
+  notify,
+  proximity,
+  map_edge,
+  mobile,
+  scenery,
+  expired,
+  terrain,
+  ballistic,
+  removed
+};
 struct projectile_event_info {
   projectile_event kind;
   math::vector3 position{};
@@ -38,9 +54,11 @@ struct projectile_callbacks {
   std::function<void(size_t, projectile_record &, projectile_event_info const &)> event;
 };
 struct projectile_time {
-  int32_t now{0}, delta{0};
+  int32_t now{0};
+  int32_t delta{0};
   double seconds{0};
-  int32_t smoke_radius{256}, smoke_lifetime{200};
+  int32_t smoke_radius{256};
+  int32_t smoke_lifetime{200};
   unsigned int smoke_density{0};
 };
 class projectiles {
@@ -54,7 +72,8 @@ class projectiles {
   effects &smoke;
   uint32_t &random_seed;
   projectile_callbacks callbacks;
-  size_t cursor{0}, count{0};
+  size_t cursor{0};
+  size_t count{0};
   std::array<std::optional<projectile_record>, 256> rounds;
   void emit(size_t index, projectile_event kind, math::vector3 const &position, std::optional<target_identity> target = {});
   bool collide(size_t index, math::vector3 const &move);

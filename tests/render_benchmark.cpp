@@ -16,9 +16,12 @@ int main(int argc, char **argv) try {
   namespace frontend = apache::frontend;
   namespace resources = apache::resources;
   resources::data_store data{argv[1]};
-  auto const width{static_cast<unsigned int>(std::stoul(argv[2]))}, height{static_cast<unsigned int>(std::stoul(argv[3]))};
-  unsigned int const frames{static_cast<unsigned int>(std::stoul(argv[4]))}, view{argc > 5 ? static_cast<unsigned int>(std::stoul(argv[5])) : 0u};
-  int const mission{argc > 6 ? std::stoi(argv[6]) : -3}, altitude{argc > 7 ? std::stoi(argv[7]) : 0};
+  auto const width{static_cast<unsigned int>(std::stoul(argv[2]))};
+  auto const height{static_cast<unsigned int>(std::stoul(argv[3]))};
+  unsigned int const frames{static_cast<unsigned int>(std::stoul(argv[4]))};
+  unsigned int const view{argc > 5 ? static_cast<unsigned int>(std::stoul(argv[5])) : 0u};
+  int const mission{argc > 6 ? std::stoi(argv[6]) : -3};
+  int const altitude{argc > 7 ? std::stoi(argv[7]) : 0};
   if(!frames || frames > 10000 || altitude < 0 || altitude > 50000 || mission < -4 || !mission || view > 19) {
     throw std::runtime_error{"Invalid benchmark frame count, altitude, mission or view"};
   }
@@ -40,7 +43,8 @@ int main(int argc, char **argv) try {
   }
   for(unsigned int i{0}; i < 3; ++i) session->draw();
   using clock = std::chrono::steady_clock;
-  std::chrono::duration<double,std::milli> draw{}, colour{};
+  std::chrono::duration<double, std::milli> draw{};
+  std::chrono::duration<double, std::milli> colour{};
   std::vector<apache::render::rgba> rgb;
   session->frame.colour_pixels(rgb);
   CALLGRIND_START_INSTRUMENTATION;
@@ -57,6 +61,9 @@ int main(int argc, char **argv) try {
   std::cout << "mission=" << mission << " view=" << view << " altitude=" << altitude << " fov=" << options.graphics.field_of_view << " lod=" << options.graphics.lod_distance_multiplier << ' ' << width << 'x' << height << " frames=" << frames
     << std::fixed << std::setprecision(3) << " draw_ms=" << draw.count() / frames << " rgba_ms=" << colour.count() / frames
     << " pixels=" << std::hex << resources::fingerprint(session->frame.image.pixels)
-    << " rgba=" << resources::fingerprint(std::span{reinterpret_cast<uint8_t const *>(rgb.data()), rgb.size() * sizeof(apache::render::rgba)}) << std::dec << '\n';
+    << " rgba=" << resources::fingerprint(std::span{reinterpret_cast<uint8_t const*>(rgb.data()), rgb.size() * sizeof(apache::render::rgba)}) << std::dec << '\n';
   return EXIT_SUCCESS;
-} catch(std::exception const &e) { std::cerr << e.what() << '\n'; return EXIT_FAILURE; }
+} catch(std::exception const &e) {
+  std::cerr << e.what() << '\n';
+  return EXIT_FAILURE;
+}

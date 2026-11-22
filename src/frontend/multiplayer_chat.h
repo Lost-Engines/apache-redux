@@ -6,7 +6,12 @@ namespace apache::frontend {
 class multiplayer_chat {
   render::instrument_font font;
   std::array<uint8_t, 256> ascii{};
-  struct command_info { std::string name; unsigned int arguments; bool listed; std::array<std::string, 3> help; };
+  struct command_info {
+    std::string name;
+    unsigned int arguments;
+    bool listed;
+    std::array<std::string, 3> help;
+  };
   std::array<command_info, 8> commands;
   std::array<std::string, 9> languages;
   std::string version;
@@ -14,11 +19,20 @@ class multiplayer_chat {
   void terrain_command(std::array<std::string, 4> const &arguments, int32_t now);
   void scroll();
 public:
-  bool writing{false}, empty{true};
-  std::array<char, 100> entry{}, previous{};
-  unsigned int cursor{0}, previous_cursor{0};
-  unsigned int lines{5}, scroll_seconds{5}, blank_seconds{30}, shadow{1}, colour{1}, language{1};
-  int32_t last_message{0}, scroll_time{0};
+  bool writing{false};
+  bool empty{true};
+  std::array<char, 100> entry{};
+  std::array<char, 100> previous{};
+  unsigned int cursor{0};
+  unsigned int previous_cursor{0};
+  unsigned int lines{5};
+  unsigned int scroll_seconds{5};
+  unsigned int blank_seconds{30};
+  unsigned int shadow{1};
+  unsigned int colour{1};
+  unsigned int language{1};
+  int32_t last_message{0};
+  int32_t scroll_time{0};
   std::array<std::string, 24> messages;
   std::function<void(std::string_view)> send;
   std::function<void(unsigned int)> change_language;

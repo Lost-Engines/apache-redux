@@ -7,7 +7,10 @@ std::vector<std::optional<texture>> read_object_textures(std::span<uint8_t const
   std::vector<std::optional<texture>> result;
   result.reserve(offsets.size());
   for(auto const offset : offsets) {
-    if(!offset) { result.emplace_back(); continue; }
+    if(!offset) {
+      result.emplace_back();
+      continue;
+    }
     input.seek(offset);
     auto const type{input.u32()};
     auto const width{input.u32()};

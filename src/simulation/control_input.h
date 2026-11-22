@@ -3,13 +3,21 @@
 
 namespace apache::simulation {
 struct control_configuration {
-  unsigned int cyclic{0}, collective{0}, tail_rotor{0};
-  unsigned int input_type{1}, button_mode{0};
-  bool absolute_throttle{false}, rudder{false}, analogue_hat{false};
+  unsigned int cyclic{0};
+  unsigned int collective{0};
+  unsigned int tail_rotor{0};
+  unsigned int input_type{1};
+  unsigned int button_mode{0};
+  bool absolute_throttle{false};
+  bool rudder{false};
+  bool analogue_hat{false};
   void resolve();
 };
 struct joystick_axis {
-  int32_t minimum{0}, centre{128}, maximum{255}, value{128};
+  int32_t minimum{0};
+  int32_t centre{128};
+  int32_t maximum{255};
+  int32_t value{128};
 };
 class joystick_curve {
 public:
@@ -33,9 +41,11 @@ public:
   std::array<int32_t, 4> external{};
   std::array<joystick_axis, 4> joystick;
   joystick_curve curve;
-  bool joystick_present{false}, hat_present{false};
+  bool joystick_present{false};
+  bool hat_present{false};
   unsigned int axis_count{0};
-  unsigned int buttons{0}, hat{0};
+  unsigned int buttons{0};
+  unsigned int hat{0};
   joystick_commands button_commands() const;
   void key(unsigned int scan, bool down);
   void timer(uint32_t ticks);

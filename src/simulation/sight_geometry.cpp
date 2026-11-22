@@ -23,6 +23,7 @@ math::vector3 chain_gun_impact(math::pose const &barrel, int32_t const speed, st
   // The original returns displacement coordinates here without adding the barrel
   // origin, and uses the absolute vertical velocity for both up and down fire.
   math::vector3 result{multiply(ticks, math::multiply_q31(barrel.rotation[3], speed)) / 200, multiply(ticks, math::multiply_q31(barrel.rotation[4], speed)) / 200, 0};
-  result[2] = height(result[0], result[1]); return result;
+  result[2] = height(result[0], result[1]);
+  return result;
 }
 } // namespace apache::simulation

@@ -2,7 +2,10 @@
 #include <optional>
 #include <string_view>
 namespace apache::configuration {
-struct resolution { unsigned int width{640}, height{480}; };
+struct resolution {
+  unsigned int width{640};
+  unsigned int height{480};
+};
 struct graphics {
   std::optional<resolution> fixed_resolution;
   double field_of_view{90};

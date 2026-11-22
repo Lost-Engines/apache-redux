@@ -6,7 +6,8 @@ namespace apache::simulation {
 std::array<uint32_t, 24> player_pod_models(std::array<player_pylon, 9> const &pylons, resources::model_archive const &models);
 class player_weapon_mounts {
   math::trigonometry const &trig;
-  std::optional<int32_t> gun_time, hydra_time;
+  std::optional<int32_t> gun_time;
+  std::optional<int32_t> hydra_time;
 public:
   int32_t hydra_elevation{0};
   bool hydras_locked{false};

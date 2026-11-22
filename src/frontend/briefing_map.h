@@ -14,7 +14,9 @@ class briefing_map {
   configuration::settings &settings;
   mission_session *mission{nullptr};
   render::instrument_font font;
-  render::framebuffer image{640, 480}, overlay{640, 480}, preview_frame{239, 181};
+  render::framebuffer image{640, 480};
+  render::framebuffer overlay{640, 480};
+  render::framebuffer preview_frame{239, 181};
   resources::indexed_image marker;
   std::unique_ptr<render::landscape> preview_world;
   bool preview_dirty{true};
@@ -22,7 +24,12 @@ class briefing_map {
   void preview();
   std::vector<map_route_command> commands;
   bool dirty{true};
-  int active_tool{0}, dragging{0}, start_x{0}, start_y{0}, half_width{20}, half_height{15};
+  int active_tool{0};
+  int dragging{0};
+  int start_x{0};
+  int start_y{0};
+  int half_width{20};
+  int half_height{15};
   uint32_t start_angle{0};
   render::vertex2 cursor_world;
   void visible(std::string_view name, bool show);

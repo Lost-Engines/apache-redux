@@ -13,19 +13,34 @@ uint32_t approximate_range(math::vector3 const &point) {
 }
 terrain_fog::terrain_fog(unsigned int const detail) {
   if(detail < 1 || detail > 14) throw std::runtime_error{"Terrain detail must be between 1 and 14"};
-  if(detail < 3) { boundary = 0; width = detail; } else if(detail < 5) { boundary = 2; width = detail - 2; } else if(detail < 7) { boundary = detail - 2; width = 2; } else { boundary = 5; width = detail - 5; }
+  if(detail < 3) {
+    boundary = 0;
+    width = detail;
+  } else if(detail < 5) {
+    boundary = 2;
+    width = detail - 2;
+  } else if(detail < 7) {
+    boundary = detail - 2;
+    width = 2;
+  } else {
+    boundary = 5;
+    width = detail - 5;
+  }
 }
 uint32_t terrain_fog::constant_colour(uint32_t const range, uint8_t colour, std::span<uint8_t const, 256> const remap) const {
   if(colour == 255) colour = 79;
   if(range < (boundary << 22)) return remap[colour] * 0x01010101u;
   if(colour < 71) colour = 115;
   uint32_t distance{static_cast<uint32_t>(static_cast<uint64_t>(static_cast<double>(range - (boundary << 22)) / (width * 0.5)))};
-  unsigned int base{151}, level{0};
+  unsigned int base{151};
+  unsigned int level{0};
   if(distance <= 6291456) {
     level = distance >> 20;
-    if(colour >= 83 && colour <= 98) base = 139;
-    else if(colour >= 99 && colour <= 114) base = 143;
-    else if(colour >= 115 && colour <= 126) base = 147;
+    if(colour >= 83 && colour <= 98) {
+      base = 139;
+    } else if(colour >= 99 && colour <= 114) {
+      base = 143;
+    } else if(colour >= 115 && colour <= 126) base = 147;
   } else {
     distance = std::min(distance, width << 22);
     level = static_cast<unsigned int>(std::clamp(static_cast<int>((static_cast<double>(distance) - 6291456.0) * 2.8610229492187504e-6), 0, 6));

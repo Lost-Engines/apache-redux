@@ -32,7 +32,9 @@ class mission_flight {
   void leave_carrier();
   void synchronize();
 public:
-  std::function<void()> died, mobile_collision, landing_award;
+  std::function<void()> died;
+  std::function<void()> mobile_collision;
+  std::function<void()> landing_award;
   uint32_t collision_model{0};
   int32_t model_weight{14058};
   std::optional<size_t> hit_actor;
@@ -61,7 +63,11 @@ public:
     return arcade_mode ? arcade.power.faults : realistic.dynamics.power.faults;
   }
   void set_faults(uint32_t value) {
-    if(arcade_mode) arcade.power.faults = value; else realistic.dynamics.power.faults = value;
+    if(arcade_mode) {
+      arcade.power.faults = value;
+    } else {
+      realistic.dynamics.power.faults = value;
+    }
   }
   bool invulnerable() const {
     return arcade_mode ? arcade.invulnerable : realistic.invulnerable;

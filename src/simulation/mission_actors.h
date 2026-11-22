@@ -7,24 +7,36 @@
 
 namespace apache::simulation {
 struct actor_location {
-  size_t task{0}, group{0}, member{0};
+  size_t task{0};
+  size_t group{0};
+  size_t member{0};
 };
 struct actor_state {
   actor_location location;
   render::model_instance object;
-  uint32_t classification{0}, conditions{0x30004};
+  uint32_t classification{0};
+  uint32_t conditions{0x30004};
   int32_t serial{0};
   std::array<uint32_t, 3> angles{};
   math::vector3 velocity{};
-  int32_t speed{0}, desired_speed{0}, route_distance{0};
-  int32_t destroyed{0}, network{-1}, speed_ramp_target{0}, retreat_until{0};
+  int32_t speed{0};
+  int32_t desired_speed{0};
+  int32_t route_distance{0};
+  int32_t destroyed{0};
+  int32_t network{-1};
+  int32_t speed_ramp_target{0};
+  int32_t retreat_until{0};
   std::array<int32_t, 5> ammunition{};
-  int32_t weapon{0}, weapon_slot{-1};
+  int32_t weapon{0};
+  int32_t weapon_slot{-1};
   uint32_t random{0};
-  std::optional<size_t> carrier, carrier_slot, waypoint;
+  std::optional<size_t> carrier;
+  std::optional<size_t> carrier_slot;
+  std::optional<size_t> waypoint;
 };
 struct actor_group {
-  size_t task{0}, index{0};
+  size_t task{0};
+  size_t index{0};
   resources::mission_actor definition;
   std::vector<size_t> units;
 };
@@ -35,7 +47,8 @@ struct carrier_slot {
   std::optional<size_t> reserved;
 };
 struct carrier_state {
-  size_t actor{0}, available{0};
+  size_t actor{0};
+  size_t available{0};
   std::vector<carrier_slot> slots;
 };
 struct actor_environment {
@@ -43,7 +56,11 @@ struct actor_environment {
   std::function<unsigned int(int32_t, int32_t)> surface;
   std::function<void(actor_state &, math::vector3 const &)> relocate;
   void set_position(actor_state &actor, math::vector3 const &position) const {
-    if(relocate) relocate(actor, position); else actor.object.world.position = position;
+    if(relocate) {
+      relocate(actor, position);
+    } else {
+      actor.object.world.position = position;
+    }
   }
 };
 class mission_actors {

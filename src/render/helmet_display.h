@@ -7,7 +7,29 @@
 #include "projection2.h"
 
 namespace apache::render {
-enum class helmet_component { reticle, heading, pitch, bank, altitude, waypoint, airspeed, engines, viewing_device, field_of_view, layout, aiming_box, impact, targeting_box, rocket_sight, intercept, lock_diamond, point_direction, weapons, targeting, tads_box };
+enum class helmet_component {
+  reticle,
+  heading,
+  pitch,
+  bank,
+  altitude,
+  waypoint,
+  airspeed,
+  engines,
+  viewing_device,
+  field_of_view,
+  layout,
+  aiming_box,
+  impact,
+  targeting_box,
+  rocket_sight,
+  intercept,
+  lock_diamond,
+  point_direction,
+  weapons,
+  targeting,
+  tads_box
+};
 struct helmet_weapon_instruments {
   unsigned int selected{1};
   std::string name{"M230"};

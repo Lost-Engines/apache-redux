@@ -27,7 +27,8 @@ class mission_weapons {
   render::mobile_scene &mobiles;
   math::trigonometry const &trig;
   combat_tables const &tables;
-  combat_random &war_random, &weapon_random;
+  combat_random &war_random;
+  combat_random &weapon_random;
   int difficulty;
   std::array<actor_type, 1315> types;
   std::array<weapon_info, 55> weapons;

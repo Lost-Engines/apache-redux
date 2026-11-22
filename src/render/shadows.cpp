@@ -14,7 +14,8 @@ resources::model const &model_at(resources::model_archive const &models, uint32_
 } // anonymous namespace
 shadow_projection::shadow_projection(resources::terrain const &heights, math::trigonometry const &trig, sky_lighting const &light) : terrain{heights} {
   auto const pitch{static_cast<uint32_t>(std::min(std::bit_cast<int32_t>(light.pitch), -0x71c71c7))};
-  int32_t const sine{trig.sine(pitch)}, cosine{trig.cosine(pitch)};
+  int32_t const sine{trig.sine(pitch)};
+  int32_t const cosine{trig.cosine(pitch)};
   if(!sine) throw std::runtime_error{"Shadow light must have a vertical component"};
   cast[0] = math::negate(static_cast<int32_t>(((int64_t{trig.sine(light.heading)} * cosine) >> 3) / sine));
   cast[1] = math::negate(static_cast<int32_t>(((int64_t{trig.cosine(light.heading)} * cosine) >> 3) / sine));
@@ -36,7 +37,12 @@ shadow_plane shadow_projection::project(math::vector3 const &position, bool cons
   }
   return result;
 }
-shadow_renderer::shadow_renderer(framebuffer &target, resources::model_archive const &objects, shadow_projection const &cast, scene_palette const &colours) : models{objects}, casting{cast}, palette{colours}, raster{target}, view{target} {}
+shadow_renderer::shadow_renderer(framebuffer &target, resources::model_archive const &objects, shadow_projection const &cast, scene_palette const &colours)
+  : models{objects},
+    casting{cast},
+    palette{colours},
+    raster{target},
+    view{target} {}
 void shadow_renderer::draw(model_instance &object, math::pose const &camera) {
   maintain_model(object);
   draw_instance(object, camera, 0);
@@ -56,7 +62,8 @@ void shadow_renderer::draw_instance(model_instance &object, math::pose const &ca
   auto const origin{math::transform(camera.rotation, delta)};
   auto const rotation{math::transpose(object.world.rotation)};
   auto const convert{[&](std::array<uint8_t, 6> const &packed){
-    resources::reader input{packed}; math::vector3 vertex;
+    resources::reader input{packed};
+    math::vector3 vertex;
     for(size_t i{0}; i != 3; ++i) vertex[i] = math::scale_q24(input.i16() * 16, object.scale[i]);
     vertex = math::transform(rotation, vertex);
     int32_t const height{times_eight(math::add(vertex[2], plane.height))};
@@ -80,7 +87,7 @@ void shadow_renderer::draw_instance(model_instance &object, math::pose const &ca
     .face{[&](resources::primitive const &face, uint32_t, bool const secondary){
       if(face.type == 0 || face.type == 1 || face.type == 9 || face.type == 10) return 0;
       auto const raw{polygon(face.indices)};
-      bool const clipped{std::ranges::any_of(raw, [](auto const &v){ return v.outcode != 0; })};
+      bool const clipped{std::ranges::any_of(raw, [](auto const &v){return v.outcode != 0;})};
       auto const output{view.clip(raw)};
       if(output.empty()) return -1;
       int const order{winding(output, clipped)};
@@ -96,11 +103,14 @@ void shadow_renderer::draw_instance(model_instance &object, math::pose const &ca
     .winding{[&](std::span<uint8_t const> const indices){
       auto const raw{polygon(indices)};
       auto const output{view.clip(raw)};
-      return output.empty() ? -1 : winding(output, std::ranges::any_of(raw, [](auto const &v){ return v.outcode != 0; }));
+      return output.empty() ? -1 : winding(output, std::ranges::any_of(raw, [](auto const &v){return v.outcode != 0;}));
     }},
     .child{[&](unsigned int const slot){
       if(slot >= object.children.size()) throw std::runtime_error{"Shadow attachment slot is absent"};
-      if(object.children[slot]) { object.children[slot]->distance = object.distance; draw_instance(*object.children[slot], camera, depth + 1); }
+      if(object.children[slot]) {
+        object.children[slot]->distance = object.distance;
+        draw_instance(*object.children[slot], camera, depth + 1);
+      }
     }},
   };
   resources::execute_model(model, object.flags, 0, callbacks);

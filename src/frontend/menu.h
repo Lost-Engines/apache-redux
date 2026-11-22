@@ -13,12 +13,19 @@
 #include "widget.h"
 
 namespace apache::frontend {
-enum class pointer_action { move, left_down, left_up, right_down, right_up };
+enum class pointer_action {
+  move,
+  left_down,
+  left_up,
+  right_down,
+  right_up
+};
 class menu {
   resources::data_store const &data;
   render::menu_font font;
   render::instrument_font number_font;
-  int number_capture{-1}, number_click{3};
+  int number_capture{-1};
+  int number_click{3};
   bool number_moved{false};
   double number_clock{0};
   int64_t number_repeat{0};
@@ -32,11 +39,18 @@ class menu {
   std::vector<render::rectangle> clips;
   int hovered{-1};
   int pressed{-1};
-  int pointer_capture{-1}, moving_box{-1}, moving_x{0}, moving_y{0};
-  int resizing_widget{-1}, resize_dx{0}, resize_dy{0};
-  std::vector<size_t> raised, paint_order;
+  int pointer_capture{-1};
+  int moving_box{-1};
+  int moving_x{0};
+  int moving_y{0};
+  int resizing_widget{-1};
+  int resize_dx{0};
+  int resize_dy{0};
+  std::vector<size_t> raised;
+  std::vector<size_t> paint_order;
   void bounds(size_t index, render::rectangle area);
-  int cursor_x{0}, cursor_y{0};
+  int cursor_x{0};
+  int cursor_y{0};
   struct popup_state {
     std::vector<std::pair<std::string, int>> choices;
     std::function<void(int)> selected;
@@ -44,7 +58,9 @@ class menu {
     int hovered{-1};
   };
   std::optional<popup_state> active_popup;
-  int drag_y{0}, drag_position{0}, scroll_direction{0};
+  int drag_y{0};
+  int drag_position{0};
+  int scroll_direction{0};
   std::vector<std::pair<size_t, size_t>> scroll_links;
   void scroll_changed(size_t index);
   bool quitting{false};

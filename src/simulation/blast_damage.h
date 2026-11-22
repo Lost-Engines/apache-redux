@@ -6,7 +6,8 @@ struct blast_callbacks {
   std::function<damage_recipient(target_identity const &)> read;
   std::function<void(target_identity const &, damage_recipient const &)> write;
   std::function<void(target_identity const &, damage_action)> action;
-  std::function<void(target_identity const &)> partial_explosion, auxiliary;
+  std::function<void(target_identity const &)> partial_explosion;
+  std::function<void(target_identity const &)> auxiliary;
   std::function<void(math::vector3 const &)> weapon_explosion;
 };
 class blast_damage {

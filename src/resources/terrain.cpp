@@ -25,10 +25,14 @@ terrain_post const &terrain::post(unsigned int const x, unsigned int const y) co
 int32_t terrain::elevation(int32_t const x, int32_t const y) const {
   /// Preserve the original two-stage integer triangle interpolation
   if(x < 0 || y < 0 || x >= 256 * terrain_step || y >= 256 * terrain_step) return 0;
-  auto const ix{static_cast<unsigned int>(x >> 20)}, iy{static_cast<unsigned int>(y >> 20)};
-  int32_t fx{x & (terrain_step - 1)}, fy{y & (terrain_step - 1)};
-  int32_t a{post(ix, iy).height * 256}, b{post(ix + 1, iy + 1).height * 256};
-  int32_t c{post(ix + 1, iy).height * 256}, d{post(ix, iy + 1).height * 256};
+  auto const ix{static_cast<unsigned int>(x >> 20)};
+  auto const iy{static_cast<unsigned int>(y >> 20)};
+  int32_t fx{x & (terrain_step - 1)};
+  int32_t fy{y & (terrain_step - 1)};
+  int32_t a{post(ix, iy).height * 256};
+  int32_t b{post(ix + 1, iy + 1).height * 256};
+  int32_t c{post(ix + 1, iy).height * 256};
+  int32_t d{post(ix, iy + 1).height * 256};
   if(!(post(ix, iy).flags & 64)) {
     std::swap(a, c);
     std::swap(b, d);
@@ -45,14 +49,17 @@ int32_t terrain::elevation(int32_t const x, int32_t const y) const {
 
 int32_t terrain::approximate_elevation(int32_t const x, int32_t const y) const {
   if(x < 0 || y < 0 || x >= 256 * terrain_step || y >= 256 * terrain_step) return 0;
-  auto const ix{static_cast<unsigned int>(x >> 20)}, iy{static_cast<unsigned int>(y >> 20)};
+  auto const ix{static_cast<unsigned int>(x >> 20)};
+  auto const iy{static_cast<unsigned int>(y >> 20)};
   return std::max({post(ix, iy).height, post(ix + 1, iy).height, post(ix, iy + 1).height, post(ix + 1, iy + 1).height}) * 256;
 }
 
 void initialise_scenery(std::span<scenery_placement> const placements) {
   // The original loader marks these authored structures non-targetable.
   std::array<uint16_t, 11> constexpr protected_models{125, 127, 387, 441, 442, 482, 483, 505, 890, 906, 908};
-  for(auto &placement : placements) if(std::ranges::find(protected_models, placement.model) != protected_models.end()) placement.status |= 1;
+  for(auto &placement : placements) {
+    if(std::ranges::find(protected_models, placement.model) != protected_models.end()) placement.status |= 1;
+  }
 }
 std::vector<scenery_placement> read_scenery(std::span<uint8_t const> const data) {
   reader input{data, "ground objects"};

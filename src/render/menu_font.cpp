@@ -10,11 +10,13 @@ menu_font::menu_font(resources::indexed_image const &sheet) {
     glyph.width = glyph.height = 16;
     glyph.pixels.resize(256);
     unsigned int rightmost{0};
-    for(unsigned int y{0}; y != 16; ++y) for(unsigned int x{0}; x != 16; ++x) {
-      uint8_t const pixel{sheet.pixels[(c / 32 * 17 + y) * 640 + c % 32 * 17 + x]};
-      if(pixel > 1) {
-        glyph.pixels[y * 16 + x] = static_cast<uint8_t>(pixel - 1);
-        rightmost = std::max(rightmost, x);
+    for(unsigned int y{0}; y != 16; ++y) {
+      for(unsigned int x{0}; x != 16; ++x) {
+        uint8_t const pixel{sheet.pixels[(c / 32 * 17 + y) * 640 + c % 32 * 17 + x]};
+        if(pixel > 1) {
+          glyph.pixels[y * 16 + x] = static_cast<uint8_t>(pixel - 1);
+          rightmost = std::max(rightmost, x);
+        }
       }
     }
     advances[c] = (rightmost ? rightmost : 4) + 1;
@@ -29,10 +31,15 @@ int menu_font::width(std::string_view const text) const {
 }
 std::vector<std::string_view> menu_font::lines(std::string_view const text, int const limit, bool const wrap) const {
   std::vector<std::string_view> result;
-  size_t start{0}, space{0}; int used{0};
+  size_t start{0};
+  size_t space{0};
+  int used{0};
   for(size_t i{0}; i < text.size(); ++i) {
     if(text[i] == '\n') {
-      result.push_back(text.substr(start, i - start)); start = i + 1; space = start; used = 0;
+      result.push_back(text.substr(start, i - start));
+      start = i + 1;
+      space = start;
+      used = 0;
       continue;
     }
     used += static_cast<int>(advances[static_cast<unsigned char>(text[i])]);
@@ -41,7 +48,9 @@ std::vector<std::string_view> menu_font::lines(std::string_view const text, int 
       // The original buffers a word until its preceding space can be wrapped.
       // Break an overlong word at the boundary instead of walking beyond the box.
       size_t const end{space > start ? space : std::max(start + 1, i)};
-      result.push_back(text.substr(start, end - start)); start = end; space = start;
+      result.push_back(text.substr(start, end - start));
+      start = end;
+      space = start;
       used = width(text.substr(start, i + 1 - start));
     }
   }
@@ -57,7 +66,11 @@ void menu_font::draw(framebuffer &target, std::string_view const text, int x, in
       continue;
     }
     auto const &glyph{glyphs[c]};
-    for(int yy{0}; yy != 16; ++yy) for(int xx{0}; xx != 16; ++xx) if(glyph.pixels[static_cast<size_t>(yy * 16 + xx)]) target.point(x + xx, y + yy, colour);
+    for(int yy{0}; yy != 16; ++yy) {
+      for(int xx{0}; xx != 16; ++xx) {
+        if(glyph.pixels[static_cast<size_t>(yy * 16 + xx)]) target.point(x + xx, y + yy, colour);
+      }
+    }
     x += static_cast<int>(advances[c]);
   }
 }

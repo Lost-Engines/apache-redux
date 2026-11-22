@@ -5,12 +5,15 @@ namespace apache::simulation {
 struct ground_defence {
   math::vector3 position{};
   uint32_t heading{0};
-  int32_t deadline{0}, shots{0};
-  shared_target self, target;
+  int32_t deadline{0};
+  int32_t shots{0};
+  shared_target self;
+  shared_target target;
 };
 struct ground_defence_callbacks {
   std::function<math::vector3(target_reference const &)> position;
-  std::function<int32_t(target_reference const &)> status, side;
+  std::function<int32_t(target_reference const &)> status;
+  std::function<int32_t(target_reference const &)> side;
   std::function<shared_target(math::vector3 const &, int32_t, int32_t, int32_t)> search;
   std::function<void(target_reference const &, uint16_t)> heading;
   std::function<firing_status(target_reference const &, target_reference const &, unsigned int)> shoot;
@@ -22,7 +25,11 @@ void visit_ground_defence_sectors(math::vector3 const &view, std::function<int32
 struct actor_combat_callbacks {
   std::function<int32_t(target_reference const &)> status;
   std::function<math::vector3(target_reference const &)> position;
-  std::function<void()> air_acquire, ground_acquire, artillery_acquire, fire, released;
+  std::function<void()> air_acquire;
+  std::function<void()> ground_acquire;
+  std::function<void()> artillery_acquire;
+  std::function<void()> fire;
+  std::function<void()> released;
   std::function<unsigned int()> weapon;
   std::function<bool()> behind;
 };
