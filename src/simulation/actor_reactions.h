@@ -4,11 +4,16 @@
 
 namespace apache::simulation {
 struct combat_warning_times {
-  int32_t ships_attacked{0}, radar{0}, bandit{0};
+  int32_t ships_attacked{0};
+  int32_t radar{0};
+  int32_t bandit{0};
 };
 struct actor_reaction_context {
-  int32_t now{0}, task{0}, attacker_side{0};
-  uint32_t attacker_model{0}, view_heading{0};
+  int32_t now{0};
+  int32_t task{0};
+  int32_t attacker_side{0};
+  uint32_t attacker_model{0};
+  uint32_t view_heading{0};
   bool player{false};
   math::vector3 view_position{};
   movement_target attacker;

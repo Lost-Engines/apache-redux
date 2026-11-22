@@ -7,12 +7,17 @@
 namespace apache::simulation {
 struct communication_message {
   std::string text;
-  int32_t lifetime{0}, priority{0};
-  bool displayed{false}, changing{false};
+  int32_t lifetime{0};
+  int32_t priority{0};
+  bool displayed{false};
+  bool changing{false};
   uint32_t identity{0};
 };
 struct communication_status {
-  int32_t fuel{0}, endurance{0}, flow{0}, score{0};
+  int32_t fuel{0};
+  int32_t endurance{0};
+  int32_t flow{0};
+  int32_t score{0};
   bool infinite_fuel{false};
   uint32_t faults{0};
   std::string_view weapon;

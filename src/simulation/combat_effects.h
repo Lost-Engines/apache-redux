@@ -9,7 +9,8 @@
 
 namespace apache::simulation {
 struct explosion_audio {
-  int32_t volume{0}, pan{32768};
+  int32_t volume{0};
+  int32_t pan{32768};
 };
 class combat_effects {
   resources::model_archive const &models;

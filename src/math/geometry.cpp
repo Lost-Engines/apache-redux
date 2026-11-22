@@ -5,17 +5,27 @@
 
 namespace apache::math {
 uint32_t integer_sqrt(uint64_t value) {
-  uint64_t result{0}, bit{uint64_t{1} << 62};
+  uint64_t result{0};
+  uint64_t bit{uint64_t{1} << 62};
   while(bit > value) bit >>= 2;
   while(bit) {
-    if(value >= result + bit) { value -= result + bit; result = (result >> 1) + bit; } else result >>= 1;
+    if(value >= result + bit) {
+      value -= result + bit;
+      result = (result >> 1) + bit;
+    } else {
+      result >>= 1;
+    }
     bit >>= 2;
   }
   return static_cast<uint32_t>(result);
 }
 int32_t normalise_q31_in_place(vector3 &value) {
-  if(std::abs(int64_t{value[0]}) > 0x3fffffff || std::abs(int64_t{value[1]}) > 0x3fffffff || std::abs(int64_t{value[2]}) > 0x3fffffff) for(auto &axis : value) axis /= 2;
-  double const x{static_cast<double>(value[0])}, y{static_cast<double>(value[1])}, z{static_cast<double>(value[2])};
+  if(std::abs(int64_t{value[0]}) > 0x3fffffff || std::abs(int64_t{value[1]}) > 0x3fffffff || std::abs(int64_t{value[2]}) > 0x3fffffff) {
+    for(auto &axis : value) axis /= 2;
+  }
+  double const x{static_cast<double>(value[0])};
+  double const y{static_cast<double>(value[1])};
+  double const z{static_cast<double>(value[2])};
   int64_t const length{static_cast<int64_t>(std::sqrt(x * x + y * y + z * z)) + 1};
   for(auto &axis : value) axis = std::abs(int64_t{axis}) < length ? static_cast<int32_t>((int64_t{axis} * 0x80000000ll) / length) : axis > 0 ? INT32_MAX : -INT32_MAX;
   return static_cast<int32_t>(length);
@@ -39,7 +49,9 @@ matrix3 transpose(matrix3 const &matrix) {
 }
 matrix3 multiply(matrix3 const &a, matrix3 const &b) {
   matrix3 result;
-  for(size_t y{0}; y != 3; ++y) for(size_t x{0}; x != 3; ++x) result[y * 3 + x] = rounded_q31(product_bits(a[y * 3], b[x]) + product_bits(a[y * 3 + 1], b[x + 3]) + product_bits(a[y * 3 + 2], b[x + 6]));
+  for(size_t y{0}; y != 3; ++y) {
+    for(size_t x{0}; x != 3; ++x) result[y * 3 + x] = rounded_q31(product_bits(a[y * 3], b[x]) + product_bits(a[y * 3 + 1], b[x + 3]) + product_bits(a[y * 3 + 2], b[x + 6]));
+  }
   return result;
 }
 pose attach(pose const &parent, pose const &relative) {

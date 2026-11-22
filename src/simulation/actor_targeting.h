@@ -6,18 +6,24 @@
 namespace apache::simulation {
 struct actor_attention {
   int32_t range{0};
-  uint8_t damage{0}, processed_damage{0};
+  uint8_t damage{0};
+  uint8_t processed_damage{0};
 };
 struct flight_path {
-  std::optional<math::vector3> previous, current, next;
+  std::optional<math::vector3> previous;
+  std::optional<math::vector3> current;
+  std::optional<math::vector3> next;
   int32_t type{0};
 };
 int32_t attention_range(int32_t task, int32_t side, forces_info const &skill);
 bool target_behind_actor(actor_state const &actor, math::vector3 const &position);
 int32_t distance_from_flight_path(flight_path const &path, math::vector3 const &position, math::trigonometry const &trig);
 struct actor_targeting_context {
-  int32_t now{0}, task{0}, start_time{0};
-  bool has_formation{false}, radar_model{false};
+  int32_t now{0};
+  int32_t task{0};
+  int32_t start_time{0};
+  bool has_formation{false};
+  bool radar_model{false};
   flight_path path;
   shared_target player_target;
 };
@@ -29,7 +35,8 @@ struct actor_targeting_callbacks {
   std::function<bool(target_reference const &)> visible;
   std::function<int32_t(int32_t, int32_t)> height;
   std::function<shared_target(math::vector3 const &)> fixed;
-  std::function<void()> released, cap;
+  std::function<void()> released;
+  std::function<void()> cap;
   std::function<void(target_reference const &)> targeted;
   std::function<void(unsigned int)> sound;
   std::function<void(std::string_view)> message;
@@ -41,7 +48,8 @@ class actor_targeting {
   actor_type const &type;
   std::array<weapon_info, 55> const &weapons;
   math::trigonometry const &trig;
-  forces_info const &skill, &friendly_skill;
+  forces_info const &skill;
+  forces_info const &friendly_skill;
   combat_random &random;
   int32_t &bombing_message_time;
   actor_targeting_context const &context;

@@ -7,9 +7,15 @@ void fragments::reset() {
   next = 0;
 }
 void fragments::create(uint32_t const model, uint32_t const flags, math::pose const &position, uint32_t &random_seed) {
-  auto const random{[&]{ random_seed = random_seed * 0x41c64e6du + 0x3039u; return random_seed & 0x7fff0000u; }};
+  auto const random{[&]{
+    random_seed = random_seed * 0x41c64e6du + 0x3039u;
+    return random_seed & 0x7fff0000u;
+  }};
   auto &piece{pieces[next]};
-  piece.active = true; piece.model = model; piece.flags = flags; piece.position = position;
+  piece.active = true;
+  piece.model = model;
+  piece.flags = flags;
+  piece.position = position;
   for(auto &v : piece.axis) v = std::bit_cast<int32_t>(random() + 0xc0000000u);
   piece.axis = math::normalise_q31(piece.axis);
   piece.spin = std::bit_cast<int32_t>(random() * 2u);
@@ -32,7 +38,9 @@ void fragments::advance(int32_t const delta_time, math::trigonometry const &trig
     for(size_t i{0}; i != 3; ++i) position[i] = math::add(position[i], math::multiply_q31(piece.velocity[i], delta_time));
     auto const height{terrain.elevation(position[0], position[1])};
     if(position[2] <= height) {
-      piece.spin = 0; piece.velocity.fill(0); position[2] = height;
+      piece.spin = 0;
+      piece.velocity.fill(0);
+      position[2] = height;
       if(height == 0) {
         auto const type{surface(position[0], position[1])};
         if(type >= 1 && type <= 3) {

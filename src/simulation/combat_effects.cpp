@@ -11,7 +11,8 @@ int32_t magnitude(int32_t x) {
   return x < 0 ? math::negate(x) : x;
 }
 int32_t approximate2(int32_t x, int32_t y) {
-  x = magnitude(x); y = magnitude(y);
+  x = magnitude(x);
+  y = magnitude(y);
   return std::bit_cast<int32_t>(static_cast<uint32_t>(std::max(x, y)) * 4u + static_cast<uint32_t>(std::min(x, y))) >> 2;
 }
 int32_t approximate3(math::vector3 v) {
@@ -24,7 +25,14 @@ int32_t remainder(int32_t value, int32_t divisor) {
   return divisor == 0 ? 0 : static_cast<int32_t>(int64_t{value} % divisor);
 }
 } // anonymous namespace
-combat_effects::combat_effects(resources::model_archive const &definitions, resources::terrain const &ground, math::trigonometry const &angles, effects &sprites, craters &crater_pool, combat_random &rng, std::function<uint8_t(int32_t, int32_t)> materials) : models{definitions}, terrain{ground}, trig{angles}, visuals{sprites}, marks{crater_pool}, random{rng}, surface{std::move(materials)} {}
+combat_effects::combat_effects(resources::model_archive const &definitions, resources::terrain const &ground, math::trigonometry const &angles, effects &sprites, craters &crater_pool, combat_random &rng, std::function<uint8_t(int32_t, int32_t)> materials)
+  : models{definitions},
+    terrain{ground},
+    trig{angles},
+    visuals{sprites},
+    marks{crater_pool},
+    random{rng},
+    surface{std::move(materials)} {}
 math::vector3 combat_effects::random_point(math::vector3 const &origin, int32_t const radius) {
   math::vector3 result;
   auto const diameter{math::add(radius, radius)};
@@ -40,8 +48,11 @@ math::vector3 combat_effects::random_point_in_model(math::vector3 const &origin,
   uint32_t const angle{static_cast<uint32_t>(random.next())};
   int32_t const radius{math::add(remainder(random.next(), math::subtract(model.radius, 76800)), 76800)};
   int32_t const z{remainder(random.next(), model.height)};
-  auto const polar{[&](int32_t r, uint32_t a){ return math::vector3{math::rounded_q31(0ull - math::product_bits(r, trig.sine(a))), math::multiply_q31(r, trig.cosine(a)), 0}; }};
-  auto point{polar(radius, angle)}; point[2] = z;
+  auto const polar{[&](int32_t r, uint32_t a){
+    return math::vector3{math::rounded_q31(0ull - math::product_bits(r, trig.sine(a))), math::multiply_q31(r, trig.cosine(a)), 0};
+  }};
+  auto point{polar(radius, angle)};
+  point[2] = z;
   for(size_t i{0}; i != 3; ++i) point[i] = std::clamp(point[i], model.bounds[i * 2], model.bounds[i * 2 + 1]);
   auto result{polar(approximate2(point[0], point[1]), angle - heading)};
   result[2] = point[2];
@@ -70,10 +81,15 @@ void combat_effects::crater(math::vector3 const &position, int32_t const radius,
   if(!inside(position)) return;
   auto const material{surface(position[0], position[1])};
   if(material > 7) return;
-  if(material >= 1 && material <= 3) marks.add_random(position, 384, true, terrain, random.global_seed);
-  else if(radius == 0) marks.add(position, 62, trig.angles(trig.transformation(heading, 0, 0))[0], true, terrain);
-  else if(material >= 4) marks.add_random(position, 385, false, terrain, random.global_seed);
-  else marks.add_random(position, radius < 19200 ? 11 : 257, false, terrain, random.global_seed);
+  if(material >= 1 && material <= 3) {
+    marks.add_random(position, 384, true, terrain, random.global_seed);
+  } else if(radius == 0) {
+    marks.add(position, 62, trig.angles(trig.transformation(heading, 0, 0))[0], true, terrain);
+  } else if(material >= 4) {
+    marks.add_random(position, 385, false, terrain, random.global_seed);
+  } else {
+    marks.add_random(position, radius < 19200 ? 11 : 257, false, terrain, random.global_seed);
+  }
 }
 void combat_effects::single(math::vector3 const &position, int32_t const radius, uint32_t const heading) {
   if(position[2] < math::add(terrain.elevation(position[0], position[1]), 5120)) {
@@ -85,7 +101,9 @@ void combat_effects::cluster(math::vector3 const &position, int32_t const radius
   if(radius < 0 || radius > 0x1000000) throw std::runtime_error{"Invalid explosion cluster radius"};
   single(position, std::min(radius, 38400), heading);
   if(radius < 38400) return;
-  int32_t const width{radius / 38400 + 1}, count{width * width}, small{std::min(radius / 2, 28800)};
+  int32_t const width{radius / 38400 + 1};
+  int32_t const count{width * width};
+  int32_t const small{std::min(radius / 2, 28800)};
   for(int32_t i{0}; i != count; ++i) single(id ? random_point_in_model(position, id, heading) : random_point(position, small), small, heading);
 }
 void combat_effects::ground(resources::scenery_placement &object, math::vector3 const &position, bool const partial) {

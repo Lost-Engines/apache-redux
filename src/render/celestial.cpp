@@ -23,7 +23,8 @@ math::vector3 light_vector(math::trigonometry const &trig, sky_lighting const &l
 celestial::celestial(resources::data_store const &data, std::string_view const zone) : stars{read_stars(data.read(std::string{zone} + ".WZ/STARMAP.BIN"))} {}
 int32_t celestial::draw(framebuffer &target, math::matrix3 const &camera, math::trigonometry const &trig, scene_palette const &palette, sky_conditions const &conditions, sky_lighting const &lighting) const {
   if((conditions.cloud_flags & 2) && conditions.cloud_mode != 2) return 0;
-  int const width{target.clip.right - target.clip.left + 1}, height{target.clip.bottom - target.clip.top + 1};
+  int const width{target.clip.right - target.clip.left + 1};
+  int const height{target.clip.bottom - target.clip.top + 1};
   projection const view{target};
   bool const daytime{lighting.night <= 644245094};
   if(!daytime) {

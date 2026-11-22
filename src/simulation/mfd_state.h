@@ -3,7 +3,18 @@
 #include <cstdint>
 
 namespace apache::simulation {
-enum class mfd_page : unsigned int { off, damaged, map, radar, tactical, flir, flight_plan, weapons, engines, status };
+enum class mfd_page : unsigned int {
+  off,
+  damaged,
+  map,
+  radar,
+  tactical,
+  flir,
+  flight_plan,
+  weapons,
+  engines,
+  status
+};
 class mfd_state {
   mfd_page exclusive(bool gunner, bool right, mfd_page current) const;
 public:

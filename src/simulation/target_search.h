@@ -13,11 +13,19 @@ struct contact_bucket {
   bool remove(shared_target const &target);
   std::span<shared_target const> candidates() const;
 };
-enum class search_kind { air, ground, mobile_air_defence, static_air_defence, air_defence };
+enum class search_kind {
+  air,
+  ground,
+  mobile_air_defence,
+  static_air_defence,
+  air_defence
+};
 struct sector_search_inputs {
-  std::span<shared_target const> air, ground;
+  std::span<shared_target const> air;
+  std::span<shared_target const> ground;
   int32_t scenery_side{0};
-  std::array<shared_target, 2> guns{}, missiles{};
+  std::array<shared_target, 2> guns{};
+  std::array<shared_target, 2> missiles{};
 };
 struct target_search_callbacks {
   std::function<math::vector3(target_reference const &)> position;

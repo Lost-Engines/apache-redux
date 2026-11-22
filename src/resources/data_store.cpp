@@ -33,7 +33,7 @@ bytes data_store::read(std::string_view const name) const {
   if(length > 256 * 1024 * 1024) throw std::runtime_error{"Game resource is too large: " + path.string()};
   bytes result(static_cast<size_t>(length));
   std::ifstream stream{path, std::ios::binary};
-  if(!stream.read(reinterpret_cast<char*>(result.data()), static_cast<std::streamsize>(result.size()))) throw std::runtime_error{"Cannot read game resource: " + path.string()};
+  if(!stream.read(reinterpret_cast<char *>(result.data()), static_cast<std::streamsize>(result.size()))) throw std::runtime_error{"Cannot read game resource: " + path.string()};
   return result;
 }
 std::vector<std::string> data_store::names() const {

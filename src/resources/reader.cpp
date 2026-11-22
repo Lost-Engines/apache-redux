@@ -4,7 +4,9 @@
 #include <stdexcept>
 
 namespace apache::resources {
-reader::reader(std::span<uint8_t const> const source, std::string_view const name) : data{source}, context{name} {
+reader::reader(std::span<uint8_t const> const source, std::string_view const name)
+  : data{source},
+    context{name} {
 }
 size_t reader::size() const {
   return data.size();

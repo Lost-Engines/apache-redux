@@ -10,7 +10,10 @@ std::array<actor_type, 1315> actor_types() {
   auto const base{[&](std::initializer_list<unsigned int> ids, uint32_t flags, uint32_t classification, uint32_t aircraft, uint32_t ship){
     for(auto const id : ids) {
       auto &type{result[id]};
-      type.flags = flags; type.classification = classification; type.aircraft = aircraft; type.ship = ship;
+      type.flags = flags;
+      type.classification = classification;
+      type.aircraft = aircraft;
+      type.ship = ship;
     }
   }};
   base({3}, 1, 2, 1, 6);
@@ -38,7 +41,10 @@ std::array<actor_type, 1315> actor_types() {
   base({574}, 1, 7, 4, 0);
   auto const arm{[&](std::initializer_list<unsigned int> ids, std::array<int32_t, 5> weapons, std::array<int32_t, 5> ammunition, uint32_t main){
     for(auto const id : ids) {
-      auto &type{result[id]}; type.weapons = weapons; type.ammunition = ammunition; type.main_weapon = main;
+      auto &type{result[id]};
+      type.weapons = weapons;
+      type.ammunition = ammunition;
+      type.main_weapon = main;
     }
   }};
   arm({3}, {30, 28, 0, 0, 0}, {INT32_MAX, 4, 0, 0, 0}, 0);

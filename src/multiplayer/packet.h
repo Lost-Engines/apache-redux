@@ -5,15 +5,43 @@
 
 namespace apache::multiplayer {
 enum class message_type : uint32_t {
-  discover = 2, identity = 3, peers_changed = 4, name = 5, preferences = 6,
-  menu_selection = 7, weather = 8, ready = 9, initial_state = 10,
-  position = 12, fired = 13, killed_player = 16, died = 17, left = 18,
-  disconnected = 19, restarted = 20, crashed = 21, collision = 22,
-  chaff = 23, flare = 24, crew = 25, mobile_kills = 26, scenery_kills = 27,
-  flag_won = 28, client_state = 29, server_state = 30, server_ready = 31,
-  server_left = 32, client_left = 33, nominate_server = 34, server_waiting = 35,
-  scores = 36, synchronise = 38, two_player_settings = 39, chat = 40,
-  cd_question = 41, cd_reply = 42,
+  discover = 2,
+  identity = 3,
+  peers_changed = 4,
+  name = 5,
+  preferences = 6,
+  menu_selection = 7,
+  weather = 8,
+  ready = 9,
+  initial_state = 10,
+  position = 12,
+  fired = 13,
+  killed_player = 16,
+  died = 17,
+  left = 18,
+  disconnected = 19,
+  restarted = 20,
+  crashed = 21,
+  collision = 22,
+  chaff = 23,
+  flare = 24,
+  crew = 25,
+  mobile_kills = 26,
+  scenery_kills = 27,
+  flag_won = 28,
+  client_state = 29,
+  server_state = 30,
+  server_ready = 31,
+  server_left = 32,
+  client_left = 33,
+  nominate_server = 34,
+  server_waiting = 35,
+  scores = 36,
+  synchronise = 38,
+  two_player_settings = 39,
+  chat = 40,
+  cd_question = 41,
+  cd_reply = 42,
 };
 class packet {
   resources::bytes storage;
@@ -30,8 +58,15 @@ public:
   void pose(math::pose const &value);
   math::pose pose() const;
 };
-struct aircraft_state { math::pose location; int32_t speed{0}, model{0}; };
-struct target_state { uint32_t kind{0}; math::vector3 data{}; };
+struct aircraft_state {
+  math::pose location;
+  int32_t speed{0};
+  int32_t model{0};
+};
+struct target_state {
+  uint32_t kind{0};
+  math::vector3 data{};
+};
 packet identification(message_type type, uint32_t sender, std::string_view name, int32_t model);
 packet nomination(uint32_t sender, std::string_view name, double clock);
 packet two_player_settings(std::array<int32_t, 5> const &values);

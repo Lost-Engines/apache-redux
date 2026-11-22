@@ -7,7 +7,15 @@
 #include "terrain_shading.h"
 
 namespace apache::render {
-enum class terrain_method { constant, gouraud, texture32, texture64, subdivided, subdivided_texture, perspective };
+enum class terrain_method {
+  constant,
+  gouraud,
+  texture32,
+  texture64,
+  subdivided,
+  subdivided_texture,
+  perspective
+};
 class terrain_renderer {
   projection const &view;
   rasterizer raster;

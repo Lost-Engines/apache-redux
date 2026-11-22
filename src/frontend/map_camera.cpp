@@ -23,15 +23,23 @@ void map_camera::step(double const seconds, math::trigonometry const &trig, std:
     p[1] = math::add(target_y, math::multiply_q31(trig.sine(angle), 0x12c00));
     heading = 0xc0000000u - angle;
   } else {
-    int32_t const dx{math::subtract(target_x, p[0])}, dy{math::subtract(target_y, p[1])};
+    int32_t const dx{math::subtract(target_x, p[0])};
+    int32_t const dy{math::subtract(target_y, p[1])};
     if(std::abs(int64_t{dx}) >= 0x10000 || std::abs(int64_t{dy}) >= 0x10000) {
       angle = static_cast<uint32_t>(integer(std::atan2(static_cast<long double>(dy), static_cast<long double>(dx)) * static_cast<long double>(0.3183098861837697) * 2147483647.0L));
-      if(mode == 1) { heading = 0; p[0] = target_x; p[1] = target_y; } else {
+      if(mode == 1) {
+        heading = 0;
+        p[0] = target_x;
+        p[1] = target_y;
+      } else {
         heading = 0x40000000u - angle;
         auto const range{math::integer_sqrt(static_cast<uint64_t>(int64_t{dx} * dx) + static_cast<uint64_t>(int64_t{dy} * dy))};
         int32_t const wanted{static_cast<int32_t>(std::min(range, 512000u))};
         speed = math::add(speed, static_cast<int32_t>(std::clamp(int64_t{wanted} - speed, int64_t{-512000}, int64_t{512000})));
-        if(range <= static_cast<long double>(wanted) * seconds) { p[0] = target_x; p[1] = target_y; } else {
+        if(range <= static_cast<long double>(wanted) * seconds) {
+          p[0] = target_x;
+          p[1] = target_y;
+        } else {
           p[0] = integer(p[0] + static_cast<long double>(math::multiply_q31(trig.cosine(angle), speed)) * seconds);
           p[1] = integer(p[1] + static_cast<long double>(math::multiply_q31(trig.sine(angle), speed)) * seconds);
         }

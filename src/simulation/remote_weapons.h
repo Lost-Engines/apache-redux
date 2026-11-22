@@ -2,7 +2,13 @@
 #include "projectiles.h"
 
 namespace apache::simulation {
-enum class remote_fire_kind { unguided, guided, simple, chaff, flare };
+enum class remote_fire_kind {
+  unguided,
+  guided,
+  simple,
+  chaff,
+  flare
+};
 struct remote_fire_input {
   unsigned int weapon{0};
   uint32_t seed{0};

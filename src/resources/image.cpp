@@ -32,7 +32,9 @@ indexed_image read_iff(std::span<uint8_t const> const data) {
   size_t const end{8 + size_t{form_size}};
   auto const kind{input.text(4)};
   if(kind != "PBM " && kind != "ILBM") input.fail("unsupported image form");
-  std::span<uint8_t const> header, body, cmap;
+  std::span<uint8_t const> header;
+  std::span<uint8_t const> body;
+  std::span<uint8_t const> cmap;
   while(input.position() < end) {
     if(end - input.position() < 8) input.fail("short chunk header");
     auto const tag{input.text(4)};
@@ -49,7 +51,9 @@ indexed_image read_iff(std::span<uint8_t const> const data) {
   result.width = bitmap.be16();
   result.height = bitmap.be16();
   bitmap.skip(4);
-  auto const planes{bitmap.u8()}, mask{bitmap.u8()}, compression{bitmap.u8()};
+  auto const planes{bitmap.u8()};
+  auto const mask{bitmap.u8()};
+  auto const compression{bitmap.u8()};
   if(!result.width || !result.height || result.width > 8192 || result.height > 8192 || !planes || planes > 8) bitmap.fail("unsupported dimensions or bit depth");
   if(mask > 2 || cmap.size() > 768 || cmap.size() % 3) bitmap.fail("invalid mask or palette");
   size_t const stride{kind == "PBM " ? (result.width + 1u) & ~1u : ((result.width + 15u) / 16u) * 2u};
@@ -57,16 +61,20 @@ indexed_image read_iff(std::span<uint8_t const> const data) {
   size_t const expected{row_bytes * result.height};
   reader payload{body, "IFF BODY"};
   bytes raw;
-  if(compression == 1) raw = read_byterun(payload, expected);
-  else if(compression == 0) {
+  if(compression == 1) {
+    raw = read_byterun(payload, expected);
+  } else if(compression == 0) {
     auto const unpacked{payload.take(expected)};
     raw.assign(unpacked.begin(), unpacked.end());
-  } else payload.fail("unsupported compression");
+  } else {
+    payload.fail("unsupported compression");
+  }
   result.pixels.resize(size_t{result.width} * result.height);
   for(size_t y{0}; y != result.height; ++y) {
     for(size_t x{0}; x != result.width; ++x) {
-      if(kind == "PBM ") result.pixels[y * result.width + x] = raw[y * stride + x];
-      else {
+      if(kind == "PBM ") {
+        result.pixels[y * result.width + x] = raw[y * stride + x];
+      } else {
         unsigned int value{0};
         for(unsigned int plane{0}; plane != planes; ++plane) value |= ((raw[y * row_bytes + plane * stride + x / 8] >> (7 - x % 8)) & 1u) << plane;
         result.pixels[y * result.width + x] = static_cast<uint8_t>(value);

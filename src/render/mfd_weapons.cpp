@@ -16,7 +16,8 @@ void mfd_renderer::weapons(framebuffer &target, rectangle const area, weapon_ins
     if(rounds == 2) sprite(x, high ? 51 : 27, high ? 11 : 5, high ? 15 : 6, high ? 57652 : 14427);
     if(rounds == 1 || rounds == 2) sprite(x, high ? 66 : 34, high ? 11 : 5, high ? 15 : 6, high ? 57652 : 14427);
   }
-  unsigned int hydra255{0}, hydra261{0};
+  unsigned int hydra255{0};
+  unsigned int hydra261{0};
   for(size_t pair{0}; pair != 2; ++pair) {
     auto const &pod{state.pairs[pair]};
     for(size_t side{0}; side != 2; ++side) {
@@ -32,7 +33,10 @@ void mfd_renderer::weapons(framebuffer &target, rectangle const area, weapon_ins
     }
   }
   projection2 const plane{area, {0, 0, area.right - area.left + 1, area.bottom - area.top + 1}};
-  auto const text{[&](std::string_view const value, int const x, int const y){ auto const point{plane.project({x, y})}; font.draw(target, value, point.x, point.y, 219); }};
+  auto const text{[&](std::string_view const value, int const x, int const y){
+    auto const point{plane.project({x, y})};
+    font.draw(target, value, point.x, point.y, 219);
+  }};
   text(std::format("{:04}", state.gun), high ? 59 : 27, high ? 75 : 38);
   text(std::format("{}{:02}", high ? "C:" : "", state.chaff), high ? 59 : 31, high ? 62 : 31);
   text(std::format("{}{:02}", high ? "F:" : "", state.flares), high ? 59 : 31, high ? 51 : 25);

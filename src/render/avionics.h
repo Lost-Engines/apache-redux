@@ -5,7 +5,10 @@
 #include "simulation/mfd_state.h"
 
 namespace apache::render {
-struct navigation_instruments { uint32_t heading; int32_t airspeed; };
+struct navigation_instruments {
+  uint32_t heading;
+  int32_t airspeed;
+};
 struct avionics_instruments {
   helmet_instruments helmet;
   int32_t clock_time{0};

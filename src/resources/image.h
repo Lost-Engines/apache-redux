@@ -10,7 +10,7 @@ struct rgb {
   uint8_t r{0};
   uint8_t g{0};
   uint8_t b{0};
-  bool operator==(rgb const&) const = default;
+  bool operator==(rgb const &) const = default;
 };
 using palette = std::array<rgb, 256>;
 struct indexed_image {

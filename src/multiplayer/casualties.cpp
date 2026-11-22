@@ -23,11 +23,15 @@ bool casualties::scenery(int32_t const x, int32_t const y, uint8_t const source)
 std::optional<packet> casualties::take_mobile(uint32_t const sender, std::string_view const name) {
   if(!mobile_count) return {};
   auto result{kills(sender, name, false, mobile_count, mobile_records)};
-  mobile_count = 0; mobile_records.fill(0); return result;
+  mobile_count = 0;
+  mobile_records.fill(0);
+  return result;
 }
 std::optional<packet> casualties::take_scenery(uint32_t const sender, std::string_view const name) {
   if(!scenery_count) return {};
   auto result{kills(sender, name, true, scenery_count, scenery_records)};
-  scenery_count = 0; scenery_records.fill(0); return result;
+  scenery_count = 0;
+  scenery_records.fill(0);
+  return result;
 }
 } // namespace apache::multiplayer

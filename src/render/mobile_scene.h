@@ -24,7 +24,8 @@ class mobile_scene {
   std::vector<std::optional<entry>> objects;
   std::array<std::vector<uint32_t>, 4096> sectors;
 public:
-  std::function<void(uint32_t, size_t)> on_place, on_remove;
+  std::function<void(uint32_t, size_t)> on_place;
+  std::function<void(uint32_t, size_t)> on_remove;
   explicit mobile_scene(resources::model_archive const &definitions) : models{definitions} {}
   uint32_t add(uint32_t model, math::pose const &pose);
   // The caller keeps a registered object alive until it is removed or the scene is cleared.

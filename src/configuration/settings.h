@@ -8,12 +8,23 @@
 namespace apache::configuration {
 class settings {
   std::filesystem::path filename;
-  std::optional<double> fov_override, lod_override;
+  std::optional<double> fov_override;
+  std::optional<double> lod_override;
 public:
   preferences values;
   configuration::graphics graphics;
-  unsigned int video_mode{1}, detail{9}, model{0}, forces{0}, volume{63}, deadband{0};
-  bool planner{false}, animations{true}, speech{true}, music{true}, effects{true}, minimal_effects{false};
+  unsigned int video_mode{1};
+  unsigned int detail{9};
+  unsigned int model{0};
+  unsigned int forces{0};
+  unsigned int volume{63};
+  unsigned int deadband{0};
+  bool planner{false};
+  bool animations{true};
+  bool speech{true};
+  bool music{true};
+  bool effects{true};
+  bool minimal_effects{false};
   simulation::control_configuration controls;
   std::array<simulation::joystick_axis, 4> axes;
   explicit settings(resources::data_store const &data);

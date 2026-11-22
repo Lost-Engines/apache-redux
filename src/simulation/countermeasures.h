@@ -8,15 +8,21 @@ struct countermeasure_actor {
   int32_t classification{0};
   bool player{false};
   math::vector3 position{};
-  uint32_t conditions{0}, random{1};
-  int32_t retreat_until{0}, chaff_at{0}, flare_at{0};
+  uint32_t conditions{0};
+  uint32_t random{1};
+  int32_t retreat_until{0};
+  int32_t chaff_at{0};
+  int32_t flare_at{0};
 };
 struct countermeasure_controls {
   int32_t mode{2};
   uint32_t faults{0};
-  bool infinite{false}, automatic{false};
+  bool infinite{false};
+  bool automatic{false};
   // Chaff, flare: total remaining, selected pylon count and player release deadline.
-  std::array<int32_t, 2> ammunition{}, pylon_ammunition{}, deadline{};
+  std::array<int32_t, 2> ammunition{};
+  std::array<int32_t, 2> pylon_ammunition{};
+  std::array<int32_t, 2> deadline{};
 };
 struct countermeasure_callbacks {
   std::function<bool(unsigned int)> launch;

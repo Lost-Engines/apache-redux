@@ -19,9 +19,13 @@ scene_palette::scene_palette(resources::data_store const &data, std::string_view
     visual_remap[colour] = static_cast<uint8_t>(colour);
   }
   load("3DDATA/3DPAL.RGB", 0, 224);
-  colours[203 * 3] = 64; colours[203 * 3 + 1] = 64; colours[203 * 3 + 2] = 128;
+  colours[203 * 3] = 64;
+  colours[203 * 3 + 1] = 64;
+  colours[203 * 3 + 2] = 128;
   std::array<std::array<unsigned int, 2>, 14> constexpr ramps{{{2, 3}, {5, 12}, {17, 12}, {29, 12}, {41, 8}, {49, 8}, {57, 7}, {64, 7}, {156, 12}, {71, 12}, {83, 16}, {99, 16}, {115, 12}, {127, 8}}};
-  for(auto const &[first, count] : ramps) for(unsigned int i{0}; i != count; ++i) spread(first + i, first, i + 1);
+  for(auto const &[first, count] : ramps) {
+    for(unsigned int i{0}; i != count; ++i) spread(first + i, first, i + 1);
+  }
   spread(155, 155, 1);
   spread(0xaa, 0x57, 0);
   spread(0xab, 0x56, 1);
@@ -100,7 +104,9 @@ scene_palette::scene_palette(resources::data_store const &data, std::string_view
   load(prefix + "TERRAIN.RGB", 71, 64);
   // Infrared mappings are built before fog and sky colours are installed.
   mfd_infrared.fill(208);
-  auto const ramp{[](uint8_t const value, int const low = 32){ return static_cast<uint8_t>((std::clamp(static_cast<int>(value), low, 223) - 32) / 12 + 208); }};
+  auto const ramp{[](uint8_t const value, int const low = 32){
+    return static_cast<uint8_t>((std::clamp(static_cast<int>(value), low, 223) - 32) / 12 + 208);
+  }};
   for(size_t i{2}; i != 192; ++i) {
     auto const light{luminance(colours[i * 3], colours[i * 3 + 1], colours[i * 3 + 2])};
     infrared[i] = ramp(light);
@@ -138,16 +144,23 @@ void scene_palette::update(palette_conditions const &conditions) {
   size_t sky{conditions.weather && conditions.cloud_mode != 2 ? 1u : 0u};
   if(conditions.cloud_mode == 2 && ((conditions.cloud_flags & 2) || conditions.weather == 1)) sky = 2;
   std::ranges::copy(sky_colours[sky], colours.begin() + 155 * 3);
-  int32_t weather_level{0}; uint8_t weather_colour{187};
+  int32_t weather_level{0};
+  uint8_t weather_colour{187};
   if((conditions.cloud_flags & 2) || conditions.weather) {
     if(conditions.cloud_mode == 0) {
       int64_t const distance{int64_t{conditions.cloud_bottom} - conditions.altitude};
       if(distance < 0x20000) weather_level = static_cast<int32_t>(std::clamp((0x1ffff - distance) * 0x4000, int64_t{0}, int64_t{INT32_MAX}));
-      if(conditions.weather == 2) weather_level = (weather_level >> 1) + 0x20000000;
-      else if(conditions.weather == 3) weather_level = (weather_level >> 3) + 0x30000000;
+      if(conditions.weather == 2) {
+        weather_level = (weather_level >> 1) + 0x20000000;
+      } else if(conditions.weather == 3) weather_level = (weather_level >> 3) + 0x30000000;
     } else if(conditions.cloud_mode == 1) {
       int64_t const distance{int64_t{conditions.cloud_top} - conditions.altitude};
-      if(distance < 0x10000) { weather_colour = 255; weather_level = static_cast<int32_t>(std::clamp((0xffff - distance) * 0x8000, int64_t{0}, int64_t{INT32_MAX})); } else weather_level = INT32_MAX;
+      if(distance < 0x10000) {
+        weather_colour = 255;
+        weather_level = static_cast<int32_t>(std::clamp((0xffff - distance) * 0x8000, int64_t{0}, int64_t{INT32_MAX}));
+      } else {
+        weather_level = INT32_MAX;
+      }
     } else {
       weather_colour = 255;
       int64_t const distance{int64_t{conditions.altitude} - conditions.cloud_top};

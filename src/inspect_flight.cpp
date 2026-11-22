@@ -28,11 +28,29 @@ void inspect_flight_systems(std::istream &input, std::ostream &output) {
   using apache::simulation::powerplant;
   std::string operation;
   while(input >> operation) {
-    powerplant power; flight_controls controls; hover_control hover; flight_events events;
-    double dt{0}, altitude{0}, u{0}, v{0}, climb{0}, pitch{0};
-    int32_t delta_time{0}, ground{0}, lift{0}, maximum_lift{0}, airspeed{0}, rotor_rate{0};
-    bool infinite{false}, invulnerable{false}, overtorque{false}, carrier{false};
-    std::array<int32_t, 4> raw_controls{}; unsigned int surface{0}, previous_death{0};
+    powerplant power;
+    flight_controls controls;
+    hover_control hover;
+    flight_events events;
+    double dt{0};
+    double altitude{0};
+    double u{0};
+    double v{0};
+    double climb{0};
+    double pitch{0};
+    int32_t delta_time{0};
+    int32_t ground{0};
+    int32_t lift{0};
+    int32_t maximum_lift{0};
+    int32_t airspeed{0};
+    int32_t rotor_rate{0};
+    bool infinite{false};
+    bool invulnerable{false};
+    bool overtorque{false};
+    bool carrier{false};
+    std::array<int32_t, 4> raw_controls{};
+    unsigned int surface{0};
+    unsigned int previous_death{0};
     input >> dt >> delta_time >> altitude >> ground >> lift >> maximum_lift >> airspeed >> infinite >> invulnerable >> overtorque;
     auto const doubles{power_values(power)};
     for(auto *value : doubles) input >> *value;
@@ -43,15 +61,25 @@ void inspect_flight_systems(std::istream &input, std::ostream &output) {
     input >> controls.changed >> carrier >> hover.active >> hover.previous >> u >> v >> climb >> pitch >> surface >> previous_death;
     if(!input) throw std::runtime_error{"Incomplete flight-system case"};
     landing_result landing;
-    if(operation == "fuel") power.consume_fuel(dt, airspeed, infinite, invulnerable, events);
-    else if(operation == "engine") rotor_rate = power.update_engines(dt, altitude, ground, lift, maximum_lift);
-    else if(operation == "temperature") power.update_temperature(dt);
-    else if(operation == "faults") power.update_faults(dt, delta_time, overtorque, events);
-    else if(operation == "controls") controls.update(raw_controls, carrier);
-    else if(operation == "hover") hover.update(u, v, climb, pitch, controls.changed, power.collective, events);
-    else if(operation == "toggle") hover.toggle(u);
-    else if(operation == "landing") landing = evaluate_landing(u, climb, surface, carrier, previous_death);
-    else throw std::runtime_error{"Unknown flight-system operation"};
+    if(operation == "fuel") {
+      power.consume_fuel(dt, airspeed, infinite, invulnerable, events);
+    } else if(operation == "engine") {
+      rotor_rate = power.update_engines(dt, altitude, ground, lift, maximum_lift);
+    } else if(operation == "temperature") {
+      power.update_temperature(dt);
+    } else if(operation == "faults") {
+      power.update_faults(dt, delta_time, overtorque, events);
+    } else if(operation == "controls") {
+      controls.update(raw_controls, carrier);
+    } else if(operation == "hover") {
+      hover.update(u, v, climb, pitch, controls.changed, power.collective, events);
+    } else if(operation == "toggle") {
+      hover.toggle(u);
+    } else if(operation == "landing") {
+      landing = evaluate_landing(u, climb, surface, carrier, previous_death);
+    } else {
+      throw std::runtime_error{"Unknown flight-system operation"};
+    }
     output << std::hex;
     for(auto const *value : doubles) output << std::bit_cast<uint64_t>(*value) << ' ';
     for(auto const value : controls.values) output << std::bit_cast<uint64_t>(value) << ' ';
@@ -68,16 +96,29 @@ void inspect_flight_dynamics(std::istream &input, std::ostream &output) {
   using apache::simulation::rotor_dynamics;
   std::string operation;
   while(input >> operation) {
-    rotor_dynamics state; flight_events events;
-    double dt{0}, ground{0}; int32_t delta{0}, throttle{0}; bool carrier{false}, landed{false}, absolute{false}; unsigned int input_type{0}, random{0};
+    rotor_dynamics state;
+    flight_events events;
+    double dt{0};
+    double ground{0};
+    int32_t delta{0};
+    int32_t throttle{0};
+    bool carrier{false};
+    bool landed{false};
+    bool absolute{false};
+    unsigned int input_type{0};
+    unsigned int random{0};
     input >> dt >> delta >> ground >> carrier >> landed >> absolute >> input_type >> throttle >> random;
     auto const fields{dynamics_values(state)};
     for(auto *value : fields) input >> *value;
     input >> state.power.faults >> state.wind_strength >> state.wind_gust >> state.max_speed_message >> state.Tzw >> state.zdotT >> state.zdotTmax;
     if(!input) throw std::runtime_error{"Incomplete flight-dynamics case"};
-    if(operation == "rates") state.update_rates(dt, ground, carrier, landed, absolute, input_type, throttle, events);
-    else if(operation == "aerodynamics") state.update_aerodynamics(dt, delta, ground, carrier, random, events);
-    else throw std::runtime_error{"Unknown flight-dynamics operation"};
+    if(operation == "rates") {
+      state.update_rates(dt, ground, carrier, landed, absolute, input_type, throttle, events);
+    } else if(operation == "aerodynamics") {
+      state.update_aerodynamics(dt, delta, ground, carrier, random, events);
+    } else {
+      throw std::runtime_error{"Unknown flight-dynamics operation"};
+    }
     output << std::hex;
     for(auto const *value : fields) output << std::bit_cast<uint64_t>(*value) << ' ';
     output << std::dec << state.power.faults << ' ' << state.wind_strength << ' ' << state.wind_gust << ' ' << state.max_speed_message << ' ' << state.Tzw << ' ' << state.zdotT << ' ' << state.zdotTmax;
@@ -89,33 +130,68 @@ void inspect_flight_dynamics(std::istream &input, std::ostream &output) {
 void inspect_flight_trace(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
   namespace math = apache::math;
   namespace simulation = apache::simulation;
-  math::trigonometry const trig{data}; std::optional<apache::resources::terrain> terrain;
-  simulation::realistic_flight state; std::string operation;
+  math::trigonometry const trig{data};
+  std::optional<apache::resources::terrain> terrain;
+  simulation::realistic_flight state;
+  std::string operation;
   simulation::flight_environment environment;
-  math::pose carrier, relative; int32_t carrier_speed{0}; uint32_t carrier_heading{0};
-  environment.height = [&](int32_t const x, int32_t const y){ return state.on_carrier ? environment.carrier_deck + 2304 : terrain->elevation(x, y); };
+  math::pose carrier;
+  math::pose relative;
+  int32_t carrier_speed{0};
+  uint32_t carrier_heading{0};
+  environment.height = [&](int32_t const x, int32_t const y){return state.on_carrier ? environment.carrier_deck + 2304 : terrain->elevation(x, y);};
   environment.place = [&](math::pose const &pose){
     if(!state.on_carrier) return pose;
-    auto result{math::attach(carrier, relative)}; result.position[2] = math::add(result.position[2], 2304); return result;
+    auto result{math::attach(carrier, relative)};
+    result.position[2] = math::add(result.position[2], 2304);
+    return result;
   };
-  environment.leave_carrier = [&](simulation::realistic_flight &flight){ flight.transfer_from_carrier(carrier_speed, carrier_heading, trig); };
-  unsigned int surface{0}; environment.surface = [&](int32_t, int32_t){ return surface; };
+  environment.leave_carrier = [&](simulation::realistic_flight &flight){flight.transfer_from_carrier(carrier_speed, carrier_heading, trig);};
+  unsigned int surface{0};
+  environment.surface = [&](int32_t, int32_t){return surface;};
   while(input >> operation) {
     simulation::flight_step_result result;
     if(operation == "init") {
-      std::string zone; simulation::flight_start start;
-      input >> zone; for(auto &v : start.position) input >> v;
+      std::string zone;
+      simulation::flight_start start;
+      input >> zone;
+      for(auto &v : start.position) input >> v;
       input >> start.heading >> start.pitch >> start.roll >> start.ground_height >> start.dry_weight >> start.fuel >> start.faults >> start.quick_flight;
       input >> start.on_carrier >> start.wind_strength >> start.wind_direction >> environment.carrier_deck >> carrier_speed >> carrier_heading;
-      for(auto *pose : {&carrier, &relative}) { for(auto &v : pose->position) input >> v; for(auto &v : pose->rotation) input >> v; }
-      terrain.emplace(data.read(zone + ".WZ/GRIDPOST.BIN")); state.initialise(start, trig, environment);
+      for(auto *pose : {&carrier, &relative}) {
+        for(auto &v : pose->position) input >> v;
+        for(auto &v : pose->rotation) input >> v;
+      }
+      terrain.emplace(data.read(zone + ".WZ/GRIDPOST.BIN"));
+      state.initialise(start, trig, environment);
     } else if(operation == "step") {
       if(!terrain) throw std::runtime_error{"Flight trace must start with initialization"};
-      double dt{0}; int32_t delta{0}; unsigned int random{0}; simulation::flight_input controls;
-      input >> dt >> delta; for(auto &v : controls.controls) input >> v;
+      double dt{0};
+      int32_t delta{0};
+      unsigned int random{0};
+      simulation::flight_input controls;
+      input >> dt >> delta;
+      for(auto &v : controls.controls) input >> v;
       input >> controls.absolute_throttle >> controls.type >> random >> surface;
       result = state.advance(dt, delta, controls, environment, trig, random);
-    } else if(operation == "wind") { input >> state.dynamics.wind_strength >> state.wind_direction; continue; } else if(operation == "fuel") { input >> state.dynamics.power.fuel; continue; } else if(operation == "faults") { input >> state.dynamics.power.faults; continue; } else if(operation == "hover") { input >> state.dynamics.hover.active; continue; } else if(operation == "follow") { input >> state.terrain_follow; continue; } else throw std::runtime_error{"Unknown flight-trace operation"};
+    } else if(operation == "wind") {
+      input >> state.dynamics.wind_strength >> state.wind_direction;
+      continue;
+    } else if(operation == "fuel") {
+      input >> state.dynamics.power.fuel;
+      continue;
+    } else if(operation == "faults") {
+      input >> state.dynamics.power.faults;
+      continue;
+    } else if(operation == "hover") {
+      input >> state.dynamics.hover.active;
+      continue;
+    } else if(operation == "follow") {
+      input >> state.terrain_follow;
+      continue;
+    } else {
+      throw std::runtime_error{"Unknown flight-trace operation"};
+    }
     if(!input) throw std::runtime_error{"Incomplete flight-trace operation"};
     auto &d{state.dynamics};
     output << std::hex;

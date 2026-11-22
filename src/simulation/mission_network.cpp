@@ -2,8 +2,12 @@
 #include "render/fragment_renderer.h"
 
 namespace apache::simulation {
-mission_network::mission_network(mission_runtime &mission) : runtime{mission}, lifecycle{state} {
-  auto const link{[this](size_t index){ return multiplayer::actor_link{index, runtime.actors.units[index].destroyed, runtime.spatial.player == index}; }};
+mission_network::mission_network(mission_runtime &mission)
+  : runtime{mission},
+    lifecycle{state} {
+  auto const link{[this](size_t index){
+    return multiplayer::actor_link{index, runtime.actors.units[index].destroyed, runtime.spatial.player == index};
+  }};
   lifecycle.events.player = [this, link](uint32_t connection)->std::optional<multiplayer::actor_link> {
     if(auto index{actor(connection)}) return link(*index);
     return {};
@@ -19,17 +23,30 @@ mission_network::mission_network(mission_runtime &mission) : runtime{mission}, l
     runtime.combat.kill(index);
     render::fracture_model(runtime.actors.units[index].object, runtime.debris, runtime.random.global_seed);
   };
-  lifecycle.events.unplace = [this](size_t index){ runtime.spatial.unplace(index); };
-  lifecycle.events.leave = [this](size_t index){ runtime.spatial.unplace(index); runtime.actors.units[index].destroyed = 1; };
+  lifecycle.events.unplace = [this](size_t index){runtime.spatial.unplace(index);};
+  lifecycle.events.leave = [this](size_t index){
+    runtime.spatial.unplace(index);
+    runtime.actors.units[index].destroyed = 1;
+  };
   lifecycle.events.restart = [this](size_t index, math::pose const &position, int32_t model){
     runtime.actors.units[index].object.world = position;
-    for(uint32_t connection{0}; connection < assignments.size(); ++connection) if(assignments[connection] == index) { revive(connection, model); break; }
+    for(uint32_t connection{0}; connection < assignments.size(); ++connection) {
+      if(assignments[connection] == index) {
+        revive(connection, model);
+        break;
+      }
+    }
   };
-  lifecycle.events.countermeasure = [this](size_t index, bool flare){ if(runtime.weapons) runtime.weapons->fire_remote(index, flare ? 8 : 7, 0, {}, {}); };
-  lifecycle.events.death = [this](unsigned int cause){ if(runtime.pilot) runtime.pilot->request_death(cause); };
+  lifecycle.events.countermeasure = [this](size_t index, bool flare){
+    if(runtime.weapons) runtime.weapons->fire_remote(index, flare ? 8 : 7, 0, {}, {});
+  };
+  lifecycle.events.death = [this](unsigned int cause){
+    if(runtime.pilot) runtime.pilot->request_death(cause);
+  };
   lifecycle.events.player_killed = [this]{
     if(!runtime.spatial.player) return;
-    auto &object{runtime.actors.units[*runtime.spatial.player].object}; if(object.status & 1) return;
+    auto &object{runtime.actors.units[*runtime.spatial.player].object};
+    if(object.status & 1) return;
     if(runtime.pilot) runtime.pilot->request_death(4);
     auto const mode{lifecycle.mode};
     if(mode != multiplayer::game_mode::combat && mode != multiplayer::game_mode::multiplayer && mode != multiplayer::game_mode::capture_the_flag) object.status |= 1;
@@ -41,16 +58,21 @@ mission_network::mission_network(mission_runtime &mission) : runtime{mission}, l
     if(runtime.damage) runtime.damage->destroy(id);
   };
   lifecycle.events.scenery_killed = [this](math::vector3 const &position, uint8_t source){
-    auto const target{resolve({1, position})}; if(!target) return;
-    auto const &id{target->identity}; auto const &object{(id.layer ? runtime.scene.extra : runtime.scene.base)[id.index]};
+    auto const target{resolve({1, position})};
+    if(!target) return;
+    auto const &id{target->identity};
+    auto const &object{(id.layer ? runtime.scene.extra : runtime.scene.base)[id.index]};
     if(object.status & 1) return;
     if(remote_killed) remote_killed(id, source);
     if(runtime.damage) runtime.damage->destroy(id);
   };
-  lifecycle.events.flag_won = [this](uint32_t slot){ flag_winner = slot; };
-  lifecycle.events.notice = [this](auto text, auto priority, auto lifetime){ if(runtime.events.notice) runtime.events.notice(text, priority, lifetime); };
+  lifecycle.events.flag_won = [this](uint32_t slot){flag_winner = slot;};
+  lifecycle.events.notice = [this](auto text, auto priority, auto lifetime){
+    if(runtime.events.notice) runtime.events.notice(text, priority, lifetime);
+  };
   lifecycle.events.scores = [this]{
-    std::array<int32_t, 16> values{}; for(size_t i{0}; i < values.size(); ++i) values[i] = state.players[i].score;
+    std::array<int32_t, 16> values{};
+    for(size_t i{0}; i < values.size(); ++i) values[i] = state.players[i].score;
     if(send) send(multiplayer::scores(state.local, state.players[state.local].name, values));
   };
 }
@@ -78,9 +100,13 @@ void mission_network::record_kill(target_identity const &target, target_identity
   if(!enabled || lifecycle.mode == multiplayer::game_mode::single_player) return;
   auto const source_actor{source.kind == target_kind::mobile ? runtime.spatial.actor_index(source.index) : std::nullopt};
   uint32_t allegiance{0};
-  if(source_actor) allegiance = runtime.actors.units[*source_actor].object.status;
-  else if(source.kind == target_kind::scenery && runtime.structures.contains(source.layer, source.index)) allegiance = runtime.structures.at(source.layer, source.index).status;
-  else return;
+  if(source_actor) {
+    allegiance = runtime.actors.units[*source_actor].object.status;
+  } else if(source.kind == target_kind::scenery && runtime.structures.contains(source.layer, source.index)) {
+    allegiance = runtime.structures.at(source.layer, source.index).status;
+  } else {
+    return;
+  }
   auto const mode{lifecycle.mode};
   uint8_t cause{static_cast<uint8_t>(((allegiance >> 1) & 3) == 1 ? 1 : 2)};
   if(mode == multiplayer::game_mode::apache_vs_hind) cause = static_cast<uint8_t>(3 - cause);
@@ -95,17 +121,20 @@ void mission_network::record_kill(target_identity const &target, target_identity
   }
   auto const index{target.kind == target_kind::mobile ? runtime.spatial.actor_index(target.index) : std::nullopt};
   if(!index || index == runtime.spatial.player) return;
-  auto const &unit{runtime.actors.units[*index]}; if(unit.object.status & 1) return;
+  auto const &unit{runtime.actors.units[*index]};
+  if(unit.object.status & 1) return;
   if(cooperative) {
     auto task{static_cast<int32_t>(unit.location.task)};
     if(mode == multiplayer::game_mode::apache_vs_hind && task < 2) task = 1 - task;
     casualties.mobile(task, unit.serial, cause);
   }
   if(source_actor == runtime.spatial.player && source_actor && !unit.destroyed) {
-    for(uint32_t connection{0}; connection < assignments.size(); ++connection) if(assignments[connection] == index) {
-      if(lifecycle.events.remove) lifecycle.events.remove(*index);
-      send_player_kill(connection);
-      break;
+    for(uint32_t connection{0}; connection < assignments.size(); ++connection) {
+      if(assignments[connection] == index) {
+        if(lifecycle.events.remove) lifecycle.events.remove(*index);
+        send_player_kill(connection);
+        break;
+      }
     }
   }
 }
@@ -124,25 +153,54 @@ bool mission_network::bind(uint32_t const connection, size_t const index) {
   if(auto previous{actor(connection)}; previous && *previous != index) return false;
   auto &unit{runtime.actors.units[index]};
   if(unit.network != -1 && unit.network != static_cast<int32_t>(connection)) return false;
-  unit.network = static_cast<int32_t>(connection); assignments[connection] = index; state.players[connection].assigned = true;
+  unit.network = static_cast<int32_t>(connection);
+  assignments[connection] = index;
+  state.players[connection].assigned = true;
   return true;
 }
 void mission_network::replace_model(size_t const index, uint32_t const model, unsigned int const map) {
-  static auto const types{actor_types()}; static auto const weapons{weapon_definitions()};
-  auto &unit{runtime.actors.units[index]}; auto const &type{types.at(model)};
+  static auto const types{actor_types()};
+  static auto const weapons{weapon_definitions()};
+  auto &unit{runtime.actors.units[index]};
+  auto const &type{types.at(model)};
   auto const &task{runtime.mission.tasks[unit.location.task]};
   std::array<uint32_t, 20> attachments{};
-  if(model == 607) { attachments[0] = 614; attachments[2] = 620; } else if(model == 990) attachments[0] = 859;
+  if(model == 607) {
+    attachments[0] = 614;
+    attachments[2] = 620;
+  } else if(model == 990) attachments[0] = 859;
   auto replacement{render::construct_model(runtime.models, model, unit.object.world, attachments)};
   replacement.alternate_colours = task.side == 2 && map != 2 && (type.flags & 2);
   replacement.status = (unit.object.status & ~0x10u) | (replacement.alternate_colours ? 0x10u : 0);
-  unit.object = std::move(replacement); unit.classification = type.classification;
-  unsigned int count{0}; int32_t last_weapon{0}, last_slot{-1};
-  for(size_t slot{0}; slot < type.weapons.size(); ++slot) if(type.weapons[slot]) {
-    ++count; unit.ammunition[slot] = type.ammunition[slot]; last_weapon = type.weapons[slot]; last_slot = static_cast<int32_t>(slot);
+  unit.object = std::move(replacement);
+  unit.classification = type.classification;
+  unsigned int count{0};
+  int32_t last_weapon{0};
+  int32_t last_slot{-1};
+  for(size_t slot{0}; slot < type.weapons.size(); ++slot) {
+    if(type.weapons[slot]) {
+      ++count;
+      unit.ammunition[slot] = type.ammunition[slot];
+      last_weapon = type.weapons[slot];
+      last_slot = static_cast<int32_t>(slot);
+    }
   }
-  if(task.type == 18) { if(!unit.ammunition[1]) ++count; unit.ammunition[1] = 10; }
-  if(count == 0) { unit.weapon = 0; unit.weapon_slot = -1; unit.conditions &= ~0xc0u; } else if(count == 1) { unit.weapon = last_weapon; unit.weapon_slot = last_slot; unit.conditions |= 0xc0; } else { unit.weapon_slot = 0; unit.conditions = (unit.conditions & ~0x80u) | 0x40; }
+  if(task.type == 18) {
+    if(!unit.ammunition[1]) ++count;
+    unit.ammunition[1] = 10;
+  }
+  if(count == 0) {
+    unit.weapon = 0;
+    unit.weapon_slot = -1;
+    unit.conditions &= ~0xc0u;
+  } else if(count == 1) {
+    unit.weapon = last_weapon;
+    unit.weapon_slot = last_slot;
+    unit.conditions |= 0xc0;
+  } else {
+    unit.weapon_slot = 0;
+    unit.conditions = (unit.conditions & ~0x80u) | 0x40;
+  }
   refresh_weapon_ranges(unit, runtime.combat.armaments[index], type, weapons);
 }
 bool mission_network::assign(uint32_t const connection, uint32_t const model, size_t const task, multiplayer::game_mode const mode, int const flow, unsigned int const map) {
@@ -150,14 +208,17 @@ bool mission_network::assign(uint32_t const connection, uint32_t const model, si
   if(!enabled || connection >= state.players.size() || task >= runtime.mission.tasks.size() || model >= runtime.models.size() || model >= types.size() || !runtime.models[model] || !types[model].classification || types[model].classification == 7 || mode == multiplayer::game_mode::single_player) return false;
   auto const serial{flow == 7 ? 0 : static_cast<int32_t>(connection)};
   for(auto const &group : runtime.actors.groups) {
-    size_t const index{group.units.front()}; auto &unit{runtime.actors.units[index]};
+    size_t const index{group.units.front()};
+    auto &unit{runtime.actors.units[index]};
     if(group.task != task || unit.serial != serial || (unit.classification != 1 && unit.classification != 2)) continue;
     bool const cooperative{mode == multiplayer::game_mode::single_missions || mode == multiplayer::game_mode::pilot_gunner};
     if(!cooperative || !(unit.conditions & 0x400)) {
       bool const friendly{cooperative || (mode == multiplayer::game_mode::capture_the_flag && task == 0)};
       runtime.spatial.change_status(index, (unit.object.status & ~6u) | (friendly ? 2u : 4u));
     }
-    unit.network = static_cast<int32_t>(connection); assignments[connection] = index; state.players[connection].assigned = true;
+    unit.network = static_cast<int32_t>(connection);
+    assignments[connection] = index;
+    state.players[connection].assigned = true;
     state.players[connection].flags = (state.players[connection].flags & ~0xff00u) | (connection << 8);
     runtime.movement.release_carrier(index, mode == multiplayer::game_mode::single_missions);
     replace_model(index, model, map);
@@ -167,21 +228,32 @@ bool mission_network::assign(uint32_t const connection, uint32_t const model, si
 }
 void mission_network::remove_unassigned() {
   for(auto const &group : runtime.actors.groups) {
-    size_t const index{group.units.front()}; auto &unit{runtime.actors.units[index]};
+    size_t const index{group.units.front()};
+    auto &unit{runtime.actors.units[index]};
     if(unit.network != -1) continue;
     auto const id{unit.object.id};
-    if(id == 473 || id == 994 || id == 995) runtime.spatial.change_status(index, (unit.object.status & ~6u) | 4);
-    else { unit.object.status |= 1; runtime.spatial.unplace(index); }
+    if(id == 473 || id == 994 || id == 995) {
+      runtime.spatial.change_status(index, (unit.object.status & ~6u) | 4);
+    } else {
+      unit.object.status |= 1;
+      runtime.spatial.unplace(index);
+    }
   }
 }
 bool mission_network::revive(uint32_t const connection, int32_t const model) {
-  auto const index{actor(connection)}; if(!index) return false;
-  auto &unit{runtime.actors.units[*index]}; bool const apache{model == 64 || model == 103};
-  std::array<uint32_t, 20> attachments{}; if(!apache) attachments[0] = 1009;
+  auto const index{actor(connection)};
+  if(!index) return false;
+  auto &unit{runtime.actors.units[*index]};
+  bool const apache{model == 64 || model == 103};
+  std::array<uint32_t, 20> attachments{};
+  if(!apache) attachments[0] = 1009;
   auto replacement{render::construct_model(runtime.models, apache ? 64 : 990, unit.object.world, attachments)};
-  replacement.status = unit.object.status & ~0x11u; unit.object = std::move(replacement);
-  unit.destroyed = 0; runtime.combat.attention[*index].damage = runtime.combat.attention[*index].processed_damage = 0;
-  runtime.spatial.place(*index); return true;
+  replacement.status = unit.object.status & ~0x11u;
+  unit.object = std::move(replacement);
+  unit.destroyed = 0;
+  runtime.combat.attention[*index].damage = runtime.combat.attention[*index].processed_damage = 0;
+  runtime.spatial.place(*index);
+  return true;
 }
 std::optional<target_reference> mission_network::resolve(multiplayer::target_state const &target) const {
   if(target.kind == 2) {
@@ -224,7 +296,12 @@ bool mission_network::receive(multiplayer::packet const &message, int32_t const 
     if(auto index{actor(message.sender())}) {
       auto const target{resolve(state.players[message.sender()].target)};
       auto &slot{runtime.combat.armaments[*index].target};
-      if(target) { if(!slot) slot = std::make_shared<target_reference>(); *slot = *target; } else slot.reset();
+      if(target) {
+        if(!slot) slot = std::make_shared<target_reference>();
+        *slot = *target;
+      } else {
+        slot.reset();
+      }
     }
   }
   return true;
@@ -232,7 +309,8 @@ bool mission_network::receive(multiplayer::packet const &message, int32_t const 
 void mission_network::update() {
   if(!enabled) return;
   for(auto const &group : runtime.actors.groups) {
-    size_t const index{group.units.front()}; auto &unit{runtime.actors.units[index]};
+    size_t const index{group.units.front()};
+    auto &unit{runtime.actors.units[index]};
     if(runtime.spatial.player == index || unit.network < 0 || unit.network >= static_cast<int32_t>(state.players.size()) || unit.destroyed == 1 || (unit.conditions & 0x400)) continue;
     auto &remote{state.players[static_cast<size_t>(unit.network)]};
     unit.speed = std::bit_cast<int32_t>(static_cast<uint32_t>(remote.aircraft.speed) * 432u);

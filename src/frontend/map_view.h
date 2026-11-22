@@ -5,7 +5,9 @@
 
 namespace apache::frontend {
 struct map_position {
-  int32_t x{0x7ffffff}, y{0x7ffffff}, zoom{0x33333};
+  int32_t x{0x7ffffff};
+  int32_t y{0x7ffffff};
+  int32_t zoom{0x33333};
   uint32_t rotation{0};
 };
 class map_view {
