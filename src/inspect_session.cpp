@@ -1,10 +1,10 @@
 #include "inspect_session.h"
-#include "frontend/mission_session.h"
 #include <fstream>
 #include <iomanip>
 #include <istream>
 #include <ostream>
 #include <stdexcept>
+#include "frontend/mission_session.h"
 
 void inspect_session(apache::resources::data_store const &data, int const mission, unsigned int const video, bool const arcade, std::istream &input, std::ostream &output, int const shared_seat, int const network_mode, unsigned int const local, unsigned int const players) {
   apache::frontend::mission_options options{.arcade{arcade}, .video_mode{video}, .detail{9}};
@@ -26,10 +26,9 @@ void inspect_session(apache::resources::data_store const &data, int const missio
   }};
   if(session.network) {
     session.network->send = [&](apache::multiplayer::packet const &message){
-      if(packet_mode) { output << "send "; hex(message.bytes()); output << '\n'; }
-      else if(message.type() == apache::multiplayer::message_type::crew) { output << "transmit "; hex(message.bytes().subspan(24, 104)); output << '\n'; }
+      if(packet_mode) { output << "send "; hex(message.bytes()); output << '\n'; } else if(message.type() == apache::multiplayer::message_type::crew) { output << "transmit "; hex(message.bytes().subspan(24, 104)); output << '\n'; }
     };
-    session.wait_network = [&](){
+    session.wait_network = [&]{
       for(auto const &bytes : incoming) {
         if(bytes.size() != 104) {
           auto const packet{apache::multiplayer::packet::decode(bytes)};
@@ -46,45 +45,30 @@ void inspect_session(apache::resources::data_store const &data, int const missio
   }
   std::string command;
   while(input >> command) {
-    if(command == "packet-mode") { packet_mode = true; }
-    else if(command == "receive" || command == "receive-packet") {
+    if(command == "packet-mode") { packet_mode = true; } else if(command == "receive" || command == "receive-packet") {
       if(!session.network) throw std::runtime_error{"Network session required"};
       std::string bytes; input >> bytes;
       if(command == "receive" ? bytes.size() != 208 : bytes.size() != 816 && bytes.size() != 1032) throw std::runtime_error{"Invalid incoming packet length"};
       apache::resources::bytes decoded;
       for(size_t i{0}; i < bytes.size(); i += 2) decoded.push_back(static_cast<uint8_t>(std::stoul(bytes.substr(i, 2), nullptr, 16)));
       incoming.push_back(std::move(decoded));
-    }
-    else if(command == "network-ready") { if(!session.network) throw std::runtime_error{"Network session required"}; session.network->state.server_in_game = true; }
-    else if(command == "network-poll") { if(session.wait_network) session.wait_network(); }
-    else if(command == "server-frame") { session.send_server_frame(); }
-    else if(command == "network-status") {
+    } else if(command == "network-ready") { if(!session.network) throw std::runtime_error{"Network session required"}; session.network->state.server_in_game = true; } else if(command == "network-poll") { if(session.wait_network) session.wait_network(); } else if(command == "server-frame") { session.send_server_frame(); } else if(command == "network-status") {
       if(!session.network) throw std::runtime_error{"Network session required"};
       auto const &n{*session.network}; output << "network " << static_cast<unsigned int>(n.lifecycle.mode) << ' ' << n.state.local << ' ' << n.state.server << ' ' << n.state.client_server << ' ' << session.runtime.move_actors << ' ' << *session.runtime.timing.player << ' ' << session.runtime.player_armament->control_mode << '\n';
       for(size_t i{0}; i < 16; ++i) { auto const &p{n.state.players[i]}; output << "peer " << i << ' ' << (n.actor(static_cast<uint32_t>(i)) ? static_cast<int64_t>(*n.actor(static_cast<uint32_t>(i))) : -1) << ' ' << p.aircraft.model << ' ' << p.flags; for(auto v : p.aircraft.location.position) output << ' ' << v; for(auto v : p.aircraft.location.rotation) output << ' ' << v; output << '\n'; }
-    }
-    else if(command == "crew-status") {
+    } else if(command == "crew-status") {
       auto const &arm{*session.runtime.player_armament};
       output << "crew-status " << session.finished << ' ' << session.ending.countdown << ' ' << arm.control_mode << ' ' << arm.inventory.automatic_chaff;
       for(auto v : arm.inventory.deadlines) output << ' ' << v;
       output << '\n';
-    }
-    else if(command == "step") { unsigned int ticks; input >> ticks; session.step(ticks); }
-    else if(command == "key") { unsigned int key; bool down; input >> key >> down; session.key(static_cast<uint16_t>(key), down, false); }
-    else if(command == "post") { unsigned int key; input >> key; session.post(static_cast<uint16_t>(key)); }
-    else if(command == "joystick") {
+    } else if(command == "step") { unsigned int ticks; input >> ticks; session.step(ticks); } else if(command == "key") { unsigned int key; bool down; input >> key >> down; session.key(static_cast<uint16_t>(key), down, false); } else if(command == "post") { unsigned int key; input >> key; session.post(static_cast<uint16_t>(key)); } else if(command == "joystick") {
       auto &c{session.controls}; input >> c.configuration.cyclic >> c.joystick_present >> c.hat_present >> c.hat >> c.buttons; c.configuration.resolve();
-    }
-    else if(command == "modal") { output << "modal " << session.quit_prompt << ' ' << session.help_requested << ' ' << session.finished << ' ' << session.runtime.timing.now << '\n'; }
-    else if(command == "view") { unsigned int mode; input >> mode; session.select_view(mode); }
-    else if(command == "detail") { unsigned int value; input >> value; session.detail(value); }
-    else if(command == "flight") {
+    } else if(command == "modal") { output << "modal " << session.quit_prompt << ' ' << session.help_requested << ' ' << session.finished << ' ' << session.runtime.timing.now << '\n'; } else if(command == "view") { unsigned int mode; input >> mode; session.select_view(mode); } else if(command == "detail") { unsigned int value; input >> value; session.detail(value); } else if(command == "flight") {
       auto const &f{session.runtime.pilot->realistic}; auto const &d{f.dynamics};
       output << "flight" << std::hex;
       for(auto const value : {d.x, d.y, d.u, d.v, f.dx, f.dy, d.zdot}) output << ' ' << std::bit_cast<uint64_t>(value);
       output << std::dec << ' ' << d.wind_strength << ' ' << d.wind_gust << '\n';
-    }
-    else if(command == "combat-targets") {
+    } else if(command == "combat-targets") {
       if(!session.network) throw std::runtime_error{"Network session required"};
       auto const &runtime{session.runtime};
       for(size_t i{0}; i < runtime.actors.units.size(); ++i) {
@@ -95,8 +79,7 @@ void inspect_session(apache::resources::data_store const &data, int const missio
         auto const target{arm.target ? session.network->identify(*arm.target) : apache::multiplayer::target_state{}};
         output << ' ' << target.kind; for(auto v : target.data) output << ' ' << v; output << '\n';
       }
-    }
-    else if(command == "scene-state") {
+    } else if(command == "scene-state") {
       for(size_t index{0}; index < session.runtime.actors.units.size(); ++index) {
         auto const &actor{session.runtime.actors.units[index]};
         output << "actor " << index << ' ' << actor.object.id << ' ' << actor.object.status << ' ' << actor.destroyed;
@@ -114,8 +97,7 @@ void inspect_session(apache::resources::data_store const &data, int const missio
         for(auto v : piece.velocity) output << ' ' << static_cast<uint32_t>(v);
         output << '\n';
       }
-    }
-    else if(command == "projectiles") {
+    } else if(command == "projectiles") {
       auto const &pool{session.runtime.weapons->rounds};
       for(size_t index{0}; index < pool.entries().size(); ++index) if(pool.entries()[index]) {
         auto const &r{pool.entries()[index]->state};
@@ -123,22 +105,15 @@ void inspect_session(apache::resources::data_store const &data, int const missio
         for(auto v : r.body.pose.position) output << ' ' << v;
         output << '\n';
       }
-    }
-    else if(command == "attachments") {
-      auto const visit{[&](auto &&self, apache::render::model_instance const &object) -> void {
+    } else if(command == "attachments") {
+      auto const visit{[&](auto &&self, apache::render::model_instance const &object)->void {
         output << "attachment " << object.id;
         for(auto const &pose : {object.world, object.relative}) { for(auto v : pose.position) output << ' ' << v; for(auto v : pose.rotation) output << ' ' << v; }
         output << '\n';
         for(auto const &child : object.children) if(child) self(self, *child);
       }};
       visit(visit, session.runtime.actors.units[*session.runtime.timing.player].object);
-    }
-    else if(command == "record") { apache::simulation::debrief_record record; for(auto &v : record.words) input >> v; session.records.add(record); }
-    else if(command == "fixture_crash_timer") { input >> session.views->context.crash_timer; }
-    else if(command == "fixture_position") { apache::math::vector3 value; for(auto &v : value) input >> v; session.runtime.pilot->reposition(value); }
-    else if(command == "fixture_landing_award") { session.landing_award(); }
-    else if(command == "fixture_death") { unsigned int death; input >> death; if(arcade) session.runtime.pilot->arcade.death = death; else session.runtime.pilot->realistic.death = death; }
-    else if(command == "fixture_targets") {
+    } else if(command == "record") { apache::simulation::debrief_record record; for(auto &v : record.words) input >> v; session.records.add(record); } else if(command == "fixture_crash_timer") { input >> session.views->context.crash_timer; } else if(command == "fixture_position") { apache::math::vector3 value; for(auto &v : value) input >> v; session.runtime.pilot->reposition(value); } else if(command == "fixture_landing_award") { session.landing_award(); } else if(command == "fixture_death") { unsigned int death; input >> death; if(arcade) session.runtime.pilot->arcade.death = death; else session.runtime.pilot->realistic.death = death; } else if(command == "fixture_targets") {
       bool outstanding; input >> outstanding; auto &runtime{session.runtime}; unsigned int marked{0};
       for(auto const &group : runtime.actors.groups) for(auto index : group.units) {
         auto const &actor{runtime.actors.units[index]};
@@ -147,8 +122,9 @@ void inspect_session(apache::resources::data_store const &data, int const missio
         }
       }
       auto const &actor{runtime.actors.units[*runtime.timing.player]};
-      for(auto const &waypoint : runtime.mission.tasks[actor.location.task].actors[actor.location.group].waypoints) if(waypoint.type == 4)
+      for(auto const &waypoint : runtime.mission.tasks[actor.location.task].actors[actor.location.group].waypoints) if(waypoint.type == 4) {
         if(auto target{apache::simulation::nearest_ground_object(runtime.scene, waypoint.position[0], waypoint.position[1])}) { (target->layer ? runtime.scene.extra : runtime.scene.base).at(target->index).status |= 1; ++marked; }
+      }
       output << "marked " << marked << '\n';
     } else if(command == "debrief") {
       uint32_t seed; std::string name; input >> seed >> std::quoted(name);
@@ -160,8 +136,7 @@ void inspect_session(apache::resources::data_store const &data, int const missio
       if(session.briefing.flow == 4) log.campaign = {static_cast<uint32_t>(session.briefing.zone), static_cast<uint32_t>(session.briefing.level), 4, 12345, {{static_cast<uint32_t>(mission), apache::simulation::mission_result::untried}}};
       result.log(log, static_cast<uint32_t>(mission), static_cast<unsigned int>(session.briefing.flow), 500000);
       output << "log "; for(auto byte : log.encode()) output << std::hex << std::setfill('0') << std::setw(2) << static_cast<unsigned int>(byte); output << std::dec << std::setfill(' ') << '\n';
-    }
-    else if(command == "draw") {
+    } else if(command == "draw") {
       std::string path; input >> std::quoted(path); session.draw();
       if(path != "-") {
         apache::resources::write_ppm(path + ".ppm", session.frame.image);
@@ -218,12 +193,7 @@ void inspect_communications(std::istream &input, std::ostream &output) {
   apache::simulation::communications panel;
   std::string command;
   while(input >> command) {
-    if(command == "add") { int32_t priority, lifetime; std::string text; input >> priority >> lifetime >> std::quoted(text); panel.add(text, priority, lifetime); }
-    else if(command == "changing") { uint32_t id; int32_t priority; std::string text; input >> id >> priority >> std::quoted(text); panel.add_changing(id, text, priority); }
-    else if(command == "update") { uint32_t id; std::string text; input >> id >> std::quoted(text); panel.update_changing(id, text); }
-    else if(command == "remove") { uint32_t id; input >> id; panel.remove(id); }
-    else if(command == "step") { double seconds; input >> seconds; panel.advance(seconds); }
-    else if(command == "compose") {
+    if(command == "add") { int32_t priority, lifetime; std::string text; input >> priority >> lifetime >> std::quoted(text); panel.add(text, priority, lifetime); } else if(command == "changing") { uint32_t id; int32_t priority; std::string text; input >> id >> priority >> std::quoted(text); panel.add_changing(id, text, priority); } else if(command == "update") { uint32_t id; std::string text; input >> id >> std::quoted(text); panel.update_changing(id, text); } else if(command == "remove") { uint32_t id; input >> id; panel.remove(id); } else if(command == "step") { double seconds; input >> seconds; panel.advance(seconds); } else if(command == "compose") {
       apache::simulation::communication_status status; std::string weapon;
       input >> status.fuel >> status.endurance >> status.flow >> status.score >> status.infinite_fuel >> status.faults >> std::quoted(weapon); status.weapon = weapon; panel.compose(status);
     } else if(command != "snapshot") throw std::runtime_error{"Invalid communications command"};

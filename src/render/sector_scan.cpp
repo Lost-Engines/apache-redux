@@ -28,7 +28,7 @@ bool restrict_bounds(sector_bounds &bounds, sector_bounds const &limit, int cons
   bounds.bottom = std::max(bounds.bottom, -camera_y); bounds.top = std::min(bounds.top, size - 1 - camera_y);
   return true;
 }
-} // namespace
+} // anonymous namespace
 sector_bounds scan_sectors(math::pose const &camera, projection const &view, uint32_t const heading, unsigned int const distance, bool const super) {
   if(distance < 1 || distance > 14) throw std::runtime_error{"Sector distance must be between 1 and 14"};
   int const size{super ? 16 : 64}, shift{super ? 26 : 22}, mask{super ? 0x3ffffff : 0x3fffff}, offset{super ? 0x18000000 : 0};
@@ -72,10 +72,7 @@ sector_bounds scan_sectors(math::pose const &camera, projection const &view, uin
     if(!found) {
       bounds = quadrant <= 0x40000000 || (quadrant > 0x80000000 && quadrant <= 0xc0000000) ? sector_bounds{-1, 0, 1, 0} : sector_bounds{0, -1, 0, 1};
       restrict_bounds(bounds, limit, camera_x, camera_y, size);
-    } else if(quadrant <= 0x40000000) { if(bounds.bottom == 1) bounds.bottom = 0; }
-    else if(quadrant <= 0x80000000) { if(bounds.left == 1) bounds.left = 0; }
-    else if(quadrant <= 0xc0000000) { if(bounds.top == -1) bounds.top = 0; }
-    else if(bounds.right == -1) bounds.right = 0;
+    } else if(quadrant <= 0x40000000) { if(bounds.bottom == 1) bounds.bottom = 0; } else if(quadrant <= 0x80000000) { if(bounds.left == 1) bounds.left = 0; } else if(quadrant <= 0xc0000000) { if(bounds.top == -1) bounds.top = 0; } else if(bounds.right == -1) bounds.right = 0;
   }
   return bounds;
 }

@@ -1,20 +1,20 @@
 #include "inspect_firing.h"
-#include "simulation/firing_solution.h"
 #include <istream>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include "simulation/firing_solution.h"
 
 void inspect_firing(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
+  namespace math = apache::math;
+  namespace simulation = apache::simulation;
   math::trigonometry const trig{data}; auto const weapons{simulation::weapon_definitions()};
-  auto const point{[&](){ math::vector3 p; for(auto &v : p) input >> v; return p; }};
+  auto const point{[&]{ math::vector3 p; for(auto &v : p) input >> v; return p; }};
   auto const vector{[&](auto const &p){ for(auto v : p) output << ' ' << v; }};
   std::string command;
   while(input >> command) {
     unsigned int id{0}; input >> id; auto const &weapon{weapons.at(id)};
-    if(command == "bounds") { auto const a{simulation::firing_angles(weapon)}; output << a.heading << ' ' << a.minimum_pitch << ' ' << a.maximum_pitch << '\n'; }
-    else if(command == "aim") {
+    if(command == "bounds") { auto const a{simulation::firing_angles(weapon)}; output << a.heading << ' ' << a.minimum_pitch << ' ' << a.maximum_pitch << '\n'; } else if(command == "aim") {
       simulation::firing_inputs state; bool clear{false}; input >> state.source_height >> state.night >> clear;
       state.source.position = point(); state.source.direction = point(); state.target.position = point(); state.target.direction = point(); input >> state.target.speed;
       std::vector<int32_t> queries;

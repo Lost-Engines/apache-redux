@@ -1,13 +1,13 @@
 #include "inspect_combat_update.h"
-#include "simulation/combat_update.h"
 #include <istream>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include "simulation/combat_update.h"
 
 void inspect_combat_update(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
-  math::trigonometry const trig{data}; auto const weapons{simulation::weapon_definitions()}; resources::executable_data const executable{data}; simulation::combat_tables const tables{executable};
+  namespace simulation = apache::simulation;
+  apache::math::trigonometry const trig{data}; auto const weapons{simulation::weapon_definitions()}; apache::resources::executable_data const executable{data}; simulation::combat_tables const tables{executable};
   auto const read{[&](auto &v){ for(auto &x : v) input >> x; }};
   auto const id{[](simulation::shared_target const &t){ return t ? t->identity.index : 0; }};
   std::string op;
@@ -26,20 +26,20 @@ void inspect_combat_update(std::istream &input, std::ostream &output, apache::re
       else simulation::point_ground_defence(object, trig, cb);
       output << id(object.target) << ' ' << object.heading << ' ' << object.deadline << ' ' << object.shots << ' ' << heading << ' ' << random.value << ' ' << random.global_seed;
     } else if(op == "sectors") {
-      math::vector3 position; read(position); int seed{0}; input >> seed;
+      apache::math::vector3 position; read(position); int seed{0}; input >> seed;
       simulation::visit_ground_defence_sectors(position, [&](int x, int y){ return (x * 7 + y * 11 + seed) % 4; }, [&](int x, int y){ event({x,y}); }); output << 0;
     } else if(op == "actor") {
       simulation::actor_state actor; simulation::actor_armament arms; int32_t task{0}, serial{0}, status{0}, acquisition{0}; uint32_t frame{0}; unsigned int weapon{0}; bool target{false}, behind{false};
       input >> actor.classification >> actor.conditions >> actor.object.status >> actor.destroyed >> actor.speed >> actor.retreat_until >> task >> serial >> frame >> target >> status >> acquisition >> weapon >> behind; read(actor.object.world.position); read(refs[2]->position); read(refs[3]->position); if(target) arms.target = refs[2];
       simulation::actor_combat_callbacks cb; cb.status = [&](auto const &t){ event({1,t.identity.index}); return status; }; cb.position = [&](auto const &t){ event({6,t.identity.index}); return t.position; };
       auto const acquire{[&](int kind){ event({kind}); if(acquisition == 1) arms.target = refs[3]; else if(acquisition == 2) arms.target.reset(); }};
-      cb.air_acquire = [&](){ acquire(2); }; cb.ground_acquire = [&](){ acquire(3); }; cb.artillery_acquire = [&](){ acquire(4); };
-      cb.weapon = [&](){ event({5}); return weapon; }; cb.fire = [&](){ event({7}); }; cb.behind = [&](){ event({8}); return behind; }; cb.released = [&](){ event({9}); };
+      cb.air_acquire = [&]{ acquire(2); }; cb.ground_acquire = [&]{ acquire(3); }; cb.artillery_acquire = [&]{ acquire(4); };
+      cb.weapon = [&]{ event({5}); return weapon; }; cb.fire = [&]{ event({7}); }; cb.behind = [&]{ event({8}); return behind; }; cb.released = [&]{ event({9}); };
       auto const result{simulation::update_actor_combat(actor, arms, task, serial, frame, weapons, cb)};
       output << result << ' ' << actor.conditions << ' ' << actor.retreat_until << ' ' << id(arms.target);
     } else if(op == "formations") {
       size_t count{0}; int64_t player{0}; input >> count >> player; if(count > 100) throw std::runtime_error{"Too many formations"};
-      std::vector<simulation::actor_group> groups; std::vector<simulation::actor_state> actors; std::vector<resources::mission_task> tasks(count); std::vector<int> results;
+      std::vector<simulation::actor_group> groups; std::vector<simulation::actor_state> actors; std::vector<apache::resources::mission_task> tasks(count); std::vector<int> results;
       for(size_t g{0}; g != count; ++g) {
         size_t members{0}; input >> tasks[g].type >> members; if(members > 100) throw std::runtime_error{"Too many members"}; simulation::actor_group group; group.task = g;
         for(size_t m{0}; m != members; ++m) { simulation::actor_state a; int result{0}; input >> a.conditions >> a.network >> result; group.units.push_back(actors.size()); actors.push_back(std::move(a)); results.push_back(result); }

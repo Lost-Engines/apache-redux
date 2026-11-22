@@ -33,7 +33,7 @@ int32_t single(tagged_section const &section) {
   if(values.size() != 1) throw std::runtime_error{"Expected one integer for mission tag " + section.tag};
   return values.front();
 }
-}
+} // anonymous namespace
 std::vector<tagged_section> tagged_text(std::string_view text) {
   std::vector<tagged_section> result;
   while(!text.empty()) {
@@ -77,8 +77,7 @@ mission_definition read_mission_definition(std::string_view const text) {
   auto const need_actor{[&]()->mission_actor&{ if(!actor) throw std::runtime_error{"Mission tag requires an actor"}; return *actor; }};
   for(auto const &section : tagged_text(text)) {
     auto const tag{canonical(section.tag)};
-    if(tag == "TASK") { task = &result.tasks.emplace_back(); actor = nullptr; }
-    else if(tag == "USER TASK") need_task().user = true;
+    if(tag == "TASK") { task = &result.tasks.emplace_back(); actor = nullptr; } else if(tag == "USER TASK") need_task().user = true;
     else if(tag == "SIDE") need_task().side = single(section);
     else if(tag == "TASK TYPE") need_task().type = single(section);
     else if(tag == "BATTLE CELL") need_task().battle_cell = single(section);

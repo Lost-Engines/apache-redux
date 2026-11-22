@@ -4,7 +4,7 @@
 
 namespace apache::frontend {
 void map_view::restrict() {
-  auto &[x, y, scale, angle]{position}; (void)angle;
+  auto &[x, y, scale, angle]{position}; static_cast<void>(angle);
   int32_t const left{x - scale * 320}, right{x + scale * 320};
   int32_t const bottom{y - scale * 240}, top{y + scale * 240};
   if(scale * 640 > 0x8000000) scale = 0x33333;
@@ -16,7 +16,9 @@ void map_view::restrict() {
 void map_view::set(int32_t const x, int32_t const y, int32_t const scale, uint32_t const angle) {
   position = {std::clamp(x, 0, 0xfffffff), std::clamp(y, 0, 0xfffffff), std::clamp(scale, 256, 0x271000), angle}; restrict();
 }
-void map_view::centre(int32_t const x, int32_t const y) { set(x, y, position.zoom, position.rotation); }
+void map_view::centre(int32_t const x, int32_t const y) {
+  set(x, y, position.zoom, position.rotation);
+}
 void map_view::zoom(int32_t const scale) { position.zoom = std::clamp(scale, 256, 0x271000); restrict(); }
 void map_view::rotate(uint32_t const angle) { position.rotation = angle; restrict(); }
 void map_view::push() { restrict(); if(history.size() < 32) history.push_back(position); }

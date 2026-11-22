@@ -1,23 +1,25 @@
 #include "inspect_targets.h"
-#include "simulation/targets.h"
 #include <iomanip>
 #include <istream>
 #include <memory>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include "simulation/targets.h"
 
 void inspect_targets(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
+  namespace math = apache::math;
+  namespace resources = apache::resources;
+  namespace simulation = apache::simulation;
   auto models{resources::read_models(data.read("3DDATA/3DOBJS.BIN"))}; resources::initialise_model_metadata(models, resources::executable_data{data});
-  math::trigonometry const trig{data}; render::mobile_scene mobiles{models};
+  math::trigonometry const trig{data}; apache::render::mobile_scene mobiles{models};
   auto const object_id{mobiles.add(7, {})};
   std::array<resources::scenery_placement, 1> placements{};
   simulation::scenery_collisions const scenery{models, trig, placements};
   std::optional<resources::terrain> terrain;
   simulation::mobile_target_state state;
   std::unique_ptr<simulation::target_world> world;
-  auto const point{[&](){ math::vector3 p; for(auto &v : p) input >> v; return p; }};
+  auto const point{[&]{ math::vector3 p; for(auto &v : p) input >> v; return p; }};
   auto const print{[&](auto const &v){ for(auto x : v) output << x << ' '; }};
   std::string command;
   while(input >> command) {

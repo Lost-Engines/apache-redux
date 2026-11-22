@@ -1,7 +1,7 @@
 #pragma once
-#include "mission_weapons.h"
 #include "blast_damage.h"
 #include "combat_effects.h"
+#include "mission_weapons.h"
 
 namespace apache::simulation {
 struct mission_damage_callbacks {

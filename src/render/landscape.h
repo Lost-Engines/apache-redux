@@ -7,12 +7,12 @@
 #include "feature_renderer.h"
 #include "fragment_renderer.h"
 #include "horizon.h"
-#include "model_renderer.h"
 #include "map_renderer.h"
 #include "mobile_scene.h"
+#include "model_renderer.h"
+#include "resources/features.h"
 #include "sector_scan.h"
 #include "terrain_renderer.h"
-#include "resources/features.h"
 
 namespace apache::render {
 struct landscape_options {
@@ -68,8 +68,12 @@ public:
   landscape(resources::data_store const &data, std::string_view zone);
   // Bound scene storage must outlive the renderer and retain its placement addresses.
   void bind_scene(std::span<resources::scenery_placement const> base, std::span<resources::scenery_placement const> extra, mobile_scene &objects, simulation::effects const &particles, simulation::craters const &marks, simulation::fragments const &pieces);
-  void initialise_model_metadata(resources::executable_data const &executable) { resources::initialise_model_metadata(models, executable); }
-  resources::terrain const &heights() const { return terrain; }
+  void initialise_model_metadata(resources::executable_data const &executable) {
+    resources::initialise_model_metadata(models, executable);
+  }
+  resources::terrain const &heights() const {
+    return terrain;
+  }
   uint8_t surface_type(int32_t x, int32_t y) const;
   void advance(int32_t delta_time, uint32_t &random_seed);
   void draw_map(framebuffer &target, rectangle area, window2 window, uint32_t heading, map_configuration const &configuration = {}, std::span<resources::scenery_placement const> extra = {}) const;

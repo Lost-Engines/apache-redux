@@ -4,9 +4,13 @@
 
 namespace apache::simulation {
 namespace {
-bool inside(math::vector3 const &position) { return position[0] >= 0 && position[0] < 0x10000000 && position[1] >= 0 && position[1] < 0x10000000; }
-void check_radius(int32_t const radius) { if(radius < 0 || radius > 0x1000000) throw std::runtime_error{"Invalid effect radius"}; }
-} // namespace
+bool inside(math::vector3 const &position) {
+  return position[0] >= 0 && position[0] < 0x10000000 && position[1] >= 0 && position[1] < 0x10000000;
+}
+void check_radius(int32_t const radius) {
+  if(radius < 0 || radius > 0x1000000) throw std::runtime_error{"Invalid effect radius"};
+}
+} // anonymous namespace
 void effects::reset() {
   for(auto &puff : smoke_puffs) puff.active = false;
   for(auto &blast : explosions) blast.kind = 0;

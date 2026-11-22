@@ -1,7 +1,7 @@
 #pragma once
+#include <unordered_map>
 #include "mission_radar.h"
 #include "targets.h"
-#include <unordered_map>
 
 namespace apache::simulation {
 // Owns the links between mission actors, render/collision objects and combat cells.
@@ -23,7 +23,9 @@ public:
   mission_spatial(mission_spatial const &) = delete;
   mission_spatial &operator=(mission_spatial const &) = delete;
   std::optional<size_t> actor_index(uint32_t id) const;
-  uint32_t mobile_id(size_t actor) const { return targets.at(actor)->identity.index; }
+  uint32_t mobile_id(size_t actor) const {
+    return targets.at(actor)->identity.index;
+  }
   void move(actor_state &actor, math::vector3 const &position);
   void change_status(size_t actor, uint32_t status);
   void place(size_t actor);

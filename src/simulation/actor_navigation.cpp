@@ -4,12 +4,27 @@
 
 namespace apache::simulation {
 namespace {
-int32_t signed_angle(uint32_t const value) { return std::bit_cast<int32_t>(value); }
-int32_t magnitude(int32_t const value) { return value < 0 ? math::negate(value) : value; }
-int32_t product(int32_t const a, int32_t const b) { return std::bit_cast<int32_t>(static_cast<uint32_t>(a) * static_cast<uint32_t>(b)); }
-int32_t range2(int32_t const x, int32_t const y) { auto const a{magnitude(x)}, b{magnitude(y)}; return math::add(product(std::max(a, b), 4), std::min(a, b)) >> 2; }
-int32_t range3(math::vector3 value) { for(auto &v : value) v = magnitude(v); std::ranges::sort(value); return math::add(math::add(value[2], value[1] >> 2), value[0] >> 2); }
-bool outside(math::vector3 const &p) { return p[0] < 0 || p[1] < 0 || p[0] > 0xfffffff || p[1] > 0xfffffff; }
+int32_t signed_angle(uint32_t const value) {
+  return std::bit_cast<int32_t>(value);
+}
+int32_t magnitude(int32_t const value) {
+  return value < 0 ? math::negate(value) : value;
+}
+int32_t product(int32_t const a, int32_t const b) {
+  return std::bit_cast<int32_t>(static_cast<uint32_t>(a) * static_cast<uint32_t>(b));
+}
+int32_t range2(int32_t const x, int32_t const y) {
+  auto const a{magnitude(x)}, b{magnitude(y)};
+  return math::add(product(std::max(a, b), 4), std::min(a, b)) >> 2;
+}
+int32_t range3(math::vector3 value) {
+  for(auto &v : value) v = magnitude(v);
+  std::ranges::sort(value);
+  return math::add(math::add(value[2], value[1] >> 2), value[0] >> 2);
+}
+bool outside(math::vector3 const &p) {
+  return p[0] < 0 || p[1] < 0 || p[0] > 0xfffffff || p[1] > 0xfffffff;
+}
 int32_t required_speed(actor_state const &unit, navigation_order const &order, navigation_characteristics const &performance, int32_t const height_error, int32_t const range) {
   if((unit.conditions & 8) && !order.player_task && (unit.classification == 1 || unit.classification == 2) && order.has_target && range < 2027520) {
     if(order.target_classification == 1) return performance.ground_attack_speed;
@@ -47,7 +62,7 @@ void bound_helicopter(actor_state &unit, navigation_order const &order, int32_t 
   unit.velocity[0] = std::clamp(unit.velocity[0], math::negate(magnitude(difference[0])), magnitude(difference[0]));
   unit.velocity[1] = std::clamp(unit.velocity[1], math::negate(magnitude(difference[1])), magnitude(difference[1]));
 }
-}
+} // anonymous namespace
 navigation_tables::navigation_tables(resources::executable_data const &executable) {
   auto const read{[&](auto &rows, uint32_t address){
     resources::reader input{executable.at(address, rows.size() * 32), "Actor navigation characteristics"};

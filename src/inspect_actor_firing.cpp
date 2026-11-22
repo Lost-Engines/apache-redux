@@ -1,13 +1,13 @@
 #include "inspect_actor_firing.h"
-#include "simulation/actor_firing.h"
 #include <istream>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include "simulation/actor_firing.h"
 
 void inspect_actor_firing(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
-  math::trigonometry const trig{data}; simulation::combat_tables const tables{resources::executable_data{data}};
+  namespace simulation = apache::simulation;
+  apache::math::trigonometry const trig{data}; simulation::combat_tables const tables{apache::resources::executable_data{data}};
   auto const weapons{simulation::weapon_definitions()}; auto const types{simulation::actor_types()};
   auto const read{[&](auto &values){ for(auto &v : values) input >> v; }};
   auto const write{[&](auto const &values){ for(auto v : values) output << ' ' << v; }};
@@ -31,7 +31,7 @@ void inspect_actor_firing(std::istream &input, std::ostream &output, apache::res
       simulation::actor_firing_callbacks callbacks;
       auto const record{[&](auto const &values){ for(auto v : values) events.push_back(v); }};
       callbacks.visible = [&](auto const &a, auto const &b){ events.push_back(2); record(a); record(b); return clear; };
-      callbacks.construct = [&](simulation::projectile_request const &request) -> std::optional<size_t> {
+      callbacks.construct = [&](simulation::projectile_request const &request)->std::optional<size_t> {
         auto const movement{weapons.at(request.weapon).movement_class}; events.push_back(movement == 3 ? 1 : movement == 1 ? 3 : 4); events.push_back(request.weapon);
         record(request.launch.pose.position); if(movement != 3) record(request.launch.pose.rotation);
         events.push_back(request.source.identity.index);
@@ -40,8 +40,8 @@ void inspect_actor_firing(std::istream &input, std::ostream &output, apache::res
       };
       callbacks.launch = [&](size_t){ events.push_back(5); };
       callbacks.fired_at = [&](auto const &, auto const &){ events.push_back(6); };
-      callbacks.target_released = [&](){ events.push_back(8); };
-      callbacks.bomb_released = [&](){ events.push_back(9); };
+      callbacks.target_released = [&]{ events.push_back(8); };
+      callbacks.bomb_released = [&]{ events.push_back(9); };
       callbacks.remove_flame = [&](size_t){ events.push_back(10); };
       result = simulation::fire_actor(actor, armament, type, weapons, trig, tables.skill(level), random, context, callbacks);
     } else throw std::runtime_error{"Unknown actor firing operation"};

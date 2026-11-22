@@ -1,20 +1,22 @@
 #include "inspect_combat_effects.h"
-#include "simulation/combat_effects.h"
-#include "resources/features.h"
 #include <istream>
 #include <memory>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include "resources/features.h"
+#include "simulation/combat_effects.h"
 
 void inspect_combat_effects(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
+  namespace math = apache::math;
+  namespace resources = apache::resources;
+  namespace simulation = apache::simulation;
   auto models{resources::read_models(data.read("3DDATA/3DOBJS.BIN"))}; resources::executable_data const executable{data}; resources::initialise_model_metadata(models, executable);
   math::trigonometry const trig{data}; simulation::effects effects; simulation::craters craters; simulation::combat_random random;
   std::optional<resources::terrain> terrain; std::optional<resources::feature_layer> normal, super;
   std::unique_ptr<simulation::combat_effects> combat;
   std::vector<simulation::explosion_audio> sounds;
-  auto const point{[&](){ math::vector3 p; for(auto &v : p) input >> v; return p; }};
+  auto const point{[&]{ math::vector3 p; for(auto &v : p) input >> v; return p; }};
   auto const state{[&](int32_t model){
     resources::bytes raw; unsigned int count{0};
     auto const word{[&](uint32_t value){ for(unsigned int i{0}; i != 4; ++i) { raw.push_back(static_cast<uint8_t>(value)); value >>= 8; } }};
@@ -41,8 +43,7 @@ void inspect_combat_effects(std::istream &input, std::ostream &output, apache::r
     } else {
       if(!combat) throw std::runtime_error{"Reset the combat effects first"};
       sounds.clear();
-      if(command == "camera") { combat->listener = point(); input >> combat->listener_heading; }
-      else if(command == "point" || command == "objectpoint") {
+      if(command == "camera") { combat->listener = point(); input >> combat->listener_heading; } else if(command == "point" || command == "objectpoint") {
         int32_t radius{0}; uint32_t model{0}, heading{0};
         if(command == "point") input >> radius; else input >> model >> heading;
         auto const p{point()}; auto const result{command == "point" ? combat->random_point(p, radius) : combat->random_point_in_model(p, model, heading)};
@@ -51,8 +52,7 @@ void inspect_combat_effects(std::istream &input, std::ostream &output, apache::r
         int32_t radius{0}; input >> radius; auto const result{combat->audio(point(), radius)}; output << result.volume << ' ' << result.pan << '\n';
       } else {
         int32_t result{-1};
-        if(command == "advance") { int32_t delta{0}; input >> delta; effects.advance(delta, *terrain); craters.advance(); }
-        else if(command == "crater" || command == "cluster") {
+        if(command == "advance") { int32_t delta{0}; input >> delta; effects.advance(delta, *terrain); craters.advance(); } else if(command == "crater" || command == "cluster") {
           int32_t radius{0}; uint32_t model{0}, heading{0}; input >> radius;
           if(command == "cluster") input >> model;
           input >> heading; auto const p{point()};

@@ -9,8 +9,8 @@
 namespace apache::render {
 struct model_instance {
   uint32_t id{0};
-  uint32_t flags{0}; // Drawing-program animation bits.
-  uint32_t status{0}; // Mobile-object allegiance and destroyed/exclusion bits.
+  uint32_t flags{0};                                                           // Drawing-program animation bits.
+  uint32_t status{0};                                                          // Mobile-object allegiance and destroyed/exclusion bits.
   bool alternate_colours{false};
   int32_t distance{0};
   math::pose relative;

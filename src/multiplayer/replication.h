@@ -1,7 +1,7 @@
 #pragma once
-#include "packet.h"
-#include "crew.h"
 #include <functional>
+#include "crew.h"
+#include "packet.h"
 
 namespace apache::multiplayer {
 struct player_replica {

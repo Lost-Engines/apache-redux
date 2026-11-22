@@ -1,14 +1,17 @@
-#include "render/mobile_scene.h"
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
+#include "render/mobile_scene.h"
 
 namespace {
-void require(bool condition, char const *message) { if(!condition) throw std::runtime_error{message}; }
+void require(bool condition, char const *message) {
+  if(!condition) throw std::runtime_error{message};
+}
 }
 int main() try {
-  using namespace apache;
-  resources::model_archive models(1); models[0].emplace();
+  namespace math = apache::math;
+  namespace render = apache::render;
+  apache::resources::model_archive models(1); models[0].emplace();
   render::model_instance actor;
   actor.relative.position = actor.world.position = {1 << 22, 2 << 22, 100};
   actor.children.push_back(std::make_unique<render::model_instance>());

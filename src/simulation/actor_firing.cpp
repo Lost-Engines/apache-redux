@@ -3,7 +3,7 @@
 
 namespace apache::simulation {
 void refresh_weapon_ranges(actor_state &actor, actor_armament &armament, actor_type const &type, std::array<weapon_info, 55> const &weapons) {
-  auto const weapon{[&](size_t slot) -> weapon_info const & { return weapons.at(static_cast<size_t>(type.weapons[slot])); }};
+  auto const weapon{[&](size_t slot)->weapon_info const & { return weapons.at(static_cast<size_t>(type.weapons[slot])); }};
   armament.air_maximum = 0;
   if(actor.conditions & 0x10000) {
     actor.conditions &= ~0x10000u;
@@ -43,9 +43,7 @@ void refresh_weapon_ranges(actor_state &actor, actor_armament &armament, actor_t
 void refresh_weapon_supply(actor_state &actor, actor_armament &armament, actor_type const &type, std::array<weapon_info, 55> const &weapons) {
   size_t count{0}, last{0};
   for(size_t slot{0}; slot != 5; ++slot) if(actor.ammunition[slot] > 0) { ++count; last = slot; }
-  if(!count) { actor.weapon = 0; actor.weapon_slot = -1; actor.conditions &= ~0xc0u; }
-  else if(count == 1) { actor.conditions |= 0xc0; actor.weapon = type.weapons[last]; actor.weapon_slot = static_cast<int32_t>(last); }
-  else actor.conditions |= 0x40;
+  if(!count) { actor.weapon = 0; actor.weapon_slot = -1; actor.conditions &= ~0xc0u; } else if(count == 1) { actor.conditions |= 0xc0; actor.weapon = type.weapons[last]; actor.weapon_slot = static_cast<int32_t>(last); } else actor.conditions |= 0x40;
   if((type.weapons[1] == 28 || type.weapons[1] == 29) && actor.ammunition[1] <= 0) actor.conditions |= 0x20;
   refresh_weapon_ranges(actor, armament, type, weapons);
 }
@@ -67,7 +65,7 @@ void release_actor_target(actor_state &actor, actor_armament &armament) {
   armament.target.reset(); actor.retreat_until = 0; actor.conditions &= ~0x11au;
 }
 bool fire_actor(actor_state &actor, actor_armament &armament, actor_type const &type, std::array<weapon_info, 55> const &weapons, math::trigonometry const &trig, forces_info const &skill, combat_random &random, actor_firing_context const &context, actor_firing_callbacks const &callbacks) {
-  auto const choose{[&](){ return choose_actor_weapon(actor, armament, type, weapons, context.target, context.task); }};
+  auto const choose{[&]{ return choose_actor_weapon(actor, armament, type, weapons, context.target, context.task); }};
   int32_t const id{choose()};
   if(!id || !armament.target || actor.weapon_slot < 0 || actor.weapon_slot >= 5) return false;
   auto const &weapon{weapons.at(static_cast<size_t>(id))};

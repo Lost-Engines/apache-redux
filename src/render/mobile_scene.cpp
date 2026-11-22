@@ -13,7 +13,7 @@ std::optional<size_t> sector_at(math::vector3 const &position) {
 math::vector3 relative_to(math::vector3 const &position, math::vector3 const &origin) {
   return {math::subtract(position[0], origin[0]), math::subtract(position[1], origin[1]), math::subtract(position[2], origin[2])};
 }
-} // namespace
+} // anonymous namespace
 uint32_t mobile_scene::add(uint32_t const model, math::pose const &pose) {
   if(objects.size() >= UINT32_MAX) throw std::runtime_error{"Too many mobile scene objects"};
   auto const id{static_cast<uint32_t>(objects.size())};

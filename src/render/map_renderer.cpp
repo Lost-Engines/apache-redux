@@ -1,6 +1,6 @@
-#include "landscape.h"
 #include <algorithm>
 #include <stdexcept>
+#include "landscape.h"
 
 namespace apache::render {
 namespace {
@@ -8,11 +8,13 @@ int32_t grid_term(int32_t const coefficient, int const index, unsigned int const
   auto const value{static_cast<int32_t>((int64_t{coefficient} * std::abs(index)) >> shift)};
   return index < 0 ? math::negate(value) : value;
 }
-uint8_t map_colour(uint8_t const colour) { return colour == 11 ? 202 : colour == 111 || colour == 127 ? 200 : 2; }
+uint8_t map_colour(uint8_t const colour) {
+  return colour == 11 ? 202 : colour == 111 || colour == 127 ? 200 : 2;
+}
 uint8_t outcode(vertex2 const &point, window2 const &window) {
   return static_cast<uint8_t>((point.y > window.top ? 8 : point.y < window.bottom ? 4 : 0) | (point.x > window.right ? 2 : point.x < window.left ? 1 : 0));
 }
-} // namespace
+} // anonymous namespace
 void draw_map_contours(framebuffer &target, projection2 const &view, std::array<vertex2, 3> triangle, int32_t const interval) {
   if(interval < 10) throw std::runtime_error{"Map contour interval must be at least ten feet"};
   int32_t const quantum{interval / 10}, spacing{interval / quantum};
@@ -35,8 +37,7 @@ void draw_map_contours(framebuffer &target, projection2 const &view, std::array<
       --countdown; advance(edge, long_step); advance(other, short_step);
     }
   }};
-  if(a.intensity == b.intensity) { other = b; segment(a.intensity, c.intensity, step(b, c, c.intensity - b.intensity)); }
-  else {
+  if(a.intensity == b.intensity) { other = b; segment(a.intensity, c.intensity, step(b, c, c.intensity - b.intensity)); } else {
     segment(a.intensity, b.intensity, step(a, b, b.intensity - a.intensity));
     if(b.intensity != c.intensity) segment(b.intensity, c.intensity, step(other, c, c.intensity - b.intensity));
   }

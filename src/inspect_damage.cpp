@@ -1,13 +1,14 @@
 #include "inspect_damage.h"
-#include "simulation/damage.h"
 #include <iomanip>
 #include <istream>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include "simulation/damage.h"
 
 void inspect_damage(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
+  namespace resources = apache::resources;
+  namespace simulation = apache::simulation;
   auto models{resources::read_models(data.read("3DDATA/3DOBJS.BIN"))}; resources::executable_data const executable{data}; resources::initialise_model_metadata(models, executable);
   simulation::combat_tables const tables{executable}; auto const weapons{simulation::weapon_definitions()};
   std::string command;
@@ -17,7 +18,7 @@ void inspect_damage(std::istream &input, std::ostream &output, apache::resources
       input >> target.model >> target.flags >> target.mobile >> target.actor >> target.player >> target.network >> damage; target.damage = static_cast<uint8_t>(damage);
       for(auto &x : target.position) input >> x;
       input >> kind >> source.side >> source.actor >> source.network >> weapon; source.kind = static_cast<simulation::target_kind>(kind);
-      math::vector3 impact; for(auto &x : impact) input >> x;
+      apache::math::vector3 impact; for(auto &x : impact) input >> x;
       simulation::blast_limits blast; simulation::damage_random random; simulation::damage_environment environment;
       input >> blast.damage >> blast.radius >> random.weapon >> random.round >> random.global >> environment.mode >> environment.flow >> level;
       environment.difficulty_percent = tables.skill(level).damage_percent; environment.decoy_modifier = tables.skill(level).decoy_modifier;

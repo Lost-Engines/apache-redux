@@ -1,13 +1,21 @@
 #include "inspect_seekers.h"
-#include "simulation/seeker.h"
 #include <istream>
 #include <ostream>
 #include <stdexcept>
 #include <string>
 #include <vector>
+#include "simulation/seeker.h"
 
 void inspect_seekers(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache::simulation;
+  using apache::simulation::combat_random;
+  using apache::simulation::combat_tables;
+  using apache::simulation::decoy_distracts;
+  using apache::simulation::seeker_inputs;
+  using apache::simulation::seeker_queries;
+  using apache::simulation::seeker_state;
+  using apache::simulation::seeker_target;
+  using apache::simulation::update_seeker;
+  using apache::simulation::weapon_definitions;
   auto const weapons{weapon_definitions()}; combat_tables const tables{apache::resources::executable_data{data}};
   std::string command;
   while(input >> command) {
@@ -28,8 +36,8 @@ void inspect_seekers(std::istream &input, std::ostream &output, apache::resource
       std::vector<int> calls;
       seeker_queries const queries{
         .visible{[&](auto const &from, auto const &){ bool const source{from == context.source_position}; calls.push_back(source ? 1 : 2); return source ? source_visible : missile_visible; }},
-        .distracted{[&](){ calls.push_back(3); return distracted; }},
-        .random{[&](){ calls.push_back(4); return random; }},
+        .distracted{[&]{ calls.push_back(3); return distracted; }},
+        .random{[&]{ calls.push_back(4); return random; }},
       };
       update_seeker(state, weapons.at(id), context, queries);
       output << state.flags << ' ' << state.retry_time << ' ' << static_cast<int>(state.adjusted) << ' ' << calls.size();

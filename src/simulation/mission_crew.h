@@ -20,7 +20,9 @@ public:
   ~mission_crew();
   mission_crew(mission_crew const &) = delete;
   mission_crew &operator=(mission_crew const &) = delete;
-  bool notify_key(uint16_t code) { return outgoing.notify_key(code); }
+  bool notify_key(uint16_t code) {
+    return outgoing.notify_key(code);
+  }
   void receive(multiplayer::crew_state const &state);
   multiplayer::packet transmit(unsigned int ticks);
 };

@@ -1,7 +1,7 @@
 #pragma once
-#include "resources/executable.h"
 #include <functional>
 #include <optional>
+#include "resources/executable.h"
 
 namespace apache::simulation {
 struct view_context {
@@ -22,8 +22,12 @@ public:
   explicit view_modes(resources::executable_data const &executable, unsigned int control_mode = 2);
   bool valid(unsigned int requested, view_context const &context) const;
   bool select(unsigned int requested, view_context const &context, view_events const &events = {});
-  unsigned int left_view() const { return mode < left.size() ? left[mode] : home; }
-  unsigned int right_view() const { return mode < right.size() ? right[mode] : home; }
+  unsigned int left_view() const {
+    return mode < left.size() ? left[mode] : home;
+  }
+  unsigned int right_view() const {
+    return mode < right.size() ? right[mode] : home;
+  }
   std::array<int32_t, 4> viewport(unsigned int video_mode) const;
 };
 struct optical_magnification { int32_t distance{0}, rate{0}; std::string label; };
@@ -38,7 +42,11 @@ public:
   bool cycle(unsigned int view, uint32_t faults);
   void check(uint32_t faults);
   void zoom(unsigned int view, bool raise);
-  optical_magnification const &magnification() const { return levels.at(device).at(selected.at(device)); }
-  std::string const &name() const { return names.at(device); }
+  optical_magnification const &magnification() const {
+    return levels.at(device).at(selected.at(device));
+  }
+  std::string const &name() const {
+    return names.at(device);
+  }
 };
 } // namespace apache::simulation

@@ -10,6 +10,8 @@ public:
   daylight(resources::executable_data const &executable, int32_t mission_time, int32_t now = 0);
   void set(int32_t time);
   void update(int32_t now);
-  bool night_vision() const { return static_cast<double>(light.night) > 1503238552.9; }
+  bool night_vision() const {
+    return static_cast<double>(light.night) > 1503238552.9;
+  }
 };
 } // namespace apache::simulation

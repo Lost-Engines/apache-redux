@@ -4,7 +4,10 @@
 
 namespace apache::frontend {
 network_menu::network_menu(menu &ui, configuration::settings &preferences) : interface{ui}, settings{preferences} {}
-void network_menu::visible(std::string_view const name, bool const value) { auto &w{interface.named(name)}; w.flags = (w.flags & ~1u) | static_cast<unsigned int>(value); }
+void network_menu::visible(std::string_view const name, bool const value) {
+  auto &w{interface.named(name)};
+  w.flags = (w.flags & ~1u) | static_cast<unsigned int>(value);
+}
 void network_menu::message(std::string_view const text) {
   std::move(messages.begin() + 1, messages.end(), messages.begin()); messages.back() = text;
   size_t i{0}; for(auto &w : interface.objects()) if(w.name == "Modem Message Line") w.text = messages[i++];
@@ -56,18 +59,18 @@ void network_menu::connect() {
   if(!host.empty()) options.peers.push_back(platform::network_address::resolve(host, options.bind.port));
   if(peers) { peers->leave(); peers.reset(); }
   peers = std::make_unique<multiplayer::peer_group>(std::move(options), own_name);
-  peers->changed = [this](){
+  peers->changed = [this]{
     refresh();
     if(two_player && !starting && peers->room.other_players) announce_selection(peers->room.two_player[1] ? 11 : 10);
   };
   auto &room{peers->room};
   room.preferences = {settings.values.integer("Network infinite fuel").value_or(0), settings.values.integer("Network unlimited weapons").value_or(0), 0, settings.values.integer("Network collisions").value_or(1), settings.values.integer("Network deathmatch").value_or(1)};
-  room.events.preferences_changed = [this](){ preferences(); };
+  room.events.preferences_changed = [this]{ preferences(); };
   room.events.buttons = [this](bool enabled){ buttons(enabled); };
   room.events.message = room.events.chat = [this](std::string_view text){ message(text); };
   room.events.selection = [this](auto code, auto const &arguments){ selection(code, arguments); };
-  room.events.settings_changed = [this](){ controls(); };
-  room.events.start = [this](){ start_requested = true; };
+  room.events.settings_changed = [this]{ controls(); };
+  room.events.start = [this]{ start_requested = true; };
   preferences(); controls(); refresh(); buttons(true);
 }
 void network_menu::open(bool const two, std::string name) {
@@ -95,8 +98,7 @@ void network_menu::announce_selection(unsigned int const code, int const value) 
 void network_menu::selection(unsigned int const code, std::array<int32_t, 5> const &arguments) {
   if(!peers) return;
   auto &p{peers->room.two_player};
-  if(code == 1) { auto const previous{arguments[2]}; p[0] = previous == 1 ? 3 : previous == 2 ? 1 : 2; }
-  else if(code >= 2 && code <= 5) p[2] = static_cast<int32_t>(code - 2);
+  if(code == 1) { auto const previous{arguments[2]}; p[0] = previous == 1 ? 3 : previous == 2 ? 1 : 2; } else if(code >= 2 && code <= 5) p[2] = static_cast<int32_t>(code - 2);
   else if(code == 6 || code == 7) p[3] = static_cast<int32_t>(code - 6);
   else if(code == 8 || code == 9) p[4] = static_cast<int32_t>(code - 8);
   else if(code >= 13 && code <= 18 && mission_selection) mission_selection(code, arguments[2]);
@@ -105,17 +107,9 @@ void network_menu::selection(unsigned int const code, std::array<int32_t, 5> con
 bool network_menu::activate(widget &object) {
   if(!peers) return false;
   auto const &action{object.action}; auto &room{peers->room};
-  if(action == "notify_enter_name_button_") { editing_name = true; entry = room.own_name; object.on = true; }
-  else if(action == "notify_two_player_phone_number_entry_") { editing_host = true; entry = host; }
-  else if(action == "notify_network_channel_") { channel = static_cast<unsigned int>(std::stoi(object.text) - 1); auto const values{room.two_player}; connect(); peers->room.two_player = values; controls(); message("Looking for another player"); }
-  else if(action == "notify_two_player_connection_type_") { interface.named("_network_comms_button").on = true; }
-  else if(action == "notify_two_player_game_mode_") { auto const old{room.two_player[0]}; announce_selection(1, old); selection(1, {0, -1, old, 0, 0}); }
-  else if(action == "notify_two_player_position_") { room.two_player[1] = &object == &interface.named("_blue_leader_button"); announce_selection(room.two_player[1] ? 11 : 10); controls(); }
-  else if(action == "notify_two_player_weather_") {
+  if(action == "notify_enter_name_button_") { editing_name = true; entry = room.own_name; object.on = true; } else if(action == "notify_two_player_phone_number_entry_") { editing_host = true; entry = host; } else if(action == "notify_network_channel_") { channel = static_cast<unsigned int>(std::stoi(object.text) - 1); auto const values{room.two_player}; connect(); peers->room.two_player = values; controls(); message("Looking for another player"); } else if(action == "notify_two_player_connection_type_") { interface.named("_network_comms_button").on = true; } else if(action == "notify_two_player_game_mode_") { auto const old{room.two_player[0]}; announce_selection(1, old); selection(1, {0, -1, old, 0, 0}); } else if(action == "notify_two_player_position_") { room.two_player[1] = &object == &interface.named("_blue_leader_button"); announce_selection(room.two_player[1] ? 11 : 10); controls(); } else if(action == "notify_two_player_weather_") {
     auto const index{static_cast<unsigned int>(&object - &interface.named("_weather_buttons"))}; announce_selection(2 + index); selection(2 + index, {});
-  } else if(action == "notify_two_player_start_time_") { auto const code{&object == &interface.named("_day_and_night_button") ? 7u : 6u}; announce_selection(code); selection(code, {}); }
-  else if(action == "notify_two_player_difficulty_") { auto const code{&object == &interface.named("_crashing_button") ? 9u : 8u}; announce_selection(code); selection(code, {}); }
-  else if(action == "notify_weapons_button_" || action == "notify_fuel_button_" || action == "notify_collision_button_" || action == "notify_game_type_button_") {
+  } else if(action == "notify_two_player_start_time_") { auto const code{&object == &interface.named("_day_and_night_button") ? 7u : 6u}; announce_selection(code); selection(code, {}); } else if(action == "notify_two_player_difficulty_") { auto const code{&object == &interface.named("_crashing_button") ? 9u : 8u}; announce_selection(code); selection(code, {}); } else if(action == "notify_weapons_button_" || action == "notify_fuel_button_" || action == "notify_collision_button_" || action == "notify_game_type_button_") {
     auto &p{room.preferences};
     if(action == "notify_fuel_button_") p[0] = &object == &interface.named("_cheat_infinite_fuel_button");
     else if(action == "notify_weapons_button_") p[1] = &object == &interface.named("_cheat_unlimited_weapons_button");
@@ -133,11 +127,9 @@ bool network_menu::activate(widget &object) {
 }
 bool network_menu::key(unsigned int const c) {
   if(!editing_name && !editing_host) return false;
-  if(c == 8) { if(!entry.empty()) entry.pop_back(); }
-  else if(c == 27) entry.clear();
+  if(c == 8) { if(!entry.empty()) entry.pop_back(); } else if(c == 27) entry.clear();
   else if(c == 10 || c == 13) {
-    if(editing_name) { own_name = entry; peers->name(entry); settings.values.set("Network name", entry); interface.named("_enter_name_button").on = false; }
-    else { host = entry; auto const values{peers->room.two_player}; connect(); peers->room.two_player = values; controls(); settings.values.set("Network host", host); }
+    if(editing_name) { own_name = entry; peers->name(entry); settings.values.set("Network name", entry); interface.named("_enter_name_button").on = false; } else { host = entry; auto const values{peers->room.two_player}; connect(); peers->room.two_player = values; controls(); settings.values.set("Network host", host); }
     editing_name = editing_host = false; settings.save();
   } else if(c >= 32 && c < 127 && entry.size() < (editing_name ? 8u : 80u)) entry += static_cast<char>(c);
   if(editing_name) interface.named("_player_name").text = entry;

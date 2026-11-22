@@ -1,17 +1,18 @@
 #include "inspect_actor_targeting.h"
-#include "simulation/actor_targeting.h"
 #include <istream>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include "simulation/actor_targeting.h"
 
 void inspect_actor_targeting(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
+  namespace math = apache::math;
+  namespace simulation = apache::simulation;
   auto const types{simulation::actor_types()}; auto const weapons{simulation::weapon_definitions()}; math::trigonometry const trig{data};
-  resources::executable_data const executable{data}; simulation::combat_tables const tables{executable};
+  apache::resources::executable_data const executable{data}; simulation::combat_tables const tables{executable};
   auto const read{[&](auto &v){ for(auto &x : v) input >> x; }};
   auto const write{[&](auto const &v){ for(auto x : v) output << ' ' << x; }};
-  auto const path{[&](){ simulation::flight_path p; int mask{0}; input >> mask >> p.type; std::array<math::vector3, 3> points; for(auto &v : points) read(v); if(mask & 1) p.previous = points[0]; if(mask & 2) p.current = points[1]; if(mask & 4) p.next = points[2]; return p; }};
+  auto const path{[&]{ simulation::flight_path p; int mask{0}; input >> mask >> p.type; std::array<math::vector3, 3> points; for(auto &v : points) read(v); if(mask & 1) p.previous = points[0]; if(mask & 2) p.current = points[1]; if(mask & 4) p.next = points[2]; return p; }};
   std::string command;
   while(input >> command) {
     if(command == "attention") {
@@ -37,13 +38,13 @@ void inspect_actor_targeting(std::istream &input, std::ostream &output, apache::
     callbacks.search = [&](auto const &, int32_t side, int32_t minimum, int32_t maximum, simulation::search_kind kind){ event({kind == simulation::search_kind::air ? 1 : 2, side, minimum, maximum}); return candidate ? targets[2] : nullptr; };
     callbacks.ground_sector = [&](int32_t x, int32_t y, int32_t side){ event({3, x, y, side}); return candidate ? targets[2] : nullptr; };
     callbacks.visible = [&](auto const &t){ event({4, t.identity.index}); return clear; };
-    callbacks.released = [&](){ event({5}); };
+    callbacks.released = [&]{ event({5}); };
     callbacks.targeted = [&](auto const &t){ event({6, t.identity.index}); };
     callbacks.fixed = [&](math::vector3 const &p){ event({7, p[0], p[1], p[2]}); targets[4] = std::make_shared<simulation::target_reference>(simulation::target_reference{{simulation::target_kind::fixed, 0, 4}, p, 1}); return targets[4]; };
     callbacks.height = [&](int32_t x, int32_t y){ event({8, x, y}); return height; };
     callbacks.sound = [&](unsigned int sound){ event({9, sound}); };
     callbacks.message = [&](std::string_view text){ event({10, text == "Designate!" ? 1 : 2}); };
-    callbacks.cap = [&](){ event({11}); armament.target = candidate ? targets[2] : nullptr; };
+    callbacks.cap = [&]{ event({11}); armament.target = candidate ? targets[2] : nullptr; };
     simulation::actor_targeting targeting{actor, armament, attention, types.at(actor.object.id), weapons, trig, tables.skill(level), tables.skill(9), random, message_time, context, callbacks};
     if(command == "basic") targeting.basic_aircraft(); else if(command == "strategic") targeting.strategic_bomber(); else if(command == "tactical") targeting.tactical_bomber(); else if(command == "laser") targeting.laser_bomber(); else if(command == "strike") targeting.ground_strike(); else if(command == "air") targeting.aircraft(); else if(command == "ground") targeting.air_defence(); else if(command == "artillery") targeting.artillery(); else if(command == "lock") targeting.check_air_lock(); else throw std::runtime_error{"Unknown actor targeting operation"};
     if(!input) throw std::runtime_error{"Incomplete actor targeting input"};

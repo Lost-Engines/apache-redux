@@ -8,7 +8,9 @@ int32_t approximate_range(math::vector3 v) {
   for(auto &x : v) if(x < 0) x = math::negate(x);
   std::ranges::sort(v); return math::add(math::add(v[2], v[1] >> 2), v[0] >> 2);
 }
-bool outside(math::vector3 const &p) { return p[0] < 0 || p[0] > 0xfffffff || p[1] < 0 || p[1] > 0xfffffff; }
+bool outside(math::vector3 const &p) {
+  return p[0] < 0 || p[0] > 0xfffffff || p[1] < 0 || p[1] > 0xfffffff;
+}
 }
 projectiles::projectiles(resources::model_archive const &objects, math::trigonometry const &angles, combat_tables const &performance, resources::terrain const &ground, scenery_collisions const &structures, render::mobile_scene &scene, effects &puffs, uint32_t &seed, projectile_callbacks events) : weapons{weapon_definitions()}, models{objects}, trig{angles}, tables{performance}, terrain{ground}, scenery{structures}, mobiles{scene}, smoke{puffs}, random_seed{seed}, callbacks{std::move(events)} {}
 std::optional<size_t> projectiles::construct(projectile_request const &request) {
@@ -34,7 +36,9 @@ std::optional<size_t> projectiles::construct(projectile_request const &request) 
   }
   return {};
 }
-void projectiles::launch(size_t const index, int32_t const now) { launch_projectile(at(index).state, now); }
+void projectiles::launch(size_t const index, int32_t const now) {
+  launch_projectile(at(index).state, now);
+}
 void projectiles::emit(size_t const index, projectile_event const kind, math::vector3 const &position, std::optional<target_identity> const target) {
   if(callbacks.event) callbacks.event(index, at(index), {kind, position, target});
 }

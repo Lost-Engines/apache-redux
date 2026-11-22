@@ -17,7 +17,7 @@ int32_t expanded_range(int32_t const value) {
   int64_t const scaled{int64_t{value} * 3 / 2};
   return scaled >= INT32_MIN && scaled <= INT32_MAX ? static_cast<int32_t>(scaled) : INT32_MIN;
 }
-}
+} // anonymous namespace
 void patrol_contacts::insert(unsigned int const side, shared_target target) {
   if(side < 1 || side > 2 || !target) return;
   auto &list{visible[side - 1]}; if(list.size() < 40) list.push_back(std::move(target));
@@ -54,7 +54,7 @@ shared_target select_patrol_target(patrol_contacts &contacts, actor_state const 
 }
 void acquire_patrol_target(actor_state &actor, actor_armament &armament, shared_target const &assigned, int32_t const now, patrol_acquisition_callbacks const &callbacks) {
   unsigned int const side{(actor.object.status & 6) == 2 ? 1u : 2u};
-  auto const release{[&](){ release_actor_target(actor, armament); if(callbacks.released) callbacks.released(); }};
+  auto const release{[&]{ release_actor_target(actor, armament); if(callbacks.released) callbacks.released(); }};
   if(!armament.target) {
     if(callbacks.basic) callbacks.basic();
     if(armament.target) { actor.conditions &= ~0x100u; return; }

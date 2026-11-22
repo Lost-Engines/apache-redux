@@ -1,12 +1,12 @@
 #pragma once
+#include "fragments.h"
 #include "mission_damage.h"
 #include "mission_flight.h"
 #include "mission_player_damage.h"
 #include "mission_player_weapons.h"
-#include "player_sensors.h"
 #include "player_route.h"
+#include "player_sensors.h"
 #include "resources/features.h"
-#include "fragments.h"
 
 namespace apache::simulation {
 struct mission_random_state { uint32_t global{1}, weapons{1}, damage{1}; };

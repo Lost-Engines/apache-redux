@@ -3,16 +3,26 @@
 
 namespace apache::simulation {
 namespace {
-math::vector3 difference(math::vector3 const &a, math::vector3 const &b) { math::vector3 v; for(size_t i{0}; i != 3; ++i) v[i] = math::subtract(a[i], b[i]); return v; }
-int32_t increment(int32_t value, int32_t rate, int32_t delta) { return math::multiply_q31(math::multiply_q31(value, rate), delta); }
+math::vector3 difference(math::vector3 const &a, math::vector3 const &b) {
+  math::vector3 v;
+  for(size_t i{0}; i != 3; ++i) v[i] = math::subtract(a[i], b[i]);
+  return v;
+}
+int32_t increment(int32_t value, int32_t rate, int32_t delta) {
+  return math::multiply_q31(math::multiply_q31(value, rate), delta);
+}
 int32_t arc(math::trigonometry const &trig, int32_t value, uint32_t length) {
   if(!length) return 0;
   auto const ratio{std::clamp<int64_t>(int64_t{value} * 0x80000000ll / length, INT32_MIN, INT32_MAX)};
   return std::bit_cast<int32_t>(trig.arcsine(static_cast<int32_t>(ratio)));
 }
-uint64_t square(int32_t value) { return math::product_bits(value, value); }
-uint32_t magnitude(int32_t value) { return value < 0 ? 0u - static_cast<uint32_t>(value) : static_cast<uint32_t>(value); }
+uint64_t square(int32_t value) {
+  return math::product_bits(value, value);
 }
+uint32_t magnitude(int32_t value) {
+  return value < 0 ? 0u - static_cast<uint32_t>(value) : static_cast<uint32_t>(value);
+}
+} // anonymous namespace
 math::pose camera_geometry::head(math::pose body, uint32_t const heading, uint32_t const pitch) const {
   body.rotation = math::multiply(trig.transformation(heading, pitch, 0), body.rotation); return body;
 }

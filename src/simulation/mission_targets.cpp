@@ -28,10 +28,10 @@ shared_target mission_targets::in_sector(int32_t const x, int32_t const y, int32
   callbacks.position = [&](target_reference const &target){ return world.position(target); };
   callbacks.status = [&](target_reference const &target){ return describe(target).status; };
   callbacks.mobile_air_defence = [&](target_reference const &target){ auto const index{spatial.actor_index(target.identity.index)}; return index && mission.tasks[actors.units[*index].location.task].type == 19; };
-  callbacks.random = [&](){ return random.next(); };
+  callbacks.random = [&]{ return random.next(); };
   return choose_sector_target(sector(x, y, side), origin, side, kind, randomised, callbacks);
 }
 shared_target mission_targets::search(math::vector3 const &origin, int32_t const side, int32_t const minimum, int32_t const maximum, search_kind const kind, bool const randomised) {
-  return search_sector_rings(origin, side, minimum, maximum, [&](int32_t x, int32_t y, int32_t faction){ return in_sector(x, y, faction, origin, kind, randomised); }, [&](){ return random.next(); });
+  return search_sector_rings(origin, side, minimum, maximum, [&](int32_t x, int32_t y, int32_t faction){ return in_sector(x, y, faction, origin, kind, randomised); }, [&]{ return random.next(); });
 }
 } // namespace apache::simulation

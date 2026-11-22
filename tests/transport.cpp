@@ -1,15 +1,17 @@
-#include "multiplayer/transport.h"
-#include "multiplayer/connections.h"
-#include "multiplayer/peer_group.h"
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
 #include <thread>
+#include "multiplayer/connections.h"
+#include "multiplayer/peer_group.h"
+#include "multiplayer/transport.h"
 
 namespace {
-void require(bool value, char const *description) { if(!value) throw std::runtime_error{description}; }
+void require(bool value, char const *description) {
+  if(!value) throw std::runtime_error{description};
+}
 auto wait(apache::multiplayer::transport &transport) {
   auto const deadline{std::chrono::steady_clock::now() + std::chrono::seconds{2}};
   std::vector<apache::multiplayer::received_packet> messages;
@@ -20,11 +22,22 @@ auto wait(apache::multiplayer::transport &transport) {
   } while(std::chrono::steady_clock::now() < deadline);
   return messages;
 }
-}
+} // anonymous namespace
 int main() try {
-  using namespace apache;
-  using namespace multiplayer;
-  constexpr platform::network_address loopback{0x7f000001, 0};
+  namespace platform = apache::platform;
+  using apache::multiplayer::aircraft_state;
+  using apache::multiplayer::connections;
+  using apache::multiplayer::crew;
+  using apache::multiplayer::event;
+  using apache::multiplayer::identification;
+  using apache::multiplayer::menu_selection;
+  using apache::multiplayer::message_type;
+  using apache::multiplayer::packet;
+  using apache::multiplayer::peer_group;
+  using apache::multiplayer::server_state;
+  using apache::multiplayer::transport;
+  using apache::multiplayer::two_player_settings;
+  platform::network_address constexpr loopback{0x7f000001, 0};
   require(platform::network_address::resolve("127.0.0.1:4661", 0) == platform::network_address{0x7f000001, 4661}, "numeric endpoint");
   require(platform::network_address::resolve("localhost", 4661).host == loopback.host, "local host name");
   require(platform::network_address{0x7f000001, 4661}.text() == "127.0.0.1:4661", "endpoint presentation");
@@ -55,7 +68,7 @@ int main() try {
   }
   platform::datagram_socket noise{loopback};
   auto const probe{messages.front()};
-  resources::bytes envelope{'A','P','C','H','U','D','P',1,33,0,0,0,0,0,0,0};
+  apache::resources::bytes envelope{'A','P','C','H','U','D','P',1,33,0,0,0,0,0,0,0};
   envelope.insert(envelope.end(), probe.bytes().begin(), probe.bytes().end());
   auto bad_magic{envelope}; bad_magic[0] = 0; noise.send(first.address(), bad_magic);
   auto own{envelope}; own[8] = 11; noise.send(first.address(), own);
@@ -95,40 +108,40 @@ int main() try {
       std::this_thread::sleep_for(std::chrono::milliseconds{1});
     } while(std::chrono::steady_clock::now() < deadline);
   }};
-  pump(0, [&](){ return leader.state.players[1].name == "WINGMAN" && wingman.state.players[0].name == "LEADER"; });
+  pump(0, [&]{ return leader.state.players[1].name == "WINGMAN" && wingman.state.players[0].name == "LEADER"; });
   require(leader.members().other_count() == 1 && wingman.members().other_count() == 1, "two independent sockets discover each other");
   require(leader.state.local == 0 && wingman.state.local == 1, "peers agree on connection numbers");
   require(leader.state.server == 0 && wingman.state.server == 0, "peers agree on the initial server");
   require(leader.state.players[1].name == "WINGMAN" && wingman.state.players[0].name == "LEADER", "lobby names delivered");
-  wingman.name("GUNNER"); pump(10, [&](){ return leader.state.players[1].name == "GUNNER"; });
+  wingman.name("GUNNER"); pump(10, [&]{ return leader.state.players[1].name == "GUNNER"; });
   require(leader.state.players[1].name == "GUNNER", "name changes reach peers");
-  leader.room.preferences = {1, 0, 0, 1, 0}; leader.ready(); pump(20, [&](){ return wingman.room.preferences == leader.room.preferences; });
+  leader.room.preferences = {1, 0, 0, 1, 0}; leader.ready(); pump(20, [&]{ return wingman.room.preferences == leader.room.preferences; });
   require(wingman.room.preferences == leader.room.preferences && !leader.all_ready(), "preferences arrive before takeoff readiness");
-  wingman.ready(); pump(30, [&](){ return leader.all_ready() && wingman.all_ready(); });
+  wingman.ready(); pump(30, [&]{ return leader.all_ready() && wingman.all_ready(); });
   require(leader.all_ready() && wingman.all_ready(), "both peers acknowledge readiness");
   unsigned int selections{0};
   wingman.room.events.selection = [&](unsigned int selected, auto const &arguments){ require(selected == 14 && arguments[2] == 3, "remote menu selection payload"); ++selections; };
-  leader.send(menu_selection(0, "LEADER", 14, {0, -1, 3, 0, 0})); pump(40, [&](){ return selections != 0; });
+  leader.send(menu_selection(0, "LEADER", 14, {0, -1, 3, 0, 0})); pump(40, [&]{ return selections != 0; });
   require(selections == 1, "remote menu callback delivered once");
   leader.freeze(); wingman.freeze();
   unsigned int flight_packets{0};
   wingman.game_packet = [&](packet const &packet, int32_t tick){ require(packet.type() == message_type::crew && packet.sender() == 0 && tick == 50, "flight callback retains sender and arrival clock"); ++flight_packets; };
-  leader.send(crew(0, "LEADER", std::array<uint8_t, 104>{})); pump(50, [&](){ return flight_packets != 0; });
+  leader.send(crew(0, "LEADER", std::array<uint8_t, 104>{})); pump(50, [&]{ return flight_packets != 0; });
   require(flight_packets == 1, "same sockets deliver live crew records after lobby freeze");
   leader.state.players[0].flags |= 0x20000;
   unsigned int sync_packets{0}, server_packets{0};
-  leader.game_packet = [&](packet const &message, int32_t) {
+  leader.game_packet = [&](packet const &message, int32_t){
     if(message.type() == message_type::synchronise) ++sync_packets;
     else if(message.type() == message_type::server_state) ++server_packets;
   };
   wingman.send(server_state(std::array<aircraft_state, 16>{}));
   wingman.send(identification(message_type::synchronise, 1, "GUNNER", 64));
-  pump(55, [&](){ return sync_packets != 0; });
+  pump(55, [&]{ return sync_packets != 0; });
   require(sync_packets == 1 && !(leader.state.players[1].flags & 0x20000), "flight initialization reaches the mission receiver without mutating the lobby copy");
   require(server_packets == 0, "a client cannot supply the server's headerless state packet");
-  leader.resume(); wingman.resume(); pump(60, [&](){ return !leader.all_ready() && !wingman.all_ready(); });
+  leader.resume(); wingman.resume(); pump(60, [&]{ return !leader.all_ready() && !wingman.all_ready(); });
   require(!leader.all_ready() && !wingman.all_ready(), "return to lobby clears readiness");
-  wingman.leave(); pump(70, [&](){ return leader.members().other_count() == 0; });
+  wingman.leave(); pump(70, [&]{ return leader.members().other_count() == 0; });
   require(leader.members().other_count() == 0 && !leader.all_ready(), "departure removes the lobby peer");
   return EXIT_SUCCESS;
 } catch(std::exception const &error) { std::cerr << error.what() << '\n'; return EXIT_FAILURE; }

@@ -1,13 +1,13 @@
 #pragma once
-#include "resources/reader.h"
 #include <compare>
 #include <memory>
 #include <optional>
 #include <string>
+#include "resources/reader.h"
 
 namespace apache::platform {
 struct network_address {
-  uint32_t host{0}; // IPv4 in host byte order.
+  uint32_t host{0};                                                            // IPv4 in host byte order.
   uint16_t port{0};
   auto operator<=>(network_address const &) const = default;
   std::string text() const;

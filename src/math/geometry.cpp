@@ -8,8 +8,7 @@ uint32_t integer_sqrt(uint64_t value) {
   uint64_t result{0}, bit{uint64_t{1} << 62};
   while(bit > value) bit >>= 2;
   while(bit) {
-    if(value >= result + bit) { value -= result + bit; result = (result >> 1) + bit; }
-    else result >>= 1;
+    if(value >= result + bit) { value -= result + bit; result = (result >> 1) + bit; } else result >>= 1;
     bit >>= 2;
   }
   return static_cast<uint32_t>(result);

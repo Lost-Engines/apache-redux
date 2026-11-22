@@ -1,6 +1,6 @@
 #pragma once
-#include "target_visibility.h"
 #include "actor_movement.h"
+#include "target_visibility.h"
 
 namespace apache::simulation {
 struct mobile_target_state {

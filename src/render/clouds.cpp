@@ -15,9 +15,12 @@ struct grid_position {
   int coarse{0};
   int fine{0};
   explicit grid_position(int const steps) : coarse{(steps + (steps < 0 ? -128 : 128)) / 256}, fine{steps - coarse * 256} {}
-  void advance() { fine += 4; if(fine > 128) { fine -= 256; ++coarse; } }
+  void advance() {
+    fine += 4;
+    if(fine > 128) { fine -= 256; ++coarse; }
+  }
 };
-} // namespace
+} // anonymous namespace
 sector_bounds scan_cloud_sectors(math::pose const &camera, math::trigonometry const &trig, uint32_t const heading, uint32_t const pitch, unsigned int const cloud_mode, bool const expanded_frustum) {
   int const range{cloud_mode == 2 ? 18 : 14};
   sector_bounds result{-3, -3, 3, 3};
@@ -30,11 +33,8 @@ sector_bounds scan_cloud_sectors(math::pose const &camera, math::trigonometry co
         return static_cast<int>(static_cast<double>(ratio) * (1.0 / 2147483648.0) * range);
       }};
       int x{0}, y{0};
-      if(local <= 0x20000000) { y = range; x = tangent(std::min(local, 0x1f49f49fu)); }
-      else { x = range; y = tangent(0x40000000u - std::max(local, 0x20b60b61u)); }
-      if(quadrant == 1) { int const old{x}; x = y; y = -old; }
-      else if(quadrant == 2) { x = -x; y = -y; }
-      else if(quadrant == 3) { int const old{x}; x = -y; y = old; }
+      if(local <= 0x20000000) { y = range; x = tangent(std::min(local, 0x1f49f49fu)); } else { x = range; y = tangent(0x40000000u - std::max(local, 0x20b60b61u)); }
+      if(quadrant == 1) { int const old{x}; x = y; y = -old; } else if(quadrant == 2) { x = -x; y = -y; } else if(quadrant == 3) { int const old{x}; x = -y; y = old; }
       int end_x{x}, end_y{y};
       for(int steps{range * 2}; steps > 0;) {
         if(end_y == range) { --steps; ++end_x; }
@@ -119,7 +119,7 @@ void cloud_mesh::submit(draw_queue &queue, math::pose const &camera) {
   if(vertices.empty()) return;
   int const sx{camera.position[0] >> 22}, sy{camera.position[1] >> 22};
   int const range{mode == 2 ? 18 : 14}, step{0x400000}, altitude{camera.position[2] / 0xfa000};
-  auto const point{[&](int const x, int const y) -> cloud_vertex& { return vertices[index(x, y)]; }};
+  auto const point{[&](int const x, int const y)->cloud_vertex& { return vertices[index(x, y)]; }};
   auto const range_to{[](cloud_vertex const &p){
     int32_t const distance{static_cast<int32_t>(approximate_range(p.eye))};
     return p.eye[1] < 0 ? -distance : distance;

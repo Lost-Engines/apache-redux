@@ -1,7 +1,7 @@
 #pragma once
 #include <array>
-#include <vector>
 #include <string_view>
+#include <vector>
 #include "palette_effects.h"
 #include "resources/data_store.h"
 
@@ -22,7 +22,9 @@ public:
   std::array<std::array<uint8_t, 65536>, 4> fog_intensity{};
   std::array<uint8_t, 256> glass{};
   std::array<uint8_t, 256> visual_remap{};
-  void grass_colours(std::array<uint8_t, 96> const &values) { grassy_colours = values; }
+  void grass_colours(std::array<uint8_t, 96> const &values) {
+    grassy_colours = values;
+  }
   void apply_terrain_palette(palette_rgb &target) const;
   void prepare(unsigned int infrared_mode);
   void update(palette_conditions const &conditions);

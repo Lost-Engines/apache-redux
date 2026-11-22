@@ -1,11 +1,13 @@
 #include "actor_movement.h"
-#include "ground_movement.h"
 #include <algorithm>
 #include <cmath>
+#include "ground_movement.h"
 
 namespace apache::simulation {
 namespace {
-uint32_t magnitude(int32_t const value) { return value < 0 ? 0u - static_cast<uint32_t>(value) : static_cast<uint32_t>(value); }
+uint32_t magnitude(int32_t const value) {
+  return value < 0 ? 0u - static_cast<uint32_t>(value) : static_cast<uint32_t>(value);
+}
 uint32_t range3(math::vector3 const &difference) {
   double const x{static_cast<double>(difference[0])}, y{static_cast<double>(difference[1])}, z{static_cast<double>(difference[2])};
   return static_cast<uint32_t>(static_cast<uint64_t>(std::sqrt(x * x + y * y + z * z)));
@@ -14,7 +16,7 @@ int32_t distance2(math::vector3 const &a, math::vector3 const &b) {
   uint64_t sum{0}; for(size_t i{0}; i != 2; ++i) { int64_t const v{math::subtract(a[i], b[i])}; sum += static_cast<uint64_t>(v * v); }
   return std::bit_cast<int32_t>(math::integer_sqrt(sum));
 }
-}
+} // anonymous namespace
 math::vector3 intercept_point(math::vector3 const &origin, int32_t const speed, movement_target const &target, unsigned int const iterations) {
   auto result{target.position}; uint32_t const launch_speed{magnitude(speed)};
   for(unsigned int iteration{0}; iteration != iterations; ++iteration) {

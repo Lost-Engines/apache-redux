@@ -21,7 +21,9 @@ void stream::store() {
   // A stale or wrapping file position must never become a negative seek.
   saved = saved_stream{source, file_position >= unread ? file_position - unread : 0};
 }
-void stream::stop() { open = waiting = playing = false; }
+void stream::stop() {
+  open = waiting = playing = false;
+}
 void stream::restore() {
   stop();
   if(saved) { auto next{std::move(*saved)}; saved.reset(); begin(std::move(next.source), next.position); }
@@ -61,7 +63,7 @@ void stream::update_space() {
 void stream::reader() {
   if(open) {
     update_space();
-    if(space < 0x3000) due = clock + 2640; // 100 ms wait followed by the 20 ms reader sleep.
+    if(space < 0x3000) due = clock + 2640;                                     // 100 ms wait followed by the 20 ms reader sleep.
     else { preread(); due = clock + 440; }
   } else if(waiting) {
     update_space();

@@ -19,7 +19,9 @@ combat_tables::combat_tables(resources::executable_data const &executable) {
   resources::reader forces_data{executable.at(0x402b70, forces.size() * 28), "Forces settings"};
   for(auto &value : forces) value = {forces_data.i32(), forces_data.i32(), forces_data.i32(), forces_data.i32(), forces_data.i32(), forces_data.i32(), forces_data.i32()};
 }
-double combat_tables::density(int32_t const altitude) const { return altitude < 1 ? 1.0 : densities[static_cast<size_t>(std::min(70, altitude / 256000))]; }
+double combat_tables::density(int32_t const altitude) const {
+  return altitude < 1 ? 1.0 : densities[static_cast<size_t>(std::min(70, altitude / 256000))];
+}
 forces_info const &combat_tables::skill(int const level) const {
   if(level < -2 || level > 9) throw std::runtime_error{"Forces setting must be between -2 and 9"};
   return forces[static_cast<size_t>(level + 2)];

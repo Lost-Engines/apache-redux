@@ -1,7 +1,7 @@
 #include "actor_targeting.h"
-#include "targets.h"
 #include <algorithm>
 #include <bit>
+#include "targets.h"
 
 namespace apache::simulation {
 namespace {
@@ -41,16 +41,29 @@ movement_target actor_targeting::describe(shared_target const &target) const {
   if(!target) return {};
   return callbacks.describe ? callbacks.describe(*target) : movement_target{target->position, {}, 0, target->classification};
 }
-int32_t actor_targeting::enemy_side() const { return (actor.object.status & 6) == 2 ? 2 : 1; }
-int32_t actor_targeting::choose() { return choose_actor_weapon(actor, armament, type, weapons, describe(armament.target), context.task); }
-int32_t actor_targeting::next_fire_time() { return choose() && actor.weapon_slot >= 0 && actor.weapon_slot < 5 ? armament.deadlines[static_cast<size_t>(actor.weapon_slot)] : INT32_MAX; }
-void actor_targeting::set_fire_time(int32_t const value) { if(choose() && actor.weapon_slot >= 0 && actor.weapon_slot < 5) armament.deadlines[static_cast<size_t>(actor.weapon_slot)] = value; }
-void actor_targeting::release() { release_actor_target(actor, armament); if(callbacks.released) callbacks.released(); }
+int32_t actor_targeting::enemy_side() const {
+  return (actor.object.status & 6) == 2 ? 2 : 1;
+}
+int32_t actor_targeting::choose() {
+  return choose_actor_weapon(actor, armament, type, weapons, describe(armament.target), context.task);
+}
+int32_t actor_targeting::next_fire_time() {
+  return choose() && actor.weapon_slot >= 0 && actor.weapon_slot < 5 ? armament.deadlines[static_cast<size_t>(actor.weapon_slot)] : INT32_MAX;
+}
+void actor_targeting::set_fire_time(int32_t const value) {
+  if(choose() && actor.weapon_slot >= 0 && actor.weapon_slot < 5) armament.deadlines[static_cast<size_t>(actor.weapon_slot)] = value;
+}
+void actor_targeting::release() {
+  release_actor_target(actor, armament);
+  if(callbacks.released) callbacks.released();
+}
 void actor_targeting::delay_fire() {
   int32_t const delay{acquisition_delay(((actor.object.status & 7) >> 1) == 1, skill, friendly_skill, random)};
   set_fire_time(std::max(next_fire_time(), math::add(context.now, delay)));
 }
-bool actor_targeting::behind(shared_target const &target) const { return target_behind_actor(actor, describe(target).position); }
+bool actor_targeting::behind(shared_target const &target) const {
+  return target_behind_actor(actor, describe(target).position);
+}
 shared_target actor_targeting::search_air() const {
   return callbacks.search ? callbacks.search(actor.object.world.position, enemy_side(), armament.air_minimum, std::min(armament.air_maximum, attention.range), search_kind::air) : nullptr;
 }

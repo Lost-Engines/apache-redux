@@ -1,8 +1,8 @@
 #pragma once
-#include "target_visibility.h"
 #include <functional>
 #include <memory>
 #include <span>
+#include "target_visibility.h"
 
 namespace apache::simulation {
 using shared_target = std::shared_ptr<target_reference>;

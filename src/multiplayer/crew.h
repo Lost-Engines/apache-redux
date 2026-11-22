@@ -1,8 +1,8 @@
 #pragma once
-#include "math/geometry.h"
 #include <optional>
 #include <span>
 #include <vector>
+#include "math/geometry.h"
 
 namespace apache::multiplayer {
 enum class crew_role { pilot, gunner };

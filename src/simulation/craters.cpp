@@ -4,9 +4,14 @@
 
 namespace apache::simulation {
 namespace {
-bool inside(math::vector3 const &position) { return position[0] >= 0 && position[0] < 0x10000000 && position[1] >= 0 && position[1] < 0x10000000; }
-uint32_t random_heading(uint32_t &seed) { seed = seed * 0x41c64e6du + 0x3039u; return seed & 0x7fff0000u; }
-} // namespace
+bool inside(math::vector3 const &position) {
+  return position[0] >= 0 && position[0] < 0x10000000 && position[1] >= 0 && position[1] < 0x10000000;
+}
+uint32_t random_heading(uint32_t &seed) {
+  seed = seed * 0x41c64e6du + 0x3039u;
+  return seed & 0x7fff0000u;
+}
+} // anonymous namespace
 void craters::reset() {
   for(auto &item : short_lived) item.model = -1;
   for(auto &item : long_lived) item.model = -1;

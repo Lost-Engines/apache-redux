@@ -1,15 +1,23 @@
 #include <chrono>
+#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <stdexcept>
 #include "configuration/profiles.h"
 
 namespace {
-void require(bool value, char const *message) { if(!value) throw std::runtime_error{message}; }
+void require(bool value, char const *message) {
+  if(!value) throw std::runtime_error{message};
+}
 struct temporary_directory {
   std::filesystem::path path{std::filesystem::temp_directory_path() / ("apache-profile-tests-" + std::to_string(std::chrono::steady_clock::now().time_since_epoch().count()))};
-  temporary_directory() { if(!std::filesystem::create_directory(path)) throw std::runtime_error{"Cannot create test directory"}; }
-  ~temporary_directory() { std::error_code error; std::filesystem::remove_all(path, error); }
+  temporary_directory() {
+    if(!std::filesystem::create_directory(path)) throw std::runtime_error{"Cannot create test directory"};
+  }
+  ~temporary_directory() {
+    std::error_code error;
+    std::filesystem::remove_all(path, error);
+  }
 };
 }
 int main() try {
@@ -42,5 +50,5 @@ int main() try {
   rejected = false; try { restored.load(directory.path, 1000); } catch(std::runtime_error const&) { rejected = true; }
   require(rejected && restored.current().encode() == old, "Failed load replaced in-memory pilots");
   std::cout << "Pilot storage checks passed\n";
-  return 0;
-} catch(std::exception const &error) { std::cerr << error.what() << '\n'; return 1; }
+  return EXIT_SUCCESS;
+} catch(std::exception const &error) { std::cerr << error.what() << '\n'; return EXIT_FAILURE; }

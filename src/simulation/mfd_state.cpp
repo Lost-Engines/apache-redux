@@ -3,21 +3,25 @@
 
 namespace apache::simulation {
 namespace {
-constexpr std::array<std::array<uint32_t, 2>, 2> fault_bits{{{0x10, 0x20}, {0x40, 0x80}}};
+std::array<std::array<uint32_t, 2>, 2> constexpr fault_bits{{{0x10, 0x20}, {0x40, 0x80}}};
 mfd_page next(mfd_page const current, bool const forwards) {
   auto const value{static_cast<unsigned int>(current)};
   if(value < 2 || value > 9) throw std::runtime_error{"Invalid MFD cycle page"};
   return static_cast<mfd_page>(forwards ? (value == 9 ? 2 : value + 1) : (value == 2 ? 9 : value - 1));
 }
-} // namespace
-mfd_state::mfd_state(unsigned int const game_mode) { initialise(game_mode); }
+} // anonymous namespace
+mfd_state::mfd_state(unsigned int const game_mode) {
+  initialise(game_mode);
+}
 void mfd_state::initialise(unsigned int const game_mode) {
   reset();
   if(game_mode == 1 || game_mode == 4 || game_mode == 5) {
     pages[0][1] = mfd_page::tactical; pages[1] = {mfd_page::flight_plan, mfd_page::map};
   }
 }
-void mfd_state::reset() { pages = {{{mfd_page::radar, mfd_page::flight_plan}, {mfd_page::weapons, mfd_page::tactical}}}; }
+void mfd_state::reset() {
+  pages = {{{mfd_page::radar, mfd_page::flight_plan}, {mfd_page::weapons, mfd_page::tactical}}};
+}
 mfd_page mfd_state::exclusive(bool const gunner, bool const right, mfd_page const current) const {
   auto const page{next(current, forwards)};
   return page == pages[gunner][!right] ? next(page, forwards) : page;

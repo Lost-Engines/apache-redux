@@ -33,7 +33,7 @@ primitive read_primitive(reader &input, size_t const vertices) {
   result.packet.assign(packet.begin(), packet.end());
   return result;
 }
-} // namespace
+} // anonymous namespace
 model read_model(std::span<uint8_t const> const data) {
   reader input{data, "3D model"};
   model result;

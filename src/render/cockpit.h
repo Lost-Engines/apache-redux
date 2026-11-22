@@ -15,7 +15,9 @@ class cockpit {
   std::array<uint8_t, 96> colours{};
 public:
   cockpit(resources::data_store const &data, unsigned int video_mode);
-  unsigned int video_mode() const { return mode; }
+  unsigned int video_mode() const {
+    return mode;
+  }
   resources::indexed_image const &sprite(std::string_view name) const;
   void copy(framebuffer &target, std::string_view name, size_t source_offset, rectangle destination, bool masked = false) const;
   void install_palette(palette_rgb &palette) const;

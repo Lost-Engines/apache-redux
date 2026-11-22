@@ -27,7 +27,9 @@ class projection {
 public:
   projection(int x, int y, int w, int h, double horizontal_fov = 90, std::optional<rectangle> reference = {});
   explicit projection(framebuffer const &target);
-  double lateral_scale() const { return horizontal_factor; }
+  double lateral_scale() const {
+    return horizontal_factor;
+  }
   vertex3 prepare(math::vector3 eye, int32_t u = 0, int32_t v = 0, int32_t intensity = 0) const;
   std::optional<screen_vertex> project_unclipped(math::vector3 eye) const;
   math::vector3 unscale(math::vector3 eye) const;

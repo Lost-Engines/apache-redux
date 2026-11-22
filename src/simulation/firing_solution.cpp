@@ -4,16 +4,20 @@
 
 namespace apache::simulation {
 namespace {
-int32_t magnitude(int32_t value) { return value < 0 ? math::negate(value) : value; }
+int32_t magnitude(int32_t value) {
+  return value < 0 ? math::negate(value) : value;
+}
 int32_t approximate2(int32_t x, int32_t y) {
   x = magnitude(x); y = magnitude(y);
   return std::bit_cast<int32_t>(static_cast<uint32_t>(std::max(x, y)) * 4u + static_cast<uint32_t>(std::min(x, y))) >> 2;
 }
-int32_t integer(double value) { return value < INT32_MIN || value >= 2147483648.0 ? INT32_MIN : static_cast<int32_t>(value); }
+int32_t integer(double value) {
+  return value < INT32_MIN || value >= 2147483648.0 ? INT32_MIN : static_cast<int32_t>(value);
+}
 math::vector3 difference(math::vector3 const &a, math::vector3 const &b) {
   math::vector3 result; for(size_t i{0}; i != 3; ++i) result[i] = math::subtract(a[i], b[i]); return result;
 }
-}
+} // anonymous namespace
 weapon_angles firing_angles(weapon_info const &weapon) {
   int32_t const spread{weapon.movement_class == 3 || weapon.movement_class == 4 ? 0 : weapon.tracking_or_dispersion};
   weapon_angles result;

@@ -11,8 +11,14 @@ public:
   uint32_t heading{0}, pitch{0}, roll{0}, angle{0};
   unsigned int mode{3};
   void select(unsigned int tool);
-  void target(int32_t x, int32_t y) { target_x = x; target_y = y; }
-  void position(int32_t x, int32_t y) { camera.position[0] = x; camera.position[1] = y; }
+  void target(int32_t x, int32_t y) {
+    target_x = x;
+    target_y = y;
+  }
+  void position(int32_t x, int32_t y) {
+    camera.position[0] = x;
+    camera.position[1] = y;
+  }
   void step(double seconds, math::trigonometry const &trig, std::function<int32_t(int32_t, int32_t)> const &height);
 };
 } // namespace apache::frontend

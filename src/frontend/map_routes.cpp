@@ -1,6 +1,6 @@
 #include "map_routes.h"
-#include "map_editor.h"
 #include <stdexcept>
+#include "map_editor.h"
 
 namespace apache::frontend {
 std::vector<map_route_command> map_route_commands(resources::mission_task const &task, size_t const selected, bool const others) {

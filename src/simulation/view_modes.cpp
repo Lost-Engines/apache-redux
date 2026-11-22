@@ -59,13 +59,11 @@ bool optical_devices::cycle(unsigned int const view, uint32_t const faults) {
   return select(0, faults);
 }
 void optical_devices::check(uint32_t const faults) {
-  if(device == 1 && (faults & 0x8000)) { if(!select(2, faults)) select(0, faults); }
-  else if(device == 2 && (faults & 0x800)) select(0, faults);
+  if(device == 1 && (faults & 0x8000)) { if(!select(2, faults)) select(0, faults); } else if(device == 2 && (faults & 0x800)) select(0, faults);
 }
 void optical_devices::zoom(unsigned int const view, bool const raise) {
   if(view != 13) return;
   auto &level{selected[device]};
-  if(raise) { if(level + 1 < levels[device].size()) ++level; }
-  else if(level) --level;
+  if(raise) { if(level + 1 < levels[device].size()) ++level; } else if(level) --level;
 }
 } // namespace apache::simulation

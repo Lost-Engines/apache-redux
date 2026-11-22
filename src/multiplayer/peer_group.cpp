@@ -7,11 +7,14 @@ peer_group::peer_group(transport_options options, std::string name) : wire{std::
   state.players[0].aircraft.model = 64; state.players[0].flags = 0;
   room.own_name = name.substr(0, 8); state.players[0].name = room.own_name;
   room.events.identify = [this](uint32_t to){ send(to, identification(message_type::identity, state.local, room.own_name, 64)); };
-  room.events.announce = [this](){ announce(); };
-  room.events.refresh = room.events.recount = [this](){ refresh(); };
+  room.events.announce = [this]{ announce(); };
+  room.events.refresh = room.events.recount = [this]{ refresh(); };
   room.events.cd_reply = [this](uint32_t to){ send(to, packet{message_type::cd_reply, state.local, room.own_name}); };
 }
-void peer_group::refresh() { room.other_players = static_cast<int32_t>(roster.other_count()); if(changed) changed(); }
+void peer_group::refresh() {
+  room.other_players = static_cast<int32_t>(roster.other_count());
+  if(changed) changed();
+}
 void peer_group::reorder(std::array<connection, 16> const &previous) {
   std::array<player_replica, 16> players{};
   for(auto &player : players) player.flags = 0xff00;
@@ -24,12 +27,16 @@ void peer_group::reorder(std::array<connection, 16> const &previous) {
   state.players[state.local].name = room.own_name; state.players[state.local].aircraft.model = 64;
   refresh();
 }
-void peer_group::announce() { send(identification(message_type::name, state.local, room.own_name, 64)); }
+void peer_group::announce() {
+  send(identification(message_type::name, state.local, room.own_name, 64));
+}
 void peer_group::send(uint32_t const destination, packet const &message) {
   if(destination >= roster.entries.size() || destination == state.local || !roster.entries[destination].node) return;
   wire.send(roster.entries[destination].address, message);
 }
-void peer_group::send(packet const &message) { for(uint32_t i{0}; i < roster.entries.size(); ++i) send(i, message); }
+void peer_group::send(packet const &message) {
+  for(uint32_t i{0}; i < roster.entries.size(); ++i) send(i, message);
+}
 void peer_group::name(std::string value) {
   if(state.active) return;
   room.own_name = value.substr(0, 8); state.players[state.local].name = room.own_name; announce(); refresh();
@@ -47,7 +54,10 @@ bool peer_group::all_ready() const {
   for(size_t i{0}; i < roster.entries.size(); ++i) if(roster.entries[i].node && !(state.players[i].flags & 0x10000)) return false;
   return true;
 }
-void peer_group::freeze() { roster.sorted = false; state.active = true; }
+void peer_group::freeze() {
+  roster.sorted = false;
+  state.active = true;
+}
 void peer_group::resume() {
   state.active = false; roster.sorted = true; discovered = false;
   for(auto &player : state.players) player.flags &= ~0x70000u;
