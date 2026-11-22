@@ -6,7 +6,9 @@
 
 namespace apache::frontend {
 namespace {
-uint32_t hours_now() { return static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::hours>(std::chrono::system_clock::now().time_since_epoch()).count()); }
+uint32_t hours_now() {
+  return static_cast<uint32_t>(std::chrono::duration_cast<std::chrono::hours>(std::chrono::system_clock::now().time_since_epoch()).count());
+}
 std::string label(resources::executable_data const &data, uint32_t const table, unsigned int const index) {
   resources::reader pointer{data.at(table + index * 4, 4), "pilot label"}; auto const address{pointer.u32()}; std::string result;
   for(uint32_t i{0}; i < 128; ++i) { auto const ch{data.at(address + i, 1)[0]}; if(!ch) return result; result += static_cast<char>(ch); }
@@ -15,14 +17,17 @@ std::string label(resources::executable_data const &data, uint32_t const table, 
 std::string duration(uint32_t ticks) {
   ticks /= 200; char text[48]; std::snprintf(text, sizeof(text), "%02u:%02u:%02u", ticks / 3600, ticks / 60 % 60, ticks % 60); return text;
 }
-}
+} // anonymous namespace
 pilot_menu::pilot_menu(resources::data_store const &data, menu &ui, configuration::profiles &logs, std::span<resources::mission_briefing const> const definitions)
   : interface{ui}, profiles{logs}, missions{definitions} {
   resources::executable_data const executable{data};
   for(unsigned int i{0}; i != ranks.size(); ++i) ranks[i] = label(executable, 0x4d9fcc, i);
   for(unsigned int i{0}; i != statuses.size(); ++i) statuses[i] = label(executable, 0x4da004, i);
 }
-void pilot_menu::visible(std::string_view const name, bool const show) { auto &object{interface.named(name)}; object.flags = (object.flags & ~1u) | static_cast<unsigned int>(show); }
+void pilot_menu::visible(std::string_view const name, bool const show) {
+  auto &object{interface.named(name)};
+  object.flags = (object.flags & ~1u) | static_cast<unsigned int>(show);
+}
 void pilot_menu::update() {
   auto &group{profiles.users.at(profiles.user)}; auto &pilot{profiles.current()};
   size_t user{0};
@@ -60,10 +65,8 @@ bool pilot_menu::activate(widget &object, int const line) {
   else if(action == "notify_log_entries_") {
     if(line < 0 || line >= 10) return true;
     auto &group{profiles.users[profiles.user]};
-    if(static_cast<size_t>(line) < group.pilots.size()) { group.selected = static_cast<size_t>(line); editing = 0; visible("_log_screen_rename_box", false); visible("_log_screen_error_box", false); update(); profiles.save(); }
-    else if(profiles.create(hours_now())) { rename(1, "Name Log"); update(); profiles.save(); }
-  } else if(action == "notify_log_create_button_") { if(profiles.create(hours_now())) { rename(1, "Name Log"); update(); profiles.save(); } }
-  else if(action == "notify_log_delete_button_") {
+    if(static_cast<size_t>(line) < group.pilots.size()) { group.selected = static_cast<size_t>(line); editing = 0; visible("_log_screen_rename_box", false); visible("_log_screen_error_box", false); update(); profiles.save(); } else if(profiles.create(hours_now())) { rename(1, "Name Log"); update(); profiles.save(); }
+  } else if(action == "notify_log_create_button_") { if(profiles.create(hours_now())) { rename(1, "Name Log"); update(); profiles.save(); } } else if(action == "notify_log_delete_button_") {
     if(!profiles.erase()) error("Current Log Indestructable");
     else { editing = 0; visible("_log_screen_rename_box", false); visible("_log_screen_error_box", false); update(); profiles.save(); }
   } else if(action == "notify_log_rename_button_") {
@@ -80,9 +83,7 @@ bool pilot_menu::activate(widget &object, int const line) {
 bool pilot_menu::key(unsigned int const character) {
   if(!editing || interface.current() != "_log_screen" || !(interface.named("_log_screen_rename_box").flags & 1)) return false;
   auto &text{interface.named("_log_screen_rename_text").text};
-  if(character == 27) { editing = 0; visible("_log_screen_rename_box", false); }
-  else if(character == 8) { if(!text.empty()) text.pop_back(); }
-  else if(character == 10 || character == 13) {
+  if(character == 27) { editing = 0; visible("_log_screen_rename_box", false); } else if(character == 8) { if(!text.empty()) text.pop_back(); } else if(character == 10 || character == 13) {
     if(editing == 2) profiles.users[profiles.user].name = text.substr(0, 15);
     else profiles.current().name = text.empty() ? "de Fault" : text;
     editing = 0; visible("_log_screen_rename_box", false); update(); profiles.save();

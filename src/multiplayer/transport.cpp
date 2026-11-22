@@ -4,7 +4,7 @@
 
 namespace apache::multiplayer {
 namespace {
-constexpr std::array<uint8_t, 8> signature{'A', 'P', 'C', 'H', 'U', 'D', 'P', 1};
+std::array<uint8_t, 8> constexpr signature{'A', 'P', 'C', 'H', 'U', 'D', 'P', 1};
 uint64_t fresh_node() {
   std::random_device random;
   auto const value{(static_cast<uint64_t>(random()) << 32) | static_cast<uint64_t>(random())};
@@ -19,7 +19,9 @@ resources::bytes transport::encode(packet const &message) const {
   for(unsigned int i{0}; i < 8; ++i) result.push_back(static_cast<uint8_t>(options.node >> (i * 8)));
   result.insert(result.end(), message.bytes().begin(), message.bytes().end()); return result;
 }
-bool transport::send(platform::network_address const destination, packet const &message) { return socket.send(destination, encode(message)); }
+bool transport::send(platform::network_address const destination, packet const &message) {
+  return socket.send(destination, encode(message));
+}
 void transport::discover(packet const &message) {
   if(options.broadcast) send({UINT32_MAX, socket.address().port}, message);
   for(auto const &peer : options.peers) send(peer, message);

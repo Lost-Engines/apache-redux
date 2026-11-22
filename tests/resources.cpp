@@ -1,16 +1,16 @@
 #include <cstdlib>
 #include <iostream>
 #include <stdexcept>
-#include "configuration/preferences.h"
 #include "math/fixed.h"
+#include "configuration/preferences.h"
 #include "render/celestial.h"
 #include "render/draw_queue.h"
 #include "render/framebuffer.h"
 #include "render/projection.h"
 #include "render/projection2.h"
+#include "resources/animation.h"
 #include "resources/data_store.h"
 #include "resources/image.h"
-#include "resources/animation.h"
 #include "resources/models.h"
 #include "resources/terrain.h"
 #include "resources/texture.h"
@@ -56,8 +56,9 @@ int main() try {
   apache::simulation::pilot_log pilot;
   pilot.name = "Boundary pilot";
   auto pilot_bytes{pilot.encode()};
-  for(size_t length{0}; length + 4 < pilot_bytes.size(); ++length)
+  for(size_t length{0}; length + 4 < pilot_bytes.size(); ++length) {
     rejects([&]{ apache::simulation::pilot_log::decode(std::span{pilot_bytes}.first(length)); }, "truncated pilot record rejected");
+  }
   auto legacy_pilot{pilot_bytes}; legacy_pilot.resize(legacy_pilot.size() - 4);
   require(apache::simulation::pilot_log::decode(legacy_pilot).name == pilot.name, "older logs may omit the victory list");
   pilot_bytes.push_back(0);

@@ -2,8 +2,8 @@
 #include <array>
 #include <span>
 #include <vector>
-#include "horizon.h"
 #include "math/geometry.h"
+#include "horizon.h"
 
 namespace apache::render {
 struct star {

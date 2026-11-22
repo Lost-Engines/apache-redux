@@ -1,7 +1,7 @@
 #pragma once
+#include <string_view>
 #include "actor_firing.h"
 #include "target_search.h"
-#include <string_view>
 
 namespace apache::simulation {
 struct actor_attention {

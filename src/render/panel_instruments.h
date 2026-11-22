@@ -1,7 +1,7 @@
 #pragma once
+#include "math/trigonometry.h"
 #include "cockpit.h"
 #include "instrument_font.h"
-#include "math/trigonometry.h"
 #include "projection2.h"
 
 namespace apache::render {

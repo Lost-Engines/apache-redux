@@ -10,7 +10,9 @@ int32_t integer(double value) {
   if(!std::isfinite(value)) return 0;
   return static_cast<int32_t>(std::clamp(value, -2147483648.0, 2147483647.0));
 }
-bool valid_role(crew_role role) { return role == crew_role::pilot || role == crew_role::gunner; }
+bool valid_role(crew_role role) {
+  return role == crew_role::pilot || role == crew_role::gunner;
+}
 }
 bool crew_state::notify_key(uint16_t const key, unsigned int const game_mode) {
   if(game_mode != 3) return false;

@@ -1,7 +1,7 @@
-#include "mfd.h"
 #include <algorithm>
 #include <format>
 #include <stdexcept>
+#include "mfd.h"
 
 namespace apache::render {
 void mfd_renderer::flight_plan(framebuffer &target, rectangle const area, std::span<waypoint_mark const> const route, size_t const current, int32_t const x, int32_t const y, uint32_t const heading, int32_t const airspeed, math::trigonometry const &trig) const {

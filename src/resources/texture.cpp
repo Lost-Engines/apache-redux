@@ -11,7 +11,7 @@ std::vector<std::optional<texture>> read_object_textures(std::span<uint8_t const
     input.seek(offset);
     auto const type{input.u32()};
     auto const width{input.u32()};
-    input.u32(); // Runtime pixel pointer, relocated by the original loader.
+    input.u32();                                                               // Runtime pixel pointer, relocated by the original loader.
     if(type > 4 || width != (16u << type)) input.fail("Invalid texture dimensions");
     auto const pixels{input.take(static_cast<size_t>(width) * width)};
     result.emplace_back(texture{width, bytes{pixels.begin(), pixels.end()}});

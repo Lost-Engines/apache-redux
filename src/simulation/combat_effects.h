@@ -1,11 +1,11 @@
 #pragma once
-#include "craters.h"
-#include "resources/models.h"
-#include "effects.h"
-#include "weapon_rules.h"
-#include "math/trigonometry.h"
 #include <functional>
 #include <optional>
+#include "math/trigonometry.h"
+#include "craters.h"
+#include "effects.h"
+#include "resources/models.h"
+#include "weapon_rules.h"
 
 namespace apache::simulation {
 struct explosion_audio {

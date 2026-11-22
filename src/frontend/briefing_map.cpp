@@ -28,8 +28,14 @@ briefing_map::briefing_map(resources::data_store const &data, menu &ui, configur
     auto const index{253 + static_cast<size_t>(at - colours.begin())}; marker.pixels[y * 18 + x] = static_cast<uint8_t>(index); marker.colours[index] = sheet.colours[c];
   }
 }
-void briefing_map::visible(std::string_view const name, bool const value) { auto &object{interface.named(name)}; object.flags = (object.flags & ~1u) | static_cast<unsigned int>(value); }
-void briefing_map::show(std::string_view const name) { visible(name, true); interface.raise(name); }
+void briefing_map::visible(std::string_view const name, bool const value) {
+  auto &object{interface.named(name)};
+  object.flags = (object.flags & ~1u) | static_cast<unsigned int>(value);
+}
+void briefing_map::show(std::string_view const name) {
+  visible(name, true);
+  interface.raise(name);
+}
 void briefing_map::open(mission_session &session) {
   mission = &session; active_tool = dragging = 0; preview_world.reset(); preview_dirty = true;
   visible("_map_3d_view_box", false); visible("_map_3d_position_sprite", false);
@@ -86,8 +92,7 @@ void briefing_map::route_information() {
 void briefing_map::number_changed(widget &object, bool const final) {
   if(!mission || !editor.point()) return;
   if(!final) {
-    if(object.action == "notify_waypoint_position_") { editor.position(number_values[0], number_values[1], number_values[2]); if(editor.fixed()) route_information(); }
-    else if(object.action == "notify_waypoint_speed_") editor.speed(number_values[3]);
+    if(object.action == "notify_waypoint_position_") { editor.position(number_values[0], number_values[1], number_values[2]); if(editor.fixed()) route_information(); } else if(object.action == "notify_waypoint_speed_") editor.speed(number_values[3]);
     else if(object.action == "notify_waypoint_time_") editor.time(number_values[4]);
   }
   dirty = true;

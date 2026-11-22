@@ -5,9 +5,11 @@
 
 namespace apache::simulation {
 namespace {
-constexpr double pi{3.14159265359}, tau{6.28318530718}, half_pi{1.570796326795}, three_half_pi{4.712388980385};
-constexpr double radians_per_degree{0.01745329251994444};
-double wrap(double const angle) { return angle >= tau ? angle - tau : angle < 0 ? angle + tau : angle; }
+double constexpr pi{3.14159265359}, tau{6.28318530718}, half_pi{1.570796326795}, three_half_pi{4.712388980385};
+double constexpr radians_per_degree{0.01745329251994444};
+double wrap(double const angle) {
+  return angle >= tau ? angle - tau : angle < 0 ? angle + tau : angle;
+}
 }
 void rotor_dynamics::update_rates(double const dt, double const ground, bool const on_carrier, bool const landed, bool const absolute_throttle, unsigned int const input_type, int32_t const throttle, flight_events &events) {
   double const Jc{controls.values[0]}, Jr{controls.values[1]}, Jq{controls.values[2]}, Jp{controls.values[3]};
@@ -22,8 +24,7 @@ void rotor_dynamics::update_rates(double const dt, double const ground, bool con
     if(qdem < 0) qdem = (1 - u * 0.0021) * qdem;
     q = (qdem - q) * 0.25 + q;
   } else {
-    if(theta > 0.1072130826225159 && theta < 6.013905936872286) { events.push_back(flight_event::hard_impact); theta = 0; }
-    else {
+    if(theta > 0.1072130826225159 && theta < 6.013905936872286) { events.push_back(flight_event::hard_impact); theta = 0; } else {
       if(theta >= 6.013905936872286 && theta < 6.193425517077428) theta = dt * 0.314159265359 + theta;
       else if(theta >= 6.193425517077428) theta = dt * 0.1570796326795 + theta;
       else if(theta >= 0 && theta < 0.1072130826225159) theta = (current_landing_pitch - theta) * dt * 6 + theta;
@@ -52,8 +53,7 @@ void rotor_dynamics::update_rates(double const dt, double const ground, bool con
     if(theta < half_pi) theta -= theta * 0.125 * dt;
     else if(theta <= three_half_pi) theta = (three_half_pi - theta) * 0.125 * dt + theta;
     else theta = (tau - theta) * 0.125 * dt + theta;
-    if(theta < 0.01) { theta -= theta * dt; if(theta < 0.001) theta = 0; }
-    else if(theta >= 6.27318530718) { theta = (tau - theta) * dt + theta; if(theta > 6.28218530718) theta = 0; }
+    if(theta < 0.01) { theta -= theta * dt; if(theta < 0.001) theta = 0; } else if(theta >= 6.27318530718) { theta = (tau - theta) * dt + theta; if(theta > 6.28218530718) theta = 0; }
   }
   my_roll = phi <= pi ? phi : phi - tau;
   roll_a = u >= 100 ? 0.3 : 1.8 - std::abs(u) * 0.00015 * std::abs(u);
@@ -71,8 +71,7 @@ void rotor_dynamics::update_aerodynamics(double const dt, int32_t const delta_ti
   kge = z - 48 <= ground ? std::min(1.0, u * 0.00244 + ((z - ground) * 0.122) * 0.020833333333333332 + 0.878) : 1;
   kdu = u < 0 ? 0.25 - u * 0.01 : zdot < 0 && theta > 0 && theta < half_pi ? sin_theta * 2 + 0.06934 : 0.06934;
   double const squared_speed{u * u + v * v};
-  if(u > 102) { beta = std::max(0.0, (400 - std::abs(u)) * 0.003333333333333333); Tz = squared_speed * 0.000865 + 55; }
-  else { Tz = 90 - squared_speed * 0.0025; beta = std::abs(u) * 0.00980392156862745; }
+  if(u > 102) { beta = std::max(0.0, (400 - std::abs(u)) * 0.003333333333333333); Tz = squared_speed * 0.000865 + 55; } else { Tz = 90 - squared_speed * 0.0025; beta = std::abs(u) * 0.00980392156862745; }
   Tzw = static_cast<int32_t>((weight / power.maximum_weight * Tz) * (kge / rho));
   if(power.faults & 0x300000) Tzw = static_cast<int32_t>(Tzw * 1.4);
   if(cos_phi < 0) Tzw = static_cast<int32_t>(Tzw * (1 - cos_phi * 3));
@@ -115,7 +114,6 @@ void rotor_dynamics::update_aerodynamics(double const dt, int32_t const delta_ti
     v = std::clamp(vdot * dt + v, -100.0, 100.0);
   }
   eta = torque >= Tzw ? (u >= 102 ? 1.198 - u * 0.003 : 1 - u * 0.00105) : (u >= 102 ? 1.013 - u * 0.0025335 : 1 - u * 0.002402);
-  if(random_sample % 100 < 15 && !wind_gust) { wind_gust = true; wind_strength = math::add(wind_strength, wind_strength); }
-  else if(wind_gust) { wind_gust = false; wind_strength /= 2; }
+  if(random_sample % 100 < 15 && !wind_gust) { wind_gust = true; wind_strength = math::add(wind_strength, wind_strength); } else if(wind_gust) { wind_gust = false; wind_strength /= 2; }
 }
 } // namespace apache::simulation

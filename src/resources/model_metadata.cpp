@@ -1,5 +1,5 @@
-#include "models.h"
 #include "executable.h"
+#include "models.h"
 
 namespace apache::resources {
 void initialise_model_metadata(model_archive &models, executable_data const &executable) {

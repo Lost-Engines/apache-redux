@@ -1,7 +1,7 @@
 #pragma once
-#include "math/geometry.h"
 #include <functional>
 #include <optional>
+#include "math/geometry.h"
 
 namespace apache::simulation {
 struct visibility_result {

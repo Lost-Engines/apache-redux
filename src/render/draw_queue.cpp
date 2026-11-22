@@ -1,7 +1,10 @@
 #include "draw_queue.h"
 
 namespace apache::render {
-draw_queue::draw_queue() { items.reserve(7200); clear(); }
+draw_queue::draw_queue() {
+  items.reserve(7200);
+  clear();
+}
 void draw_queue::clear() {
   bins.fill(-1);
   items.clear();

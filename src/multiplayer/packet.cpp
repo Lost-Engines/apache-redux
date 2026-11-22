@@ -8,9 +8,15 @@ namespace {
 bool known_type(uint32_t const type) {
   return (type >= 2 && type <= 10) || type == 12 || type == 13 || (type >= 16 && type <= 36) || (type >= 38 && type <= 42);
 }
-bool headerless(message_type const type) { return type == message_type::server_state || type == message_type::two_player_settings; }
-size_t packet_size(message_type const type) { return type == message_type::server_state ? 516 : type == message_type::two_player_settings ? 24 : 408; }
-int32_t signed_word(uint32_t value) { return std::bit_cast<int32_t>(value); }
+bool headerless(message_type const type) {
+  return type == message_type::server_state || type == message_type::two_player_settings;
+}
+size_t packet_size(message_type const type) {
+  return type == message_type::server_state ? 516 : type == message_type::two_player_settings ? 24 : 408;
+}
+int32_t signed_word(uint32_t value) {
+  return std::bit_cast<int32_t>(value);
+}
 }
 packet::packet(message_type const type, uint32_t const sender, std::string_view const name)
   : storage(packet_size(type), 0) {
@@ -31,15 +37,21 @@ std::optional<packet> packet::decode(std::span<uint8_t const> const source) {
   if((type == 26 && source[24] > 63) || (type == 27 && source[24] > 28)) return {};
   packet result{static_cast<message_type>(type), sender}; result.storage.assign(source.begin(), source.end()); return result;
 }
-message_type packet::type() const { return static_cast<message_type>(word(0)); }
-uint32_t packet::sender() const { return headerless(type()) ? 0 : word(16); }
+message_type packet::type() const {
+  return static_cast<message_type>(word(0));
+}
+uint32_t packet::sender() const {
+  return headerless(type()) ? 0 : word(16);
+}
 std::string packet::name() const {
   if(headerless(type())) return {};
   std::string result;
   for(size_t i{4}; i < 12 && storage[i]; ++i) result.push_back(static_cast<char>(storage[i]));
   return result;
 }
-std::span<uint8_t const> packet::bytes() const { return storage; }
+std::span<uint8_t const> packet::bytes() const {
+  return storage;
+}
 uint32_t packet::word(size_t const offset) const {
   resources::reader input{storage}; input.seek(offset); return input.u32();
 }

@@ -1,9 +1,9 @@
 #pragma once
-#include "mission_weapons.h"
 #include "mission_flight.h"
-#include "player_weapon_mounts.h"
+#include "mission_weapons.h"
 #include "player_sight.h"
 #include "player_warnings.h"
+#include "player_weapon_mounts.h"
 
 namespace apache::simulation {
 struct player_armament_events {
@@ -24,8 +24,12 @@ class mission_player_weapons {
   resources::model_archive const &models;
   player_armament_events events;
   std::array<weapon_info, 55> definitions{weapon_definitions()};
-  render::model_instance &body() { return actors.units[player].object; }
-  math::vector3 aiming_direction() const { return helmet_direction ? helmet_direction() : helmet; }
+  render::model_instance &body() {
+    return actors.units[player].object;
+  }
+  math::vector3 aiming_direction() const {
+    return helmet_direction ? helmet_direction() : helmet;
+  }
   player_weapon_context context(int32_t now, double dt) const;
   std::optional<size_t> launch(player_shot const &shot);
 public:
@@ -49,8 +53,12 @@ public:
   bool fire(int32_t now, double dt, uint16_t key);
   bool select(int32_t now, uint16_t key);
   bool release_countermeasure(int32_t now, unsigned int weapon, uint16_t key);
-  bool toggle_countermeasures(uint16_t key) { return inventory.toggle_countermeasures(key, context(0, 0)); }
+  bool toggle_countermeasures(uint16_t key) {
+    return inventory.toggle_countermeasures(key, context(0, 0));
+  }
   void synchronize_countermeasures(bool receive);
-  void removed(size_t round, unsigned int weapon) { impacts.remove(round, weapon); }
+  void removed(size_t round, unsigned int weapon) {
+    impacts.remove(round, weapon);
+  }
 };
 } // namespace apache::simulation

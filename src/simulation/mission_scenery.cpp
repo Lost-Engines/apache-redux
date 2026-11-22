@@ -18,9 +18,11 @@ uint32_t mission_scenery::model(unsigned int const kind, int32_t const side, uns
     default: return 0;
   }
 }
-int32_t mission_scenery::owner(int32_t const x, int32_t const y) const { return x >= 0 && y >= 0 && x < 64 && y < 64 ? sectors[static_cast<size_t>(x * 64 + y)].side : 0; }
+int32_t mission_scenery::owner(int32_t const x, int32_t const y) const {
+  return x >= 0 && y >= 0 && x < 64 && y < 64 ? sectors[static_cast<size_t>(x * 64 + y)].side : 0;
+}
 mission_scenery::mission_scenery(resources::mission_definition const &mission, std::vector<resources::scenery_placement> scenery, resources::terrain const &terrain, resources::model_archive const &models, unsigned int const map) : base{std::move(scenery)} {
-  auto const settings{[&](std::string_view name) -> std::span<std::vector<int32_t> const> { auto const found{mission.settings.find(name)}; return found == mission.settings.end() ? std::span<std::vector<int32_t> const>{} : found->second; }};
+  auto const settings{[&](std::string_view name)->std::span<std::vector<int32_t> const> { auto const found{mission.settings.find(name)}; return found == mission.settings.end() ? std::span<std::vector<int32_t> const>{} : found->second; }};
   for(auto const &row : settings("GAMEPLAY SIDES")) {
     if(row.size() != 3) throw std::runtime_error{"Invalid sector allegiance"};
     if(row[0] < 0 || row[1] < 0 || row[0] >= 64 || row[1] >= 64) continue;

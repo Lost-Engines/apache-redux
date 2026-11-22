@@ -17,7 +17,7 @@ struct grid_position {
     if(fine > 128) { fine -= 256; ++coarse; }
   }
 };
-} // namespace
+} // anonymous namespace
 std::vector<vertex3> project_terrain(resources::terrain const &terrain, math::pose const &camera, projection const &view, int const left, int const bottom, unsigned int const columns, unsigned int const rows) {
   if(left < 0 || bottom < 0 || left > 256 || bottom > 256 || columns > 257 - static_cast<unsigned int>(left) || rows > 257 - static_cast<unsigned int>(bottom)) throw std::runtime_error{"Terrain projection leaves the grid"};
   auto const &matrix{camera.rotation};

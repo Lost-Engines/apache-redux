@@ -1,7 +1,7 @@
 #pragma once
+#include "effects.h"
 #include "projectile_launch.h"
 #include "target_visibility.h"
-#include "effects.h"
 
 namespace apache::simulation {
 enum class target_slot : uint8_t { current, chaff, flare };
@@ -61,9 +61,15 @@ class projectiles {
 public:
   uint32_t weapon_random{1};
   projectiles(resources::model_archive const &objects, math::trigonometry const &angles, combat_tables const &performance, resources::terrain const &ground, scenery_collisions const &structures, render::mobile_scene &scene, effects &puffs, uint32_t &seed, projectile_callbacks events = {});
-  size_t active_count() const { return count; }
-  auto const &entries() const { return rounds; }
-  projectile_record &at(size_t index) { return rounds.at(index).value(); }
+  size_t active_count() const {
+    return count;
+  }
+  auto const &entries() const {
+    return rounds;
+  }
+  projectile_record &at(size_t index) {
+    return rounds.at(index).value();
+  }
   std::optional<size_t> construct(projectile_request const &request);
   void launch(size_t index, int32_t now);
   void remove(size_t index);

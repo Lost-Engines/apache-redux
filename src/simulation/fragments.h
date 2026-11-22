@@ -1,8 +1,8 @@
 #pragma once
 #include <array>
 #include <functional>
-#include "craters.h"
 #include "math/trigonometry.h"
+#include "craters.h"
 
 namespace apache::simulation {
 struct fragment {

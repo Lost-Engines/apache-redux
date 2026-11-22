@@ -84,14 +84,16 @@ void powerplant::update_faults(double const dt, int32_t const delta_time, bool c
   if(overtorque_timer > 4000) { events.push_back(engines_overheated); overtorque_timer = 0; faults |= 0xc00000; }
 }
 void flight_controls::update(std::array<int32_t, 4> const &input, bool const on_carrier) {
-  constexpr double normalise{4.656612875245797e-10};
+  double constexpr normalise{4.656612875245797e-10};
   values[0] = input[0] * normalise;
   if(on_carrier) { values[1] = values[2] = values[3] = 0; return; }
   for(size_t i{1}; i != values.size(); ++i) values[i] = input[i] * normalise;
   changed = values != previous;
   if(changed) previous = values;
 }
-void hover_control::toggle(double const forward_speed) { active = std::abs(std::trunc(forward_speed)) < 17 ? !active : false; }
+void hover_control::toggle(double const forward_speed) {
+  active = std::abs(std::trunc(forward_speed)) < 17 ? !active : false;
+}
 void hover_control::update(double &forward_speed, double &sideways_speed, double const vertical_speed, double const pitch, bool const user_input, double &collective, flight_events &events) {
   if(active != previous) { previous = active; events.push_back(active ? flight_event::hover_on : flight_event::hover_off); }
   if(std::abs(std::trunc(forward_speed)) >= 18) { active = false; return; }

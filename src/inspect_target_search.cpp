@@ -1,13 +1,14 @@
 #include "inspect_target_search.h"
-#include "simulation/target_search.h"
 #include <istream>
+#include <map>
 #include <ostream>
 #include <stdexcept>
 #include <string>
-#include <map>
+#include "simulation/target_search.h"
 
 void inspect_target_search(std::istream &input, std::ostream &output) {
-  using namespace apache;
+  namespace math = apache::math;
+  namespace simulation = apache::simulation;
   using simulation::shared_target;
   std::string command;
   while(input >> command) {
@@ -18,7 +19,7 @@ void inspect_target_search(std::istream &input, std::ostream &output) {
       std::map<std::array<int32_t, 2>, shared_target> cells;
       for(size_t i{0}; i != count; ++i) { int32_t x{0}, y{0}; uint32_t id{0}; input >> x >> y >> id; cells[{x, y}] = std::make_shared<simulation::target_reference>(simulation::target_reference{{simulation::target_kind::fixed, 0, id}, {}, 0}); }
       std::vector<int32_t> queries; size_t draws{0};
-      auto const result{simulation::search_sector_rings(origin, side, minimum, maximum, [&](int32_t x, int32_t y, int32_t faction){ queries.insert(queries.end(), {x, y, faction}); auto const found{cells.find({x, y})}; return found == cells.end() ? shared_target{} : found->second; }, [&](){ ++draws; return sample; })};
+      auto const result{simulation::search_sector_rings(origin, side, minimum, maximum, [&](int32_t x, int32_t y, int32_t faction){ queries.insert(queries.end(), {x, y, faction}); auto const found{cells.find({x, y})}; return found == cells.end() ? shared_target{} : found->second; }, [&]{ ++draws; return sample; })};
       output << (result ? result->identity.index : 0) << ' ' << draws << ' ' << queries.size(); for(auto v : queries) output << ' ' << v; output << '\n';
     } else if(command == "bucket") {
       unsigned int count{0}; bool remove{false}, priority{false}; uint32_t id{0}; input >> count >> remove >> priority >> id;
@@ -38,7 +39,7 @@ void inspect_target_search(std::istream &input, std::ostream &output) {
       read(air.targets); read(ground.targets); read(sector.guns); read(sector.missiles); sector.air = air.candidates(); sector.ground = ground.candidates();
       size_t draws{0}; simulation::target_search_callbacks callbacks;
       callbacks.position = [&](auto const &target){ return positions.at(target.identity.index); }; callbacks.status = [&](auto const &target){ return statuses.at(target.identity.index); };
-      callbacks.mobile_air_defence = [&](auto const &target){ return tasks.at(target.identity.index) == 19; }; callbacks.random = [&](){ ++draws; return sample; };
+      callbacks.mobile_air_defence = [&](auto const &target){ return tasks.at(target.identity.index) == 19; }; callbacks.random = [&]{ ++draws; return sample; };
       auto const result{simulation::choose_sector_target(sector, origin, side, static_cast<simulation::search_kind>(mode), randomised, callbacks)};
       output << (result ? result->identity.index : 0) << ' ' << draws << '\n';
     } else throw std::runtime_error{"Unknown target-search operation"};

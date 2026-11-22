@@ -1,6 +1,6 @@
 #include "mission_weapons.h"
-#include "remote_weapons.h"
 #include <algorithm>
+#include "remote_weapons.h"
 
 namespace apache::simulation {
 mission_weapons::mission_weapons(resources::mission_definition const &definition, mission_actors &units, mission_spatial &locations, mission_targets &queries, mission_combat &decisions, resources::model_archive const &objects, resources::terrain const &land, scenery_collisions const &structures, render::mobile_scene &scene, math::trigonometry const &angles, combat_tables const &performance, combat_random &war, combat_random &weapon, int const skill, mission_weapon_callbacks callbacks)
@@ -11,7 +11,10 @@ mission_weapons::mission_weapons(resources::mission_definition const &definition
   targets.additional_state = [this](uint32_t mobile){ return state(mobile); };
   environment.decoy_modifier = tables.skill(difficulty).decoy_modifier;
 }
-mission_weapons::~mission_weapons() { rounds.clear(); targets.additional_state = std::move(previous_state); }
+mission_weapons::~mission_weapons() {
+  rounds.clear();
+  targets.additional_state = std::move(previous_state);
+}
 std::optional<size_t> mission_weapons::projectile_index(uint32_t const mobile) const {
   for(size_t i{0}; i != rounds.entries().size(); ++i) if(rounds.entries()[i] && rounds.entries()[i]->mobile == mobile) return i;
   return {};
@@ -21,8 +24,7 @@ mobile_target_state mission_weapons::state(uint32_t const mobile) const {
   if(auto i{spatial.actor_index(mobile)}) {
     result.damage = combat.attention[*i].damage; result.chaff_at = decoys[*i].deadlines[0]; result.flare_at = decoys[*i].deadlines[1];
     result.chaff_valid = targets.world.valid(*decoys[*i].targets[0]); result.flare_valid = targets.world.valid(*decoys[*i].targets[1]);
-  } else if(auto i{projectile_index(mobile)}) { result.type = 2; result.speed = rounds.entries()[*i]->state.body.motion.speed; }
-  else result.type = 0;
+  } else if(auto i{projectile_index(mobile)}) { result.type = 2; result.speed = rounds.entries()[*i]->state.body.motion.speed; } else result.type = 0;
   return result;
 }
 shared_target mission_weapons::target_slot(uint32_t const mobile, simulation::target_slot const slot) const {
@@ -135,9 +137,11 @@ void mission_weapons::event(size_t const index, projectile_record &round, projec
   if(info.kind == projectile_event::notify) incoming(index, round);
   if(info.kind == projectile_event::removed && round.source.identity.kind == target_kind::mobile) if(auto actor{spatial.actor_index(round.source.identity.index)}) {
     auto &state{decoys[*actor]}; auto const id{round.state.weapon};
-    if((id == 7 || id == 8) && round.mobile && state.targets[id - 7]->identity.kind == target_kind::mobile && state.targets[id - 7]->identity.index == *round.mobile) { *state.targets[id - 7] = {}; state.deadlines[id - 7] = 0; }
-    else if(combat.armaments[*actor].round == index) combat.armaments[*actor].round.reset();
+    if((id == 7 || id == 8) && round.mobile && state.targets[id - 7]->identity.kind == target_kind::mobile && state.targets[id - 7]->identity.index == *round.mobile) { *state.targets[id - 7] = {}; state.deadlines[id - 7] = 0; } else if(combat.armaments[*actor].round == index) combat.armaments[*actor].round.reset();
   }
 }
-void mission_weapons::update(projectile_time const &time) { environment.now = time.now; rounds.update(time); }
+void mission_weapons::update(projectile_time const &time) {
+  environment.now = time.now;
+  rounds.update(time);
+}
 } // namespace apache::simulation

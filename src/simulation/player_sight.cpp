@@ -4,10 +4,21 @@
 
 namespace apache::simulation {
 namespace {
-math::vector3 difference(math::vector3 const &a, math::vector3 const &b) { math::vector3 r; for(size_t i{0}; i != 3; ++i) r[i] = math::subtract(a[i], b[i]); return r; }
-int32_t magnitude(int32_t v) { return v < 0 ? math::negate(v) : v; }
-int32_t range(math::vector3 const &v) { double const x{static_cast<double>(v[0])}, y{static_cast<double>(v[1])}, z{static_cast<double>(v[2])}; return std::bit_cast<int32_t>(static_cast<uint32_t>(static_cast<uint64_t>(std::sqrt(x * x + y * y + z * z)))); }
-int32_t product(int32_t a, int32_t b) { return std::bit_cast<int32_t>(static_cast<uint32_t>(a) * static_cast<uint32_t>(b)); }
+math::vector3 difference(math::vector3 const &a, math::vector3 const &b) {
+  math::vector3 r;
+  for(size_t i{0}; i != 3; ++i) r[i] = math::subtract(a[i], b[i]);
+  return r;
+}
+int32_t magnitude(int32_t v) {
+  return v < 0 ? math::negate(v) : v;
+}
+int32_t range(math::vector3 const &v) {
+  double const x{static_cast<double>(v[0])}, y{static_cast<double>(v[1])}, z{static_cast<double>(v[2])};
+  return std::bit_cast<int32_t>(static_cast<uint32_t>(static_cast<uint64_t>(std::sqrt(x * x + y * y + z * z))));
+}
+int32_t product(int32_t a, int32_t b) {
+  return std::bit_cast<int32_t>(static_cast<uint32_t>(a) * static_cast<uint32_t>(b));
+}
 }
 unsigned int player_weapon_sight::evaluate(weapon_sight_inputs const &input, weapon_sight_callbacks const &events) {
   auto const old_status{status}; auto const old_target{previous}; previous = input.target;
@@ -50,5 +61,7 @@ void player_impact_times::launch(size_t const round, unsigned int const id, math
 void player_impact_times::remove(size_t const round, unsigned int const weapon) {
   if(weapon == 2 || weapon == 3 || weapon == 6) { auto i{std::ranges::find(entries, round, &missile_impact_time::round)}; if(i != entries.end()) entries.erase(i); }
 }
-int32_t player_impact_times::current(int32_t const now) const { return entries.empty() ? -1 : std::max(0, math::subtract(entries.front().deadline, now)); }
+int32_t player_impact_times::current(int32_t const now) const {
+  return entries.empty() ? -1 : std::max(0, math::subtract(entries.front().deadline, now));
+}
 } // namespace apache::simulation

@@ -4,11 +4,11 @@
 namespace apache::simulation {
 mission_network::mission_network(mission_runtime &mission) : runtime{mission}, lifecycle{state} {
   auto const link{[this](size_t index){ return multiplayer::actor_link{index, runtime.actors.units[index].destroyed, runtime.spatial.player == index}; }};
-  lifecycle.events.player = [this, link](uint32_t connection) -> std::optional<multiplayer::actor_link> {
+  lifecycle.events.player = [this, link](uint32_t connection)->std::optional<multiplayer::actor_link> {
     if(auto index{actor(connection)}) return link(*index);
     return {};
   };
-  lifecycle.events.find = [this, link](int32_t serial, int32_t task) -> std::optional<multiplayer::actor_link> {
+  lifecycle.events.find = [this, link](int32_t serial, int32_t task)->std::optional<multiplayer::actor_link> {
     for(size_t index{0}; index < runtime.actors.units.size(); ++index) {
       auto const &unit{runtime.actors.units[index]};
       if(unit.serial == serial && static_cast<int64_t>(unit.location.task) == task) return link(index);
@@ -27,7 +27,7 @@ mission_network::mission_network(mission_runtime &mission) : runtime{mission}, l
   };
   lifecycle.events.countermeasure = [this](size_t index, bool flare){ if(runtime.weapons) runtime.weapons->fire_remote(index, flare ? 8 : 7, 0, {}, {}); };
   lifecycle.events.death = [this](unsigned int cause){ if(runtime.pilot) runtime.pilot->request_death(cause); };
-  lifecycle.events.player_killed = [this](){
+  lifecycle.events.player_killed = [this]{
     if(!runtime.spatial.player) return;
     auto &object{runtime.actors.units[*runtime.spatial.player].object}; if(object.status & 1) return;
     if(runtime.pilot) runtime.pilot->request_death(4);
@@ -49,7 +49,7 @@ mission_network::mission_network(mission_runtime &mission) : runtime{mission}, l
   };
   lifecycle.events.flag_won = [this](uint32_t slot){ flag_winner = slot; };
   lifecycle.events.notice = [this](auto text, auto priority, auto lifetime){ if(runtime.events.notice) runtime.events.notice(text, priority, lifetime); };
-  lifecycle.events.scores = [this](){
+  lifecycle.events.scores = [this]{
     std::array<int32_t, 16> values{}; for(size_t i{0}; i < values.size(); ++i) values[i] = state.players[i].score;
     if(send) send(multiplayer::scores(state.local, state.players[state.local].name, values));
   };
@@ -132,8 +132,7 @@ void mission_network::replace_model(size_t const index, uint32_t const model, un
   auto &unit{runtime.actors.units[index]}; auto const &type{types.at(model)};
   auto const &task{runtime.mission.tasks[unit.location.task]};
   std::array<uint32_t, 20> attachments{};
-  if(model == 607) { attachments[0] = 614; attachments[2] = 620; }
-  else if(model == 990) attachments[0] = 859;
+  if(model == 607) { attachments[0] = 614; attachments[2] = 620; } else if(model == 990) attachments[0] = 859;
   auto replacement{render::construct_model(runtime.models, model, unit.object.world, attachments)};
   replacement.alternate_colours = task.side == 2 && map != 2 && (type.flags & 2);
   replacement.status = (unit.object.status & ~0x10u) | (replacement.alternate_colours ? 0x10u : 0);
@@ -143,9 +142,7 @@ void mission_network::replace_model(size_t const index, uint32_t const model, un
     ++count; unit.ammunition[slot] = type.ammunition[slot]; last_weapon = type.weapons[slot]; last_slot = static_cast<int32_t>(slot);
   }
   if(task.type == 18) { if(!unit.ammunition[1]) ++count; unit.ammunition[1] = 10; }
-  if(count == 0) { unit.weapon = 0; unit.weapon_slot = -1; unit.conditions &= ~0xc0u; }
-  else if(count == 1) { unit.weapon = last_weapon; unit.weapon_slot = last_slot; unit.conditions |= 0xc0; }
-  else { unit.weapon_slot = 0; unit.conditions = (unit.conditions & ~0x80u) | 0x40; }
+  if(count == 0) { unit.weapon = 0; unit.weapon_slot = -1; unit.conditions &= ~0xc0u; } else if(count == 1) { unit.weapon = last_weapon; unit.weapon_slot = last_slot; unit.conditions |= 0xc0; } else { unit.weapon_slot = 0; unit.conditions = (unit.conditions & ~0x80u) | 0x40; }
   refresh_weapon_ranges(unit, runtime.combat.armaments[index], type, weapons);
 }
 bool mission_network::assign(uint32_t const connection, uint32_t const model, size_t const task, multiplayer::game_mode const mode, int const flow, unsigned int const map) {
@@ -227,8 +224,7 @@ bool mission_network::receive(multiplayer::packet const &message, int32_t const 
     if(auto index{actor(message.sender())}) {
       auto const target{resolve(state.players[message.sender()].target)};
       auto &slot{runtime.combat.armaments[*index].target};
-      if(target) { if(!slot) slot = std::make_shared<target_reference>(); *slot = *target; }
-      else slot.reset();
+      if(target) { if(!slot) slot = std::make_shared<target_reference>(); *slot = *target; } else slot.reset();
     }
   }
   return true;

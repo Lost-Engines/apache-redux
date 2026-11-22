@@ -1,6 +1,6 @@
-#include "mission_session.h"
 #include <algorithm>
 #include <stdexcept>
+#include "mission_session.h"
 
 namespace apache::frontend {
 void mission_session::network_crash_complete() {
@@ -91,8 +91,7 @@ void mission_session::initialise_remote_players() {
 void mission_session::send_frame() {
   auto &state{network->state}; auto const &readings{runtime.pilot->readings()};
   if(state.client_server) {
-    if(state.local == state.server) { if(poll_network) poll_network(); }
-    else if(state.server_in_game && state.new_server_data && !state.dead && network->send) {
+    if(state.local == state.server) { if(poll_network) poll_network(); } else if(state.server_in_game && state.new_server_data && !state.dead && network->send) {
       network->send(multiplayer::client_state(state.local, readings.position, readings.airspeed, frame_time - network_wait_ticks / 200));
       state.new_server_data = false;
     }

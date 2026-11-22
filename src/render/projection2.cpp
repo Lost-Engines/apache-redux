@@ -21,15 +21,21 @@ vertex2 projection2::transform(vertex2 const &point) const {
 screen_vertex projection2::screen(vertex2 const &point) const {
   return {math::add(math::multiply_q31(math::subtract(point.x, window.left), scale[0]), viewport.left), math::add(math::multiply_q31(math::subtract(point.y, window.bottom), scale[1]), viewport.bottom), 0, 0, point.intensity};
 }
-int32_t projection2::radius(int32_t const world_radius) const { return math::multiply_q31(world_radius, scale[0]); }
+int32_t projection2::radius(int32_t const world_radius) const {
+  return math::multiply_q31(world_radius, scale[0]);
+}
 vertex2 projection2::unproject(int32_t const x, int32_t const y) const {
   if(!scale[0] || !scale[1]) throw std::runtime_error{"Cannot invert a zero 2D scale"};
   auto const px{math::subtract(static_cast<int32_t>(int64_t{math::subtract(x, viewport.left)} * 0x80000000ll / scale[0]), math::subtract(centre[0], window.left))};
   auto const py{math::subtract(static_cast<int32_t>(int64_t{math::subtract(y, viewport.bottom)} * 0x80000000ll / scale[1]), math::subtract(centre[1], window.bottom))};
   return {math::subtract(math::subtract(math::multiply_q31(px, cosine), math::multiply_q31(py, math::negate(sine))), math::subtract(origin[0], centre[0])), math::subtract(math::add(math::multiply_q31(px, math::negate(sine)), math::multiply_q31(py, cosine)), math::subtract(origin[1], centre[1]))};
 }
-screen_vertex projection2::project_raw(vertex2 const &point) const { return screen(point); }
-screen_vertex projection2::project(vertex2 const &point) const { return screen(transform(point)); }
+screen_vertex projection2::project_raw(vertex2 const &point) const {
+  return screen(point);
+}
+screen_vertex projection2::project(vertex2 const &point) const {
+  return screen(transform(point));
+}
 bool projection2::clip_endpoint(vertex2 &point, vertex2 const &other) const {
   uint8_t code{outcode(point)};
   auto const other_code{outcode(other)};
@@ -40,8 +46,7 @@ bool projection2::clip_endpoint(vertex2 &point, vertex2 const &other) const {
     if(!denominator) return false;
     int64_t const delta{int64_t{math::subtract(horizontal ? other.x : other.y, horizontal ? point.x : point.y)} * numerator / denominator};
     if(delta < INT32_MIN || delta > INT32_MAX) return false;
-    if(horizontal) { point.x = math::add(point.x, static_cast<int32_t>(delta)); point.y = edge; }
-    else { point.y = math::add(point.y, static_cast<int32_t>(delta)); point.x = edge; }
+    if(horizontal) { point.x = math::add(point.x, static_cast<int32_t>(delta)); point.y = edge; } else { point.y = math::add(point.y, static_cast<int32_t>(delta)); point.x = edge; }
     code = outcode(point);
     if((code & plane) || (code & other_code)) return false;
   }

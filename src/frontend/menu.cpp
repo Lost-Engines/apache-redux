@@ -86,7 +86,11 @@ void menu::popup(std::vector<std::pair<std::string, int>> choices, std::function
   active_popup = popup_state{std::move(choices), std::move(selected), {x, y, x + width, y + height}};
   move(cursor_x, cursor_y);
 }
-bool menu::dismiss_popup() { if(!active_popup) return false; active_popup.reset(); return true; }
+bool menu::dismiss_popup() {
+  if(!active_popup) return false;
+  active_popup.reset();
+  return true;
+}
 void menu::toggle_quick(bool const visible) {
   auto &object{widgets.at(globals.at("_quick_start_options"))};
   object.flags = (object.flags & ~1u) | static_cast<unsigned int>(visible);
@@ -226,7 +230,7 @@ void menu::render(render::framebuffer &target) {
   auto const screen_clip{target.clip};
   target.clear();
   paint_order.clear();
-  auto const raised_ancestor{[&](size_t i) {
+  auto const raised_ancestor{[&](size_t i){
     int parent{static_cast<int>(i)};
     while(parent >= 0) { if(std::ranges::find(raised, static_cast<size_t>(parent)) != raised.end()) return parent; parent = widgets[static_cast<size_t>(parent)].parent; }
     return -1;
@@ -339,9 +343,7 @@ void menu::button(bool const down, unsigned int const button) {
     } else {
       number_capture = hovered; number_repeat = static_cast<int64_t>(number_clock) + 100; number_moved = false;
       if(!object.on) number_click = 2;
-      else if(cursor_y < object.area.top + 9) { number_click = 0; number_adjust(index, object.number_divisor); }
-      else if(cursor_y > object.area.bottom - 9) { number_click = 1; number_adjust(index, -object.number_divisor); }
-      else number_click = 1;
+      else if(cursor_y < object.area.top + 9) { number_click = 0; number_adjust(index, object.number_divisor); } else if(cursor_y > object.area.bottom - 9) { number_click = 1; number_adjust(index, -object.number_divisor); } else number_click = 1;
       number_push(index, true);
     }
     return;

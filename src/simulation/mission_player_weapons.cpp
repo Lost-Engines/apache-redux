@@ -8,8 +8,8 @@ mission_player_weapons::mission_player_weapons(size_t const index, mission_actor
   combat.armaments[player].target = target; combat.player_target = target;
   inventory.events.cockpit_sound = [this](auto id){ if(events.cockpit_sound) events.cockpit_sound(id); };
   inventory.events.launch_sound = [this](auto id){ if(events.launch_sound) events.launch_sound(id); };
-  inventory.events.clear_impact_times = [this](){ impacts.clear(); };
-  inventory.events.cycle_target = [this](){ if(events.cycle_target) events.cycle_target(); };
+  inventory.events.clear_impact_times = [this]{ impacts.clear(); };
+  inventory.events.cycle_target = [this]{ if(events.cycle_target) events.cycle_target(); };
   inventory.events.launch_pose = [this](auto id, auto slot){
     auto description{target->identity.kind != target_kind::none ? std::optional{targets.describe(*target).movement} : std::nullopt};
     if(id == 1) mounts.position_gun(weapons.environment.now, inventory.current, body(), description, aiming_direction());
@@ -22,7 +22,7 @@ mission_player_weapons::mission_player_weapons(size_t const index, mission_actor
     auto const *aim{binding.selected ? (round.selected ? &*round.selected : nullptr) : binding.target.get()};
     impacts.launch(index, round.state.weapon, round.state.body.pose.position, aim && aim->identity.kind != target_kind::none ? std::optional{targets.world.position(*aim)} : std::nullopt, weapons.environment.now);
   };
-  inventory.events.fired_at = [this](){ combat.notify_fired_at(*target, spatial.targets[player]); };
+  inventory.events.fired_at = [this]{ combat.notify_fired_at(*target, spatial.targets[player]); };
   inventory.events.remove_missile = [this](size_t slot, int32_t ammo){ mounts.remove_missile(body(), slot, ammo); };
   rearm(loadout);
 }
@@ -45,13 +45,18 @@ std::optional<size_t> mission_player_weapons::launch(player_shot const &shot) {
   if(shot.laser) request.designator = request.source;
   return weapons.launch_player(request, !shot.guided && shot.untracked);
 }
-bool mission_player_weapons::fire(int32_t const now, double const dt, uint16_t const key) { weapons.environment.now = now; return inventory.fire(key, context(now, dt)); }
+bool mission_player_weapons::fire(int32_t const now, double const dt, uint16_t const key) {
+  weapons.environment.now = now;
+  return inventory.fire(key, context(now, dt));
+}
 bool mission_player_weapons::release_countermeasure(int32_t const now, unsigned int const weapon, uint16_t const key) {
   weapons.environment.now = now; synchronize_countermeasures(false);
   bool const released{weapons.release_countermeasure(weapon, key)};
   synchronize_countermeasures(true); return released;
 }
-bool mission_player_weapons::select(int32_t const now, uint16_t const key) { return inventory.select(key, context(now, 0)); }
+bool mission_player_weapons::select(int32_t const now, uint16_t const key) {
+  return inventory.select(key, context(now, 0));
+}
 void mission_player_weapons::prepare(int32_t const now, int32_t const delta, int32_t const hydra_input) {
   update_hydra(now, delta, hydra_input); evaluate_sight(now);
 }
@@ -66,8 +71,8 @@ void mission_player_weapons::evaluate_sight(int32_t const now) {
   weapon_sight_inputs input; input.weapon = inventory.current; input.weather = static_cast<unsigned int>(weapons.environment.weather); input.armed = inventory.armed; input.hydras_locked = mounts.hydras_locked; input.cloud_bottom = weapons.environment.cloud_bottom; input.cloud_top = weapons.environment.cloud_top; input.body = body().world; input.target = *target;
   if(selected) { input.target_position = selected->movement.position; input.target_classification = selected->movement.classification; }
   weapon_sight_callbacks callbacks;
-  callbacks.visible = [this](){ return weapons.player_line_of_sight(*spatial.targets[player], *target); };
-  callbacks.position_gun = [this, now, &selected](){ return mounts.position_gun(now, inventory.current, body(), selected ? std::optional{selected->movement} : std::nullopt, aiming_direction()); };
+  callbacks.visible = [this]{ return weapons.player_line_of_sight(*spatial.targets[player], *target); };
+  callbacks.position_gun = [this, now, &selected]{ return mounts.position_gun(now, inventory.current, body(), selected ? std::optional{selected->movement} : std::nullopt, aiming_direction()); };
   callbacks.cockpit_sound = events.cockpit_sound; sight.evaluate(input, callbacks);
 }
 void mission_player_weapons::finish_update(int32_t const now) {

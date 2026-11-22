@@ -1,8 +1,8 @@
 #pragma once
 #include <string>
-#include "instrument_font.h"
-#include "math/trigonometry.h"
 #include "math/geometry.h"
+#include "math/trigonometry.h"
+#include "instrument_font.h"
 #include "projection.h"
 #include "projection2.h"
 

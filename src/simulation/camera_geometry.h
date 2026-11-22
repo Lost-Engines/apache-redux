@@ -1,8 +1,8 @@
 #pragma once
-#include "math/geometry.h"
-#include "math/trigonometry.h"
 #include <functional>
 #include <optional>
+#include "math/geometry.h"
+#include "math/trigonometry.h"
 
 namespace apache::simulation {
 struct camera_input { int32_t turn{0}, pitch{0}, zoom{0}, delta{0}; };

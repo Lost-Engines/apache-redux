@@ -5,9 +5,9 @@
 namespace apache::simulation {
 void debrief_records::add(debrief_record record) {
   // The original allocates a fresh 1,000-record block before coalescing time.
-  if(!entries.empty() && entries.size() % 1000 && record.words[0] == 2 && entries.back().words[0] == 2)
+  if(!entries.empty() && entries.size() % 1000 && record.words[0] == 2 && entries.back().words[0] == 2) {
     entries.back().words[1] += record.words[1];
-  else entries.push_back(record);
+  } else entries.push_back(record);
 }
 void debrief_records::position(math::vector3 const &p) {
   if(std::abs(static_cast<int64_t>(p[0]) - previous_position[0]) < 128000 && std::abs(static_cast<int64_t>(p[1]) - previous_position[1]) < 128000) return;
@@ -25,19 +25,17 @@ unsigned int debrief_records::worst_landing() const {
 }
 void debrief_result::survive(bool const enemy, bool const injury, unsigned int const distance, uint32_t &random) {
   if(pilot) return;
-  auto const coin{[&](){ random = random * 0x41c64e6du + 0x3039u; return (random >> 16) & 1; }};
+  auto const coin{[&]{ random = random * 0x41c64e6du + 0x3039u; return (random >> 16) & 1; }};
   if(injury) {
     if(coin()) { pilot = enemy ? 1 : 4; return; }
     pilot = 3;
   }
   if(enemy) {
-    if(distance == 1) { if(coin()) pilot = 2; else if(!pilot) pilot = 5; }
-    else if(distance > 2) pilot = 2;
+    if(distance == 1) { if(coin()) pilot = 2; else if(!pilot) pilot = 5; } else if(distance > 2) pilot = 2;
   }
 }
 void debrief_result::mobiles(std::array<int32_t, 3> const &counts, std::array<int32_t, 3> const &limits) {
-  if(counts[0] > limits[0]) { mission = mission_result::failure; explanations.emplace_back("Allied or civilian casualties too high."); }
-  else {
+  if(counts[0] > limits[0]) { mission = mission_result::failure; explanations.emplace_back("Allied or civilian casualties too high."); } else {
     if(counts[1] >= limits[1]) {
       mission = static_cast<int64_t>(counts[1]) + counts[2] >= limits[2] ? mission_result::outstanding : mission_result::success;
       explanations.emplace_back(mission == mission_result::outstanding ? "Outstanding number of targets." : "Enough targets for success.");
@@ -76,11 +74,9 @@ void debrief_result::death(unsigned int const cause, uint32_t const collision_mo
     if(collision_model == 11) { explanations.emplace_back("Apache crash landed."); survive(landed_in_enemy, true, front_distance, random); return; }
     explanations.emplace_back(collision_model && !collision_name.empty() ? "Apache collided with " + std::string{collision_name} + "." : "Apache crashed");
     if(altitude <= 5120) survive(landed_in_enemy, true, front_distance, random); else pilot = 4;
-  } else if(cause == 3) { survive(landed_in_enemy, true, front_distance, random); explanations.emplace_back("Apache crash landed."); }
-  else if(cause == 4) {
+  } else if(cause == 3) { survive(landed_in_enemy, true, front_distance, random); explanations.emplace_back("Apache crash landed."); } else if(cause == 4) {
     pilot = 4; explanations.emplace_back(collision_model && !collision_name.empty() ? "Apache was shot down by " + std::string{collision_name} : "Apache was shot down");
-  } else if(cause == 11) { pilot = 4; explanations.emplace_back("Apache disintegrated due to excessive speed."); }
-  else {
+  } else if(cause == 11) { pilot = 4; explanations.emplace_back("Apache disintegrated due to excessive speed."); } else {
     survive(landed_in_enemy, true, front_distance, random);
     if(surface >= 1 && surface <= 3) explanations.emplace_back(surface == 1 ? "Apache ditched in a river." : surface == 2 ? "Apache ditched in a lake." : "Apache ditched in the sea.");
   }

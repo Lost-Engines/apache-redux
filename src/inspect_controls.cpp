@@ -1,12 +1,16 @@
 #include "inspect_controls.h"
-#include "simulation/control_input.h"
 #include <istream>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include "simulation/control_input.h"
 
 void inspect_controls(std::istream &input, std::ostream &output) {
-  using namespace apache::simulation;
+  using apache::simulation::control_configuration;
+  using apache::simulation::control_input;
+  using apache::simulation::decode_joystick_buttons;
+  using apache::simulation::joystick_axis;
+  using apache::simulation::joystick_curve;
   control_input state; std::string command;
   while(input >> command) {
     if(command == "frame") {

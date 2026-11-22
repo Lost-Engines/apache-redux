@@ -5,10 +5,10 @@
 #include <ostream>
 #include <stdexcept>
 #include <string>
-#include "simulation/flight_systems.h"
-#include "simulation/rotor_dynamics.h"
-#include "simulation/realistic_flight.h"
 #include "resources/terrain.h"
+#include "simulation/flight_systems.h"
+#include "simulation/realistic_flight.h"
+#include "simulation/rotor_dynamics.h"
 
 namespace {
 auto power_values(apache::simulation::powerplant &power) {
@@ -20,7 +20,12 @@ auto dynamics_values(apache::simulation::rotor_dynamics &state) {
 }
 
 void inspect_flight_systems(std::istream &input, std::ostream &output) {
-  using namespace apache::simulation;
+  using apache::simulation::evaluate_landing;
+  using apache::simulation::flight_controls;
+  using apache::simulation::flight_events;
+  using apache::simulation::hover_control;
+  using apache::simulation::landing_result;
+  using apache::simulation::powerplant;
   std::string operation;
   while(input >> operation) {
     powerplant power; flight_controls controls; hover_control hover; flight_events events;
@@ -59,7 +64,8 @@ void inspect_flight_systems(std::istream &input, std::ostream &output) {
 }
 
 void inspect_flight_dynamics(std::istream &input, std::ostream &output) {
-  using namespace apache::simulation;
+  using apache::simulation::flight_events;
+  using apache::simulation::rotor_dynamics;
   std::string operation;
   while(input >> operation) {
     rotor_dynamics state; flight_events events;
@@ -81,8 +87,9 @@ void inspect_flight_dynamics(std::istream &input, std::ostream &output) {
 }
 
 void inspect_flight_trace(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
-  math::trigonometry const trig{data}; std::optional<resources::terrain> terrain;
+  namespace math = apache::math;
+  namespace simulation = apache::simulation;
+  math::trigonometry const trig{data}; std::optional<apache::resources::terrain> terrain;
   simulation::realistic_flight state; std::string operation;
   simulation::flight_environment environment;
   math::pose carrier, relative; int32_t carrier_speed{0}; uint32_t carrier_heading{0};
@@ -108,12 +115,7 @@ void inspect_flight_trace(std::istream &input, std::ostream &output, apache::res
       input >> dt >> delta; for(auto &v : controls.controls) input >> v;
       input >> controls.absolute_throttle >> controls.type >> random >> surface;
       result = state.advance(dt, delta, controls, environment, trig, random);
-    } else if(operation == "wind") { input >> state.dynamics.wind_strength >> state.wind_direction; continue; }
-    else if(operation == "fuel") { input >> state.dynamics.power.fuel; continue; }
-    else if(operation == "faults") { input >> state.dynamics.power.faults; continue; }
-    else if(operation == "hover") { input >> state.dynamics.hover.active; continue; }
-    else if(operation == "follow") { input >> state.terrain_follow; continue; }
-    else throw std::runtime_error{"Unknown flight-trace operation"};
+    } else if(operation == "wind") { input >> state.dynamics.wind_strength >> state.wind_direction; continue; } else if(operation == "fuel") { input >> state.dynamics.power.fuel; continue; } else if(operation == "faults") { input >> state.dynamics.power.faults; continue; } else if(operation == "hover") { input >> state.dynamics.hover.active; continue; } else if(operation == "follow") { input >> state.terrain_follow; continue; } else throw std::runtime_error{"Unknown flight-trace operation"};
     if(!input) throw std::runtime_error{"Incomplete flight-trace operation"};
     auto &d{state.dynamics};
     output << std::hex;

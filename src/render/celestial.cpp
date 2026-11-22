@@ -49,7 +49,7 @@ int32_t celestial::draw(framebuffer &target, math::matrix3 const &camera, math::
   for(size_t i{0}; i != 3; ++i) direction[i] = light[i] >> 8;
   auto const eye{view.prepare(math::transform(camera, direction)).eye};
   if(eye[1] < 1) return glare;
-  auto const horizontal{[&](int32_t const x) -> std::optional<int> {
+  auto const horizontal{[&](int32_t const x)->std::optional<int> {
     int64_t const position{((int64_t{x} + eye[1]) * width >> 1) / eye[1] + target.clip.left};
     if(position < INT32_MIN || position > INT32_MAX) return {};
     return static_cast<int>(position);

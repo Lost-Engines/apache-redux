@@ -95,15 +95,13 @@ bool lifecycle::receive(packet const &message, int32_t const now) {
     case crashed:
       if(state.active && remote) {
         if(mode == game_mode::combat || mode == game_mode::multiplayer || mode == game_mode::capture_the_flag) notice(message.name() + " crashed", 2, 200);
-        else if(mode == game_mode::pilot_gunner) { if(events.death) events.death(3); }
-        else lost_partner();
+        else if(mode == game_mode::pilot_gunner) { if(events.death) events.death(3); } else lost_partner();
         remove(player(sender));
       }
       return true;
     case collision:
       if(state.active && remote) {
-        if(message.word(396) == state.local) { if(events.player_killed) events.player_killed(); }
-        else {
+        if(message.word(396) == state.local) { if(events.player_killed) events.player_killed(); } else {
           notice(message.name() + " collided", 2, 200);
           remove(find(std::bit_cast<int32_t>(message.word(396)), std::bit_cast<int32_t>(message.word(400))));
         }
@@ -118,8 +116,7 @@ bool lifecycle::receive(packet const &message, int32_t const now) {
       for(size_t i{0}; i < count; ++i) {
         auto const drone{std::bit_cast<int16_t>(records.u16())}; auto const task{records.u8()}; auto const source{records.u8()};
         if(auto target{find(drone, task)}) {
-          if(target->local) { if(events.death) events.death(4); }
-          else if(events.mobile_killed) events.mobile_killed(target->id, source);
+          if(target->local) { if(events.death) events.death(4); } else if(events.mobile_killed) events.mobile_killed(target->id, source);
         }
       }
       return true;

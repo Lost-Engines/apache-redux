@@ -1,20 +1,20 @@
 #include "installation.h"
-#include "data_store.h"
 #include <algorithm>
 #include <chrono>
 #include <cstdlib>
 #include <fstream>
 #include <memory>
 #include <stdexcept>
+#include "data_store.h"
 #ifdef _WIN32
 #ifndef WIN32_LEAN_AND_MEAN
 #define WIN32_LEAN_AND_MEAN
-#endif
+#endif // WIN32_LEAN_AND_MEAN
 #ifndef NOMINMAX
 #define NOMINMAX
-#endif
+#endif // NOMINMAX
 #include <windows.h>
-#endif
+#endif // _WIN32
 
 namespace apache::resources {
 namespace {
@@ -24,8 +24,9 @@ constexpr entry files[]{
 };
 bool looks_installed(std::filesystem::path const &directory) {
   std::error_code error;
-  for(auto const *path : {"3DDATA/3DOBJS.BIN", "3ddata/3dobjs.bin"})
+  for(auto const *path : {"3DDATA/3DOBJS.BIN", "3ddata/3dobjs.bin"}) {
     if(std::filesystem::is_regular_file(directory / path, error)) return true;
+  }
   return false;
 }
 std::string resource_name(data_store const &data, entry const &file) {
@@ -45,7 +46,7 @@ std::filesystem::path checked_destination(std::filesystem::path const &directory
   if(relative.empty() || *relative.begin() == "..") throw std::runtime_error{"Game file leaves the selected directory: " + path.string()};
   return path;
 }
-}
+} // anonymous namespace
 std::filesystem::path default_game_directory() {
 #ifdef _WIN32
   std::wstring filename(32768, L'\0');
@@ -58,7 +59,7 @@ std::filesystem::path default_game_directory() {
   if(auto const *path{std::getenv("XDG_DATA_HOME")}; path && *path && std::filesystem::path{path}.is_absolute()) return std::filesystem::path{path} / "apache/game";
   if(auto const *path{std::getenv("HOME")}; path && *path) return std::filesystem::path{path} / ".local/share/apache/game";
   return "apache-saves/game";
-#endif
+#endif // _WIN32
 }
 std::filesystem::path select_game_directory(std::optional<std::filesystem::path> const &requested, std::filesystem::path const &save_directory) {
   if(requested) return *requested;
@@ -96,7 +97,7 @@ void install_reference_cd(std::filesystem::path const &image, std::filesystem::p
   bool const raw{size == 375002880};
   if(!raw && size != 375002880ull / 2352 * 2048) throw std::runtime_error{"Expected the October 2000 European Apache CD (MODE1/2352 BIN or its 2048-byte-sector ISO)"};
   std::ifstream source{image, std::ios::binary};
-  auto const read{[&](entry const &file) {
+  auto const read{[&](entry const &file){
     bytes result(file.size);
     for(size_t offset{0}; offset < result.size(); offset += 2048) {
       uint64_t const sector{file.sector + offset / 2048};

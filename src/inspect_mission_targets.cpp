@@ -1,12 +1,14 @@
 #include "inspect_mission_targets.h"
-#include "simulation/mission_targets.h"
-#include "resources/features.h"
 #include <istream>
 #include <ostream>
 #include <stdexcept>
+#include "resources/features.h"
+#include "simulation/mission_targets.h"
 
 void inspect_mission_targets(std::istream &input, std::ostream &output, apache::resources::data_store const &data, std::string const &zone, std::string const &path) {
-  using namespace apache;
+  namespace math = apache::math;
+  namespace resources = apache::resources;
+  namespace simulation = apache::simulation;
   auto const bytes{data.read(path)}; auto const mission{resources::read_mission_definition(std::string{bytes.begin(), bytes.end()})};
   resources::terrain const terrain{data.read(zone + ".WZ/GRIDPOST.BIN")}; auto models{resources::read_models(data.read("3DDATA/3DOBJS.BIN"))}; resources::executable_data const executable{data}; resources::initialise_model_metadata(models, executable);
   unsigned int const map{zone == "YEMEN" ? 1u : zone == "KOREA" ? 2u : zone == "CYPRUS" ? 3u : zone == "FORT" ? 4u : 0u};
@@ -14,11 +16,11 @@ void inspect_mission_targets(std::istream &input, std::ostream &output, apache::
   resources::feature_layer const features{data, zone, false}, super_features{data, zone, true}; math::trigonometry const trig{data}; auto const formations{resources::read_formations(executable)};
   simulation::actor_environment environment{.height{[&](int32_t x, int32_t y){ return terrain.elevation(x, y); }}, .surface{[&](int32_t x, int32_t y){ return resources::surface_type(features, super_features, x, y); }}};
   simulation::combat_random random; random.next(); simulation::mission_actors actors{mission, formations, models, trig, environment, map, random.global_seed}; random.global_seed = actors.random_seed;
-  render::mobile_scene mobiles{models}; simulation::mission_spatial spatial{mission, scene, actors, mobiles, terrain};
+  apache::render::mobile_scene mobiles{models}; simulation::mission_spatial spatial{mission, scene, actors, mobiles, terrain};
   actors.synchronize_models();
   simulation::scenery_collisions structures{models, trig, scene.base, scene.extra};
   simulation::mission_targets targets{mission, scene, actors, spatial, random, terrain, structures, mobiles, models, trig};
-  auto const id{[&](simulation::shared_target const &target) -> int64_t { if(!target) return 0; auto const &t{target->identity}; return t.kind == simulation::target_kind::mobile ? 200001 + static_cast<int64_t>(spatial.actor_index(t.index).value()) : 1 + t.index + t.layer * 100000; }};
+  auto const id{[&](simulation::shared_target const &target)->int64_t { if(!target) return 0; auto const &t{target->identity}; return t.kind == simulation::target_kind::mobile ? 200001 + static_cast<int64_t>(spatial.actor_index(t.index).value()) : 1 + t.index + t.layer * 100000; }};
   std::string command;
   while(input >> command) {
     if(command == "move") {

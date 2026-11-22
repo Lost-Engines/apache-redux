@@ -1,6 +1,6 @@
 #include "mission_runtime.h"
-#include "quick_start.h"
 #include <stdexcept>
+#include "quick_start.h"
 
 namespace apache::simulation {
 namespace {
@@ -19,7 +19,7 @@ resources::model_archive load_models(resources::data_store const &data, resource
   auto models{resources::read_models(data.read("3DDATA/3DOBJS.BIN"))};
   resources::initialise_model_metadata(models, executable); return models;
 }
-}
+} // anonymous namespace
 mission_actors mission_runtime::make_actors(unsigned int const map) {
   auto const high{(random.global_seed = random.global_seed * 0x41c64e6du + 0x3039u) & 0x7fff0000u};
   random.global_seed = random.global_seed * 0x41c64e6du + 0x3039u;
@@ -44,7 +44,7 @@ mission_runtime::mission_runtime(resources::data_store const &data, std::string 
     scene{mission, resources::read_scenery(data.read(zone + ".WZ/GNDOBJS.BIN")), terrain, models, map_number(zone)}, features{data, zone, false}, super_features{data, zone, true}, trig{data}, formations{resources::read_formations(executable)},
     environment{.height{[this](int32_t x, int32_t y){ return terrain.elevation(x, y); }}, .surface{[this](int32_t x, int32_t y){ return resources::surface_type(features, super_features, x, y); }}, .relocate{}},
     random{1, seeds.global}, actors{make_actors(map_number(zone))}, mobiles{models}, spatial{mission, scene, actors, mobiles, terrain}, structures{models, trig, scene.base, scene.extra},
-    navigation{.height{environment.height}, .tallest_object{structures.tallest_object}, .obstacle{[this](auto const &from, auto const &to) -> std::optional<navigation_obstacle> { auto hit{structures.line(from, to)}; if(!hit) return {}; return navigation_obstacle{hit->position, models.at(structures.at(hit->layer, hit->index).model)->height}; }}, .relocate{[this](auto &actor, auto const &position){ spatial.move(actor, position); }}},
+    navigation{.height{environment.height}, .tallest_object{structures.tallest_object}, .obstacle{[this](auto const &from, auto const &to)->std::optional<navigation_obstacle> { auto hit{structures.line(from, to)}; if(!hit) return {}; return navigation_obstacle{hit->position, models.at(structures.at(hit->layer, hit->index).model)->height}; }}, .relocate{[this](auto &actor, auto const &position){ spatial.move(actor, position); }}},
     targets{mission, scene, actors, spatial, random, terrain, structures, mobiles, models, trig}, weapon_random{seeds.weapons, random.global_seed}, tables{executable},
     combat{mission, scene, actors, spatial, targets, terrain, trig, tables, formations, environment, random, weapon_random, difficulty, combat_callbacks()}, performance{executable},
     movement{actors, mission, formations, models, trig, environment, navigation, performance, random, movement_events()} {
@@ -80,9 +80,7 @@ void mission_runtime::start_player(size_t const index, mission_flight_settings c
   if(damage) {
     player_damage_callbacks callbacks;
     callbacks.feedback = [this](auto const &event){
-      if(event.kind == damage_feedback_kind::message) { if(events.message) events.message(event.text); if(events.notice) events.notice(event.text, 2, 400); }
-      else if(event.kind == damage_feedback_kind::cockpit_sound) { if(events.sound) events.sound(event.value, true); }
-      else { if(sensors && player_armament) sensors->state.toggle_automatic(player_armament->control_mode, pilot->faults()); if(events.radar_toggle) events.radar_toggle(event.value); }
+      if(event.kind == damage_feedback_kind::message) { if(events.message) events.message(event.text); if(events.notice) events.notice(event.text, 2, 400); } else if(event.kind == damage_feedback_kind::cockpit_sound) { if(events.sound) events.sound(event.value, true); } else { if(sensors && player_armament) sensors->state.toggle_automatic(player_armament->control_mode, pilot->faults()); if(events.radar_toggle) events.radar_toggle(event.value); }
     };
     callbacks.impact_sound = [this](bool heavy){ if(events.impact_sound) events.impact_sound(heavy); };
     player_damage = std::make_unique<mission_player_damage>(*pilot, actors, spatial, targets, combat, models, callbacks);
@@ -93,10 +91,10 @@ void mission_runtime::equip_player(std::array<int32_t, 9> const &loadout) {
   player_armament_events callbacks;
   callbacks.cockpit_sound = [this](unsigned int id){ if(events.sound) events.sound(id, true); };
   callbacks.launch_sound = [this](unsigned int id){ if(events.launch_sound) events.launch_sound(id); };
-  callbacks.incoming_sound = [this](){ if(events.incoming_sound) events.incoming_sound(); };
+  callbacks.incoming_sound = [this]{ if(events.incoming_sound) events.incoming_sound(); };
   callbacks.gun_sound = [this](bool active){ if(events.gun_sound) events.gun_sound(active); };
   callbacks.warning_message = [this](size_t slot, bool added, std::string_view text){ if(events.warning_message) events.warning_message(slot, added, text); };
-  callbacks.cycle_target = [this](){ if(sensors && player_armament) sensors->state.cycle_target(true, player_armament->control_mode); if(events.cycle_target) events.cycle_target(); };
+  callbacks.cycle_target = [this]{ if(sensors && player_armament) sensors->state.cycle_target(true, player_armament->control_mode); if(events.cycle_target) events.cycle_target(); };
   callbacks.missile_camera = [this](size_t i){ if(events.missile_camera) events.missile_camera(i); };
   player_armament = std::make_unique<mission_player_weapons>(*timing.player, actors, spatial, targets, combat, *weapons, *pilot, models, executable, trig, loadout, callbacks);
   player_armament->inventory.infinite = mission.infinite_weapons;

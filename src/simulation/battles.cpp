@@ -50,8 +50,7 @@ void update_battles(std::array<battle_cell, 5> &cells, int32_t const now, battle
     callbacks.combat(*allied.task); callbacks.combat(*enemy.task);
     // This flag is initialized once per update, not once per battle cell.
     if(a < 5) { callbacks.finish(*allied.task, false); allied_survives = false; }
-    if(b < 5) { callbacks.finish(*enemy.task, false); if(allied_survives) callbacks.finish(*allied.task, true); }
-    else if(!allied_survives) callbacks.finish(*enemy.task, true);
+    if(b < 5) { callbacks.finish(*enemy.task, false); if(allied_survives) callbacks.finish(*allied.task, true); } else if(!allied_survives) callbacks.finish(*enemy.task, true);
   }
 }
 std::optional<size_t> random_task_survivor(std::span<size_t const> const order, std::span<actor_state const> const actors, int32_t const alive, std::function<int32_t()> const &random) {

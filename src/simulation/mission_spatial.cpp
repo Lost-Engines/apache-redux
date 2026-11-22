@@ -49,6 +49,10 @@ void mission_spatial::change_status(size_t const index, uint32_t const status) {
   unit.object.status = status;
   if(inside) placed(mobile_id(index), sector);
 }
-void mission_spatial::place(size_t const actor) { mobiles.place(mobile_id(actor)); }
-void mission_spatial::unplace(size_t const actor) { mobiles.unplace(mobile_id(actor)); }
+void mission_spatial::place(size_t const actor) {
+  mobiles.place(mobile_id(actor));
+}
+void mission_spatial::unplace(size_t const actor) {
+  mobiles.unplace(mobile_id(actor));
+}
 } // namespace apache::simulation

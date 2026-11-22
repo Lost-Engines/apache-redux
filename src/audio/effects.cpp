@@ -20,7 +20,7 @@ void load_block(std::span<uint8_t const> bytes, bool maximal, std::array<effect,
   if(input.remaining() || (maximal && total != declared)) input.fail("Invalid sound block length");
   for(size_t i{0}; i != bank.size(); ++i) if((maximal || bank[i].minimal) && !seen[i]) input.fail("Missing effect");
 }
-}
+} // anonymous namespace
 std::array<effect, 189> load_effects(resources::data_store const &data) {
   resources::executable_data const executable{data};
   resources::reader table{executable.at(0x4e9418, 190 * 40), "Effect definitions"};
@@ -40,15 +40,23 @@ int volume_decibels(unsigned int const volume) {
   return volume ? std::clamp(1000 - static_cast<int>(64000u / volume), -10000, 0) : -10000;
 }
 float volume_gain(unsigned int const volume) {
-  static auto const gains{[](){ std::array<float, 128> result; for(unsigned int i{0}; i != result.size(); ++i) result[i] = std::pow(10.0f, static_cast<float>(volume_decibels(i)) / 2000.0f); return result; }()};
+  static auto const gains{[]{ std::array<float, 128> result; for(unsigned int i{0}; i != result.size(); ++i) result[i] = std::pow(10.0f, static_cast<float>(volume_decibels(i)) / 2000.0f); return result; }()};
   return volume < gains.size() ? gains[volume] : 1.0f;
 }
-bool effects::playing(int const channel) const { return channel >= 0 && static_cast<size_t>(channel) < channels.size() && channels[static_cast<size_t>(channel)].active; }
-void effects::stop(int const channel) { if(channel >= 0 && static_cast<size_t>(channel) < channels.size()) channels[static_cast<size_t>(channel)].active = false; }
-void effects::stop_effect(unsigned int const id) { for(auto &channel : channels) if(channel.id == static_cast<int>(id)) channel.active = false; }
-void effects::stop_all() { for(auto &channel : channels) channel.active = false; }
-int effects::play(unsigned int const id, unsigned int const volume, int const pan) {
-  (void)pan; // The reference Windows backend submits mono effects without panning.
+bool effects::playing(int const channel) const {
+  return channel >= 0 && static_cast<size_t>(channel) < channels.size() && channels[static_cast<size_t>(channel)].active;
+}
+void effects::stop(int const channel) {
+  if(channel >= 0 && static_cast<size_t>(channel) < channels.size()) channels[static_cast<size_t>(channel)].active = false;
+}
+void effects::stop_effect(unsigned int const id) {
+  for(auto &channel : channels) if(channel.id == static_cast<int>(id)) channel.active = false;
+}
+void effects::stop_all() {
+  for(auto &channel : channels) channel.active = false;
+}
+int effects::play(unsigned int const id, unsigned int const volume, int const /*pan*/) {
+   // The reference Windows backend submits mono effects without panning.
   if(!enabled || id >= bank.size() || (minimal && !bank[id].minimal) || bank[id].pcm.empty()) return -1;
   auto const slot{std::ranges::find(channels, false, &effect_channel::active)};
   if(slot == channels.end()) return -1;
@@ -70,7 +78,9 @@ void effects::cockpit(unsigned int const id) {
   }
   if(voices) { cockpit_channel = play(id, 35); cockpit_effect = static_cast<int>(id); }
 }
-void effects::radio(unsigned int const id) { if(voices && !playing(radio_channel)) radio_channel = play(id, 10); }
+void effects::radio(unsigned int const id) {
+  if(voices && !playing(radio_channel)) radio_channel = play(id, 10);
+}
 void effects::rotor(unsigned int const state) {
   for(unsigned int id{21}; id <= 24; ++id) stop_effect(id);
   if(state >= 1 && state <= 4) play(state + 20, 30);

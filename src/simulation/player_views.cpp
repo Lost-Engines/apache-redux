@@ -57,11 +57,10 @@ void player_views::removed(size_t const round) {
 }
 view_frame player_views::update(view_sources const &sources, camera_input const &input, uint32_t &random_seed) {
   view_frame result;
-  auto const weapon{[&]() -> std::optional<view_subject> { return context.current_weapon && sources.weapon ? sources.weapon(*context.current_weapon) : std::nullopt; }};
+  auto const weapon{[&]()->std::optional<view_subject> { return context.current_weapon && sources.weapon ? sources.weapon(*context.current_weapon) : std::nullopt; }};
   if(modes.mode == 13) optics.check(sources.faults);
   else if(modes.mode == 14 || modes.mode == 15) {
-    if(!weapon()) { context.current_weapon.reset(); select(16, sources, random_seed); }
-    else if(modes.mode == 15 && (!context.has_target || !context.has_target(*context.current_weapon) || !context.has_lock || !context.has_lock(*context.current_weapon))) select(14, sources, random_seed);
+    if(!weapon()) { context.current_weapon.reset(); select(16, sources, random_seed); } else if(modes.mode == 15 && (!context.has_target || !context.has_target(*context.current_weapon) || !context.has_lock || !context.has_lock(*context.current_weapon))) select(14, sources, random_seed);
   } else if(modes.mode == 18 && targeting.current.identity.kind != target_kind::scenery && targeting.current.identity.kind != target_kind::mobile) select(modes.home, sources, random_seed);
   else if(modes.mode == 19) {
     auto const timer{int64_t{context.crash_timer} + input.delta / 4};

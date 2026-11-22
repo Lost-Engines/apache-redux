@@ -1,13 +1,13 @@
 #pragma once
 #include <filesystem>
-#include "menu.h"
-#include "help_menu.h"
 #include "briefing_map.h"
-#include "pilot_menu.h"
-#include "score_menu.h"
-#include "preferences_menu.h"
+#include "help_menu.h"
+#include "menu.h"
 #include "mission_session.h"
 #include "network_menu.h"
+#include "pilot_menu.h"
+#include "preferences_menu.h"
+#include "score_menu.h"
 
 namespace apache::frontend {
 class mission_frontend {
@@ -55,7 +55,9 @@ public:
   pilot_menu pilots;
   score_menu scores;
   network_menu network;
-  simulation::pilot_log &pilot() { return logs.current(); }
+  simulation::pilot_log &pilot() {
+    return logs.current();
+  }
   void load_profiles(std::filesystem::path const &path);
   void startup();
   void poll_network(uint32_t ticks);

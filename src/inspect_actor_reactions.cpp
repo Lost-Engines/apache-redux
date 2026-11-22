@@ -1,13 +1,13 @@
 #include "inspect_actor_reactions.h"
-#include "simulation/actor_reactions.h"
 #include <istream>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include "simulation/actor_reactions.h"
 
 void inspect_actor_reactions(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
-  auto const types{simulation::actor_types()}; auto const weapons{simulation::weapon_definitions()}; math::trigonometry const trig{data};
+  namespace simulation = apache::simulation;
+  auto const types{simulation::actor_types()}; auto const weapons{simulation::weapon_definitions()}; apache::math::trigonometry const trig{data};
   auto const read{[&](auto &v){ for(auto &x : v) input >> x; }};
   auto const write{[&](auto const &v){ for(auto x : v) output << ' ' << x; }};
   std::string command;
@@ -20,7 +20,7 @@ void inspect_actor_reactions(std::istream &input, std::ostream &output, apache::
       std::vector<simulation::actor_state> followers(count); std::vector<simulation::actor_state *> pointers;
       for(auto &f : followers) { input >> f.conditions >> f.speed; pointers.push_back(&f); }
       if(target) armament.target = std::make_shared<simulation::target_reference>();
-      simulation::kill_actor(actor, armament, alive, pointers, [&](){ events.push_back(1); }, [&](){ events.push_back(2); });
+      simulation::kill_actor(actor, armament, alive, pointers, [&]{ events.push_back(1); }, [&]{ events.push_back(2); });
       output << actor.conditions << ' ' << actor.object.status << ' ' << actor.destroyed << ' ' << actor.speed << ' ' << bool(armament.target) << ' ' << actor.retreat_until << ' ' << alive;
       for(auto const &f : followers) output << ' ' << f.conditions << ' ' << f.speed;
       output << ' ' << events.size(); write(events); output << '\n';
@@ -34,7 +34,7 @@ void inspect_actor_reactions(std::istream &input, std::ostream &output, apache::
       context.reference = std::make_shared<simulation::target_reference>(simulation::target_reference{{simulation::target_kind::mobile, 0, 2}, context.attacker.position, context.attacker.classification});
       if(target) armament.target = std::make_shared<simulation::target_reference>(simulation::target_reference{{simulation::target_kind::fixed, 0, 1}, {}, 1});
       simulation::actor_reaction_callbacks callbacks;
-      callbacks.visible = [&](){ events.push_back(1); return clear; }; callbacks.target_released = [&](){ events.push_back(2); };
+      callbacks.visible = [&]{ events.push_back(1); return clear; }; callbacks.target_released = [&]{ events.push_back(2); };
       callbacks.sound = [&](unsigned int id, bool cockpit){ events.push_back(cockpit ? 3 : 4); events.push_back(id); };
       auto const &type{types.at(actor.object.id)};
       if(command == "acquire") simulation::acquire_attacker(actor, armament, type, weapons, war_random, weapon_random, context, callbacks);

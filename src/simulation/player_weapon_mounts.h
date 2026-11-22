@@ -1,6 +1,6 @@
 #pragma once
-#include "player_weapons.h"
 #include "actor_movement.h"
+#include "player_weapons.h"
 
 namespace apache::simulation {
 std::array<uint32_t, 24> player_pod_models(std::array<player_pylon, 9> const &pylons, resources::model_archive const &models);

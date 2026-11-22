@@ -1,8 +1,8 @@
-#include "frontend/mission_frontend.h"
-#include "frontend/mission_link.h"
 #include <algorithm>
 #include <iostream>
 #include <stdexcept>
+#include "frontend/mission_frontend.h"
+#include "frontend/mission_link.h"
 
 namespace apache {
 void inspect_network_live(resources::data_store const &data, unsigned int const mode, std::ostream &out, bool const expect_rejection) {
@@ -12,7 +12,7 @@ void inspect_network_live(resources::data_store const &data, unsigned int const 
   auto first{std::make_unique<frontend::mission_frontend>(data, options)}, second{std::make_unique<frontend::mission_frontend>(data, options)};
   auto &a{*first}; auto &b{*second};
   a.settings.values.set("Network name", "PILOT"); b.settings.values.set("Network name", "GUNNER");
-  constexpr platform::network_address loopback{0x7f000001, 0};
+  platform::network_address constexpr loopback{0x7f000001, 0};
   a.network.transport = {.bind{loopback}, .broadcast{false}, .peers{}, .node{100}};
   bool const two{mode <= 3}; a.interface.show("_flight_screen"); a.network.open(two, "PILOT");
   b.network.transport = {.bind{loopback}, .broadcast{false}, .peers{a.network.peers->address()}, .node{200}};
@@ -23,7 +23,7 @@ void inspect_network_live(resources::data_store const &data, unsigned int const 
     int const y{row < 0 ? (area.top + area.bottom) / 2 : area.top + row * static_cast<int>(app.interface.named(name).font_height + 1) + 2};
     app.interface.move((area.left + area.right) / 2, y); app.interface.button(true); app.interface.button(false); app.interface.move(-1,-1); ++clicks;
   }};
-  auto pump{[&](){ for(int i{0}; i < 8; ++i) { a.poll_network(static_cast<uint32_t>(clock)); b.poll_network(static_cast<uint32_t>(clock)); } }};
+  auto pump{[&]{ for(int i{0}; i < 8; ++i) { a.poll_network(static_cast<uint32_t>(clock)); b.poll_network(static_cast<uint32_t>(clock)); } }};
   pump(); require(a.network.peers->room.other_players == 1 && b.network.peers->room.other_players == 1, "Lobby discovery");
   if(two) {
     click(b, "_blue_leader_button"); pump();
@@ -58,10 +58,10 @@ void inspect_network_live(resources::data_store const &data, unsigned int const 
   require(left->network && right->network, "Network mission contexts");
   require(static_cast<unsigned int>(left->network->lifecycle.mode) == mode && static_cast<unsigned int>(right->network->lifecycle.mode) == mode, "Requested mode reaches both flight runtimes");
   require(left->network->state.local == 0 && right->network->state.local == 1, "Stable aircraft connection slots");
-  auto link_a{std::make_unique<frontend::mission_link>(*a.network.peers, *left, [&](){return clock;})};
-  auto link_b{std::make_unique<frontend::mission_link>(*b.network.peers, *right, [&](){return clock;})};
-  link_a->yield = [&](){ ++clock; link_b->poll(); return clock < 20000; };
-  link_b->yield = [&](){ ++clock; link_a->poll(); return clock < 20000; };
+  auto link_a{std::make_unique<frontend::mission_link>(*a.network.peers, *left, [&]{return clock;})};
+  auto link_b{std::make_unique<frontend::mission_link>(*b.network.peers, *right, [&]{return clock;})};
+  link_a->yield = [&]{ ++clock; link_b->poll(); return clock < 20000; };
+  link_b->yield = [&]{ ++clock; link_a->poll(); return clock < 20000; };
   for(; clock < 2000 && (!link_a->ready() || !link_b->ready()); ++clock) { link_a->poll(); link_b->poll(); }
   require(link_a->ready() && link_b->ready(), "Initial APNET synchronization completes");
   require(!left->finished && !right->finished, "Both connections remain active");
@@ -123,10 +123,10 @@ void inspect_network_group(resources::data_store const &data, unsigned int const
     options.connection.emplace(); auto &connection{*options.connection}; connection.game.mode = multiplayer::game_mode::multiplayer;
     connection.local = peers[i]->state.local; connection.server = peers[i]->state.server; connection.players = peers[i]->state.players; connection.defer_initialisation = true;
     missions.push_back(std::make_unique<frontend::mission_session>(data, resources::mission_briefing{.flow{5}, .zone{2}}, options));
-    links.push_back(std::make_unique<frontend::mission_link>(*peers[i], *missions[i], [&](){ return clock; }));
+    links.push_back(std::make_unique<frontend::mission_link>(*peers[i], *missions[i], [&]{ return clock; }));
   }
-  for(unsigned int i{0}; i < count; ++i) links[i]->yield = [&, i](){ ++clock; for(unsigned int j{0}; j < count; ++j) if(i != j && links[j]) links[j]->poll(); return clock < 20000; };
-  auto pump{[&](){ for(auto &link : links) if(link) link->poll(); }};
+  for(unsigned int i{0}; i < count; ++i) links[i]->yield = [&, i]{ ++clock; for(unsigned int j{0}; j < count; ++j) if(i != j && links[j]) links[j]->poll(); return clock < 20000; };
+  auto pump{[&]{ for(auto &link : links) if(link) link->poll(); }};
   for(; clock < 2000; ++clock) { pump(); if(std::ranges::all_of(links, [](auto const &link){ return link->ready(); })) break; }
   require(clock < 2000, "Full group starts without timeout");
   auto const tick{[&](unsigned int first){ clock += 10; for(unsigned int i{first}; i < count; ++i) missions[i]->step(10); for(unsigned int i{first}; i < count; ++i) missions[i]->draw(); pump(); }};

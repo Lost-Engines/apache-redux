@@ -1,8 +1,8 @@
 #pragma once
 #include "draw_queue.h"
 #include "horizon.h"
-#include "sector_scan.h"
 #include "resources/terrain.h"
+#include "sector_scan.h"
 
 namespace apache::render {
 sector_bounds scan_cloud_sectors(math::pose const &camera, math::trigonometry const &trig, uint32_t heading, uint32_t pitch, unsigned int cloud_mode, bool expanded_frustum = false);
