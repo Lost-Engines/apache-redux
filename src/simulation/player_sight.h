@@ -4,9 +4,12 @@
 
 namespace apache::simulation {
 struct weapon_sight_inputs {
-  unsigned int weapon{1}, weather{0};
-  bool armed{false}, hydras_locked{false};
-  int32_t cloud_bottom{6400000}, cloud_top{6912000};
+  unsigned int weapon{1};
+  unsigned int weather{0};
+  bool armed{false};
+  bool hydras_locked{false};
+  int32_t cloud_bottom{6400000};
+  int32_t cloud_top{6912000};
   math::pose body;
   target_reference target;
   math::vector3 target_position{};
@@ -26,7 +29,10 @@ public:
   explicit player_weapon_sight(math::trigonometry const &angles) : trig{angles} {}
   unsigned int evaluate(weapon_sight_inputs const &input, weapon_sight_callbacks const &events);
 };
-struct missile_impact_time { size_t round; int32_t deadline; };
+struct missile_impact_time {
+  size_t round;
+  int32_t deadline;
+};
 class player_impact_times {
   std::array<weapon_info, 55> definitions{weapon_definitions()};
 public:

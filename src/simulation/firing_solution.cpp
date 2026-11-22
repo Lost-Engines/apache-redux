@@ -8,14 +8,17 @@ int32_t magnitude(int32_t value) {
   return value < 0 ? math::negate(value) : value;
 }
 int32_t approximate2(int32_t x, int32_t y) {
-  x = magnitude(x); y = magnitude(y);
+  x = magnitude(x);
+  y = magnitude(y);
   return std::bit_cast<int32_t>(static_cast<uint32_t>(std::max(x, y)) * 4u + static_cast<uint32_t>(std::min(x, y))) >> 2;
 }
 int32_t integer(double value) {
   return value < INT32_MIN || value >= 2147483648.0 ? INT32_MIN : static_cast<int32_t>(value);
 }
 math::vector3 difference(math::vector3 const &a, math::vector3 const &b) {
-  math::vector3 result; for(size_t i{0}; i != 3; ++i) result[i] = math::subtract(a[i], b[i]); return result;
+  math::vector3 result;
+  for(size_t i{0}; i != 3; ++i) result[i] = math::subtract(a[i], b[i]);
+  return result;
 }
 } // anonymous namespace
 weapon_angles firing_angles(weapon_info const &weapon) {
@@ -24,7 +27,9 @@ weapon_angles firing_angles(weapon_info const &weapon) {
   if(weapon.flags & 4) {
     auto const margin{static_cast<double>(spread) * 0.7};
     result = {integer(weapon.heading_limit + margin), integer(weapon.minimum_pitch - margin), integer(weapon.maximum_pitch + margin)};
-  } else result = {math::add(weapon.heading_limit, spread), math::subtract(weapon.minimum_pitch, spread), math::add(weapon.maximum_pitch, spread)};
+  } else {
+    result = {math::add(weapon.heading_limit, spread), math::subtract(weapon.minimum_pitch, spread), math::add(weapon.maximum_pitch, spread)};
+  }
   if(result.heading < 0) result.heading = INT32_MAX;
   result.minimum_pitch = std::max(result.minimum_pitch, -0x40000000);
   result.maximum_pitch = std::min(result.maximum_pitch, 0x40000000);
@@ -35,7 +40,8 @@ std::array<int32_t, 2> relative_aim_angles(math::vector3 const &aim, math::vecto
     for(auto &value : vector) value >>= 16;
     return std::array{trig.arctangent(vector[0], vector[1]), trig.arctangent(vector[2], approximate2(vector[0], vector[1]))};
   }};
-  auto const a{angles(aim)}, f{angles(forward)};
+  auto const a{angles(aim)};
+  auto const f{angles(forward)};
   return {std::bit_cast<int32_t>(a[0] - f[0]), std::bit_cast<int32_t>(a[1] - f[1])};
 }
 firing_solution aim_weapon(weapon_info const &weapon, firing_inputs const &input, math::trigonometry const &trig, std::function<bool(math::vector3 const &, math::vector3 const &)> const &visible) {
@@ -53,13 +59,17 @@ firing_solution aim_weapon(weapon_info const &weapon, firing_inputs const &input
   if(aim[0] < 0 || aim[1] < 0 || aim[0] > 0xfffffff || aim[1] > 0xfffffff) return {firing_status::lost_target, {}};
   if(visible && !visible(result.pose.position, aim)) return {firing_status::lost_target, {}};
   auto origin{result.pose.position};
-  if((weapon.flags & 4) && weapon.movement_class == 2) for(size_t i{0}; i != 3; ++i) origin[i] = math::add(origin[i], math::multiply_q31(input.source.direction[i], weapon.guidance_start_distance));
+  if((weapon.flags & 4) && weapon.movement_class == 2) {
+    for(size_t i{0}; i != 3; ++i) origin[i] = math::add(origin[i], math::multiply_q31(input.source.direction[i], weapon.guidance_start_distance));
+  }
   auto const direction{math::normalise_q31(difference(aim, origin))};
   result.pose.rotation = math::direction_matrix(direction);
   auto const angles{relative_aim_angles(direction, input.source.direction, trig)};
   auto const limits{firing_angles(weapon)};
   if(magnitude(angles[0]) > limits.heading || angles[1] < limits.minimum_pitch || angles[1] > limits.maximum_pitch) return {};
-  if(weapon.flags & 4) for(size_t i{0}; i != 3; ++i) result.pose.rotation[3 + i] = input.source.direction[i];
+  if(weapon.flags & 4) {
+    for(size_t i{0}; i != 3; ++i) result.pose.rotation[3 + i] = input.source.direction[i];
+  }
   result.status = firing_status::ready;
   return result;
 }

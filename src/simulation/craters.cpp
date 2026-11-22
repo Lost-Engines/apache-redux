@@ -24,7 +24,8 @@ bool craters::add(math::vector3 const &position, int32_t const model, uint32_t c
   auto &records{temporary ? short_lived : long_lived};
   auto &item{records[index]};
   item.position = {position[0], position[1], terrain.elevation(position[0], position[1])};
-  item.model = model; item.heading = heading;
+  item.model = model;
+  item.heading = heading;
   if(temporary) item.age = 0;
   index = (index + 1) % records.size();
   return true;
@@ -49,6 +50,8 @@ bool craters::add_scalable(math::vector3 const &position, int32_t const radius, 
   return add(position, heave ? 0x181 : 11, random_heading(seed), false, terrain);
 }
 void craters::advance() {
-  for(auto &item : short_lived) if(item.model == 0x180 && ++item.age == 5) item.model = -1;
+  for(auto &item : short_lived) {
+    if(item.model == 0x180 && ++item.age == 5) item.model = -1;
+  }
 }
 } // namespace apache::simulation

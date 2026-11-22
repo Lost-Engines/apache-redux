@@ -4,7 +4,12 @@
 namespace apache::resources {
 // Digital Integration ANIM packets, shared by the .ANM intro and .Q3 campaigns.
 class animation {
-  struct packet { uint8_t flags; size_t offset, palette_size, size; };
+  struct packet {
+    uint8_t flags;
+    size_t offset;
+    size_t palette_size;
+    size_t size;
+  };
   bytes source;
   std::vector<packet> packets;
   size_t next_frame{0};

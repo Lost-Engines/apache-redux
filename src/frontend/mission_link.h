@@ -12,7 +12,9 @@ class mission_link {
   int32_t deadline{0};
   unsigned int attempts{0};
   uint32_t synchronised_server{0};
-  bool complete{false}, closed{false}, transferring{false};
+  bool complete{false};
+  bool closed{false};
+  bool transferring{false};
   void receive(multiplayer::packet const &message, int32_t now);
   void initial_state();
   void initialised();

@@ -6,8 +6,8 @@
 namespace apache::configuration {
 namespace {
 bool same_key(std::string_view const a, std::string_view const b) {
-  auto const lower{[](char const c){ return c >= 'A' && c <= 'Z' ? c + ('a' - 'A') : c; }};
-  return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), [&](char const x, char const y){ return lower(x) == lower(y); });
+  auto const lower{[](char const c){return c >= 'A' && c <= 'Z' ? c + ('a' - 'A') : c;}};
+  return a.size() == b.size() && std::equal(a.begin(), a.end(), b.begin(), [&](char const x, char const y){return lower(x) == lower(y);});
 }
 } // anonymous namespace
 
@@ -28,7 +28,9 @@ std::string preferences::serialise() const {
   return result;
 }
 std::optional<std::string_view> preferences::get(std::string_view const key) const {
-  for(auto const &[name, value] : entries) if(same_key(name, key)) return value;
+  for(auto const &[name, value] : entries) {
+    if(same_key(name, key)) return value;
+  }
   return std::nullopt;
 }
 std::optional<int> preferences::integer(std::string_view const key) const {

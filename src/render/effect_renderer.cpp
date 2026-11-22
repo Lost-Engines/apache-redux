@@ -12,15 +12,21 @@ math::vector3 eye_position(math::pose const &camera, math::vector3 const &positi
 }
 void billboard(math::vector3 const &centre, int32_t const sine, int32_t const cosine, resources::texture const &image, bool const ground, projection const &view, rasterizer &raster) {
   if(centre[1] < 1) return;
-  int32_t const x{centre[0]}, y{centre[1]}, z{centre[2]};
-  int32_t const left{math::subtract(x, cosine)}, right_edge{math::add(x, cosine)}, low{math::subtract(z, sine)}, high{math::add(z, sine)};
+  int32_t const x{centre[0]};
+  int32_t const y{centre[1]};
+  int32_t const z{centre[2]};
+  int32_t const left{math::subtract(x, cosine)};
+  int32_t const right_edge{math::add(x, cosine)};
+  int32_t const low{math::subtract(z, sine)};
+  int32_t const high{math::add(z, sine)};
   std::array<math::vector3, 4> const corners{{
     {ground ? left : math::add(left, sine), y, ground ? low : math::subtract(low, cosine)},
     {math::subtract(left, sine), y, math::add(low, cosine)},
     {math::subtract(right_edge, sine), y, math::add(high, cosine)},
     {ground ? right_edge : math::add(right_edge, sine), y, ground ? high : math::subtract(high, cosine)}
   }};
-  int32_t const right{static_cast<int32_t>(image.width * 65536u - 1)}, bottom{static_cast<int32_t>((image.pixels.size() / image.width) * 65536u - 1)};
+  int32_t const right{static_cast<int32_t>(image.width * 65536u - 1)};
+  int32_t const bottom{static_cast<int32_t>((image.pixels.size() / image.width) * 65536u - 1)};
   std::array<std::array<int32_t, 2>, 4> const uv{{{0, bottom}, {0, 0}, {right, 0}, {right, bottom}}};
   std::array<vertex3, 4> quad;
   for(size_t i{0}; i != 4; ++i) quad[i] = view.prepare(corners[i], uv[i][0], uv[i][1]);
@@ -28,7 +34,12 @@ void billboard(math::vector3 const &centre, int32_t const sine, int32_t const co
   if(clipped.empty() || winding(clipped, true) < 0) return;
   std::vector<screen_vertex> polygon;
   for(auto const &point : clipped) polygon.push_back(point.screen);
-  raster.fill(polygon, {.remapping{}, .image{&image}, .masked{true}, .intensity_map{}});
+  raster.fill(polygon, {
+    .remapping{},
+    .image{&image},
+    .masked{true},
+    .intensity_map{}
+  });
 }
 } // namespace
 void submit_effects(draw_queue &queue, simulation::effects const &effects, math::pose const &camera, effect_visibility const &visibility) {
@@ -42,8 +53,12 @@ void submit_effects(draw_queue &queue, simulation::effects const &effects, math:
     int32_t const range{static_cast<int32_t>(approximate_range(relative))};
     queue.push({kind, index, depth < 0 ? -range : range});
   }};
-  for(uint32_t i{0}; i != effects.explosions.size(); ++i) if(effects.explosions[i].kind) submit(effects.explosions[i].position, draw_kind::explosion, i);
-  for(uint32_t i{0}; i != effects.smoke_puffs.size(); ++i) if(effects.smoke_puffs[i].active) submit(effects.smoke_puffs[i].position, draw_kind::smoke, i);
+  for(uint32_t i{0}; i != effects.explosions.size(); ++i) {
+    if(effects.explosions[i].kind) submit(effects.explosions[i].position, draw_kind::explosion, i);
+  }
+  for(uint32_t i{0}; i != effects.smoke_puffs.size(); ++i) {
+    if(effects.smoke_puffs[i].active) submit(effects.smoke_puffs[i].position, draw_kind::smoke, i);
+  }
 }
 effect_renderer::effect_renderer(resources::data_store const &data) {
   auto const load{[&](auto &frames, std::string const &prefix, unsigned int const width, unsigned int const height){

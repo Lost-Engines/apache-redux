@@ -23,7 +23,8 @@ void scan_patrol_contacts(patrol_contacts &contacts, int32_t now, std::function<
 shared_target select_patrol_target(patrol_contacts &contacts, actor_state const &actor, int32_t attention, flight_path const &path, unsigned int slot, int32_t now, math::trigonometry const &trig, std::function<void()> const &scan, std::function<math::vector3(target_reference const &)> const &position);
 struct patrol_acquisition_callbacks {
   patrol_radar_callbacks radar;
-  std::function<void()> basic, released;
+  std::function<void()> basic;
+  std::function<void()> released;
   std::function<shared_target()> select;
   std::function<int32_t()> weapon_range;
   std::function<int32_t(target_reference const &)> actor_class;

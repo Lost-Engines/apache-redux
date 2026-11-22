@@ -18,15 +18,22 @@ double wrap(double const value) {
 }
 }
 void arcade_flight::initialise(flight_start const &start, math::trigonometry const &trig, arcade_environment const &environment) {
-  *this = arcade_flight{}; readings.engines.fill(0);
-  power.rotor_sound = 1; power.fuel = start.fuel; power.weight = 14058 + start.fuel + start.fuel;
+  *this = arcade_flight{};
+  readings.engines.fill(0);
+  power.rotor_sound = 1;
+  power.fuel = start.fuel;
+  power.weight = 14058 + start.fuel + start.fuel;
   power.faults = start.faults;
-  if(start.fuel > 0) power.faults &= ~0x300000u;
-  else if(start.fuel == 0) power.faults |= 0x300000;
-  x = start.position[0]; y = start.position[1]; z = start.quick_flight ? 25600 : start.position[2];
+  if(start.fuel > 0) {
+    power.faults &= ~0x300000u;
+  } else if(start.fuel == 0) power.faults |= 0x300000;
+  x = start.position[0];
+  y = start.position[1];
+  z = start.quick_flight ? 25600 : start.position[2];
   if(start.quick_flight) forward_velocity = 60480;
   height = last_frame_ground_height = start.ground_height;
-  on_carrier = start.on_carrier; landed = z - height <= 0 || on_carrier;
+  on_carrier = start.on_carrier;
+  landed = z - height <= 0 || on_carrier;
   readings.position.position = {integer(x), integer(y), integer(z + 2304)};
   if(environment.place) readings.position = environment.place(readings.position);
   heading = angle(start.heading);
@@ -34,27 +41,41 @@ void arcade_flight::initialise(flight_start const &start, math::trigonometry con
 }
 void arcade_flight::transfer_from_carrier(int32_t const speed, uint32_t const carrier_heading, math::trigonometry const &trig) {
   readings.angles = trig.angles(readings.position.rotation);
-  heading = angle(readings.angles[0]); pitch = angle(readings.angles[1]); roll = angle(readings.angles[2]);
+  heading = angle(readings.angles[0]);
+  pitch = angle(readings.angles[1]);
+  roll = angle(readings.angles[2]);
   double const relative{static_cast<double>(integer(integer(angle(carrier_heading)) - heading))};
-  forward_velocity = std::cos(relative) * speed; lateral_velocity = std::sin(relative) * speed;
+  forward_velocity = std::cos(relative) * speed;
+  lateral_velocity = std::sin(relative) * speed;
   delta_heading = delta_pitch = delta_roll = 0;
-  x = readings.position.position[0]; y = readings.position.position[1]; z = math::subtract(readings.position.position[2], 2304);
+  x = readings.position.position[0];
+  y = readings.position.position[1];
+  z = math::subtract(readings.position.position[2], 2304);
 }
 flight_step_result arcade_flight::advance(double const dt, flight_input const &input, arcade_environment const &environment, math::trigonometry const &trig) {
   if(dt <= 0 || !std::isfinite(dt)) throw std::runtime_error{"Invalid Arcade timestep"};
-  flight_step_result result; auto &events{result.events};
+  flight_step_result result;
+  auto &events{result.events};
   height = environment.height(integer(x), integer(y));
-  update_inputs(input.controls); update_rates(dt, events); update_motion(dt, input.absolute_throttle, input.type, input.controls[0], events);
+  update_inputs(input.controls);
+  update_rates(dt, events);
+  update_motion(dt, input.absolute_throttle, input.type, input.controls[0], events);
   attitude = flight_attitude(heading, pitch, roll);
   for(size_t i{0}; i != 9; ++i) readings.position.rotation[i] = integer(attitude[i] * 2147483647.0);
   dz = vertical_velocity * dt;
   dx = attitude[0] * lateral_velocity * dt + dt * attitude[3] * forward_velocity;
   dy = attitude[1] * lateral_velocity * dt + dt * attitude[4] * forward_velocity;
   if(dz == 0 && !(power.faults & 0x300000)) {
-    if(reset_altitude) { preset_altitude = z - height; reset_altitude = false; }
+    if(reset_altitude) {
+      preset_altitude = z - height;
+      reset_altitude = false;
+    }
     dz = (preset_altitude - (z - height)) * dt;
-  } else reset_altitude = true;
-  x = std::clamp(dx + x, 0.0, 268435455.0); y = std::clamp(dy + y, 0.0, 268435455.0);
+  } else {
+    reset_altitude = true;
+  }
+  x = std::clamp(dx + x, 0.0, 268435455.0);
+  y = std::clamp(dy + y, 0.0, 268435455.0);
   if(z <= height && !landed) {
     d_height = environment.height(integer(x), integer(y)) - last_frame_ground_height;
     true_dz = delta_vertical_velocity * 10240 - d_height;
@@ -62,26 +83,36 @@ flight_step_result arcade_flight::advance(double const dt, flight_input const &i
       true_dz *= 0.0025;
       auto const landing{evaluate_landing(readings.airspeed, true_dz, environment.surface(readings.position.position[0], readings.position.position[1]), on_carrier, death)};
       if(landing.grade) {
-        result.landing = landing; landed = true;
+        result.landing = landing;
+        landed = true;
         if(landing.death) request_death(landing.death);
         if(landing.award && environment.landing_award) environment.landing_award();
       }
     }
   }
-  if(!landed) z += dz;
-  else if(dz > 0) {
+  if(!landed) {
+    z += dz;
+  } else if(dz > 0) {
     events.push_back(flight_event::takeoff);
     if(on_carrier && environment.leave_carrier) environment.leave_carrier(*this);
-    landed = false; on_carrier = false;
+    landed = false;
+    on_carrier = false;
   }
   readings.position.position = {integer(x), integer(y), math::add(integer(z), 2304)};
   if(environment.place) readings.position = environment.place(readings.position);
   readings.angles = trig.angles(readings.position.rotation);
-  readings.climb = integer(vertical_velocity); readings.airspeed = integer(forward_velocity * 0.002297794117647059); readings.sidespeed = integer(lateral_velocity * 0.002297794117647059);
+  readings.climb = integer(vertical_velocity);
+  readings.airspeed = integer(forward_velocity * 0.002297794117647059);
+  readings.sidespeed = integer(lateral_velocity * 0.002297794117647059);
   if((power.faults & 0x300000) == 0x300000) {
-    if(power.rotor_sound != 2) { events.push_back(flight_event::stop_rotor); events.push_back(flight_event::windmilling_rotor); power.rotor_sound = 2; }
+    if(power.rotor_sound != 2) {
+      events.push_back(flight_event::stop_rotor);
+      events.push_back(flight_event::windmilling_rotor);
+      power.rotor_sound = 2;
+    }
   } else if(!(power.faults & 0x300000) && power.rotor_sound != 1) {
-    events.push_back(flight_event::stop_rotor); events.push_back(flight_event::powered_rotor);
+    events.push_back(flight_event::stop_rotor);
+    events.push_back(flight_event::powered_rotor);
   }
   for(unsigned int side{0}; side != 2; ++side) {
     if(!(power.faults & (0x100000u << side))) {
@@ -94,8 +125,10 @@ flight_step_result arcade_flight::advance(double const dt, flight_input const &i
       if(readings.engines[side + 4] > 0) readings.engines[side + 4] -= 1;
     }
   }
-  readings.torque = integer(std::max(readings.engines[0], readings.engines[1])); readings.fuel = integer(power.fuel);
-  readings.engines[6] = integer(power.rotor_rpm); readings.engines[7] = std::clamp(integer((delta_vertical_velocity + 1) * 50), 0, 100);
+  readings.torque = integer(std::max(readings.engines[0], readings.engines[1]));
+  readings.fuel = integer(power.fuel);
+  readings.engines[6] = integer(power.rotor_rpm);
+  readings.engines[7] = std::clamp(integer((delta_vertical_velocity + 1) * 50), 0, 100);
   last_frame_ground_height = height;
   return result;
 }
@@ -110,23 +143,45 @@ void arcade_flight::update_inputs(std::array<int32_t, 4> const &input) {
   if(controls.changed) controls.previous = controls.values;
 }
 void arcade_flight::update_rates(double const dt, flight_events &events) {
-  heading = wrap(heading); pitch = wrap(pitch); roll = wrap(roll);
+  heading = wrap(heading);
+  pitch = wrap(pitch);
+  roll = wrap(roll);
   if(pitch > half_pi && pitch < three_half_pi && roll > half_pi && roll < three_half_pi) {
-    pitch = wrap(pi - pitch); heading = wrap(heading + pi);
-    roll += pi; roll = roll >= tau ? roll - tau : roll < 0 ? roll + tau : roll;
+    pitch = wrap(pi - pitch);
+    heading = wrap(heading + pi);
+    roll += pi;
+    roll = roll >= tau ? roll - tau : roll < 0 ? roll + tau : roll;
   }
   if(((power.faults & 0x400000) && !(power.faults & 0x100000)) || ((power.faults & 0x800000) && !(power.faults & 0x200000))) {
     if(!invulnerable) {
-      if(!power.overheat_message) { events.push_back(flight_event::engine_overheat); power.overheat_message = true; }
-      if(power.faults & 0x400000) { power.left_temperature += dt * 20; if(power.left_temperature > 950) { power.faults |= 0x100000; events.push_back(flight_event::left_engine_failed); } }
-      if(power.faults & 0x800000) { power.right_temperature += dt * 20; if(power.right_temperature > 950) { power.faults |= 0x200000; events.push_back(flight_event::right_engine_failed); } }
+      if(!power.overheat_message) {
+        events.push_back(flight_event::engine_overheat);
+        power.overheat_message = true;
+      }
+      if(power.faults & 0x400000) {
+        power.left_temperature += dt * 20;
+        if(power.left_temperature > 950) {
+          power.faults |= 0x100000;
+          events.push_back(flight_event::left_engine_failed);
+        }
+      }
+      if(power.faults & 0x800000) {
+        power.right_temperature += dt * 20;
+        if(power.right_temperature > 950) {
+          power.faults |= 0x200000;
+          events.push_back(flight_event::right_engine_failed);
+        }
+      }
     }
-  } else power.left_temperature = power.right_temperature = 800;
+  } else {
+    power.left_temperature = power.right_temperature = 800;
+  }
   power.left_temperature = std::clamp(power.left_temperature, 0.0, 1000.0);
   power.right_temperature = std::clamp(power.right_temperature, 0.0, 1000.0);
 }
 void arcade_flight::update_motion(double const dt, bool const absolute_throttle, unsigned int const input_type, int32_t const throttle, flight_events &events) {
-  pitch = delta_pitch * dt + pitch; roll = delta_roll * 2 * dt + roll;
+  pitch = delta_pitch * dt + pitch;
+  roll = delta_roll * 2 * dt + roll;
   if(pitch > pi) pitch -= tau;
   if(roll > pi) roll -= tau;
   pitch = std::clamp(pitch, -0.2617993877991666, 0.2617993877991666);
@@ -153,15 +208,18 @@ void arcade_flight::update_motion(double const dt, bool const absolute_throttle,
     // This integer cast is present in the original's low-speed damping test.
     if(std::abs(static_cast<int>(pitch)) < 0.0001 && std::abs(forward_velocity) < 1280) forward_velocity *= 0.95;
   } else {
-    delta_heading *= 0.25; forward_velocity = forward_velocity * dt * 0.5; lateral_velocity = lateral_velocity * dt * 0.5;
+    delta_heading *= 0.25;
+    forward_velocity = forward_velocity * dt * 0.5;
+    lateral_velocity = lateral_velocity * dt * 0.5;
     roll = delta_roll = controls.values[3] = pitch = delta_pitch = controls.values[2] = 0;
     if(delta_vertical_velocity < 0) delta_vertical_velocity = 0;
   }
   delta_vertical_velocity = std::clamp(delta_vertical_velocity, -1.0, 1.0);
   vertical_velocity = z < 2304000 || delta_vertical_velocity < 0 ? delta_vertical_velocity * 10240 : (delta_vertical_velocity * 10240) * ((2560000 - z) * 3.90625e-6);
   vertical_velocity = std::clamp(vertical_velocity, -10240.0, (power.faults & 0x300000) ? 5120.0 : 10240.0);
-  if(!both_failed) power.rotor_rpm = power.engine_rpm = 100;
-  else {
+  if(!both_failed) {
+    power.rotor_rpm = power.engine_rpm = 100;
+  } else {
     if(power.engine_rpm > 0) power.engine_rpm -= 1;
     if(power.rotor_rpm > 0) power.rotor_rpm -= 1;
     delta_vertical_velocity = landed ? 0 : readings.airspeed * pitch * 2 * 0.006666666666666666 - 1;
@@ -169,35 +227,54 @@ void arcade_flight::update_motion(double const dt, bool const absolute_throttle,
     power.engine_rpm = std::clamp(power.engine_rpm, 0.0, 110.0);
   }
   power.rotor_rpm = std::clamp(power.rotor_rpm, 0.0, 110.0);
-  consume_fuel(dt, events); update_hover(dt, events);
+  consume_fuel(dt, events);
+  update_hover(dt, events);
 }
 void arcade_flight::consume_fuel(double const dt, flight_events &events) {
-  if(infinite_fuel || invulnerable) { power.fuel = 3000; return; }
+  if(infinite_fuel || invulnerable) {
+    power.fuel = 3000;
+    return;
+  }
   if(power.fuel <= 0) {
     if((power.faults & 0x300000) != 0x300000) events.push_back(flight_event::fuel_exhausted);
-    power.endurance = power.fuel = 0; power.faults |= 0x300000; return;
+    power.endurance = power.fuel = 0;
+    power.faults |= 0x300000;
+    return;
   }
   power.weight_factor = power.weight * 5e-5;
   power.fuel_consumption = power.weight * 5e-5 + (power.maximum_fuel_consumption * 0.007692307692307693 * delta_vertical_velocity + 0.4);
   power.fuel_rate = readings.airspeed < 61 ? power.fuel_consumption * 0.7 - (power.fuel_consumption * 0.003333333333333333) * readings.airspeed : power.fuel_consumption * 3 * 0.05555555555555555 + (power.fuel_consumption * 0.005555555555555555) * readings.airspeed;
-  power.fuel -= power.fuel_rate * dt; power.endurance = power.fuel / power.fuel_rate; power.weight -= power.fuel_rate * dt;
-  if(power.endurance < 360) power.faults |= 0x400;
-  else power.faults &= ~0x400u;
+  power.fuel -= power.fuel_rate * dt;
+  power.endurance = power.fuel / power.fuel_rate;
+  power.weight -= power.fuel_rate * dt;
+  if(power.endurance < 360) {
+    power.faults |= 0x400;
+  } else {
+    power.faults &= ~0x400u;
+  }
 }
 void arcade_flight::update_hover(double const dt, flight_events &events) {
-  if(hover.active != hover.previous) { hover.previous = hover.active; events.push_back(hover.active ? flight_event::hover_on : flight_event::hover_off); }
-  if(std::abs(static_cast<int>(forward_velocity)) >= 4321) { hover.active = false; return; }
+  if(hover.active != hover.previous) {
+    hover.previous = hover.active;
+    events.push_back(hover.active ? flight_event::hover_on : flight_event::hover_off);
+  }
+  if(std::abs(static_cast<int>(forward_velocity)) >= 4321) {
+    hover.active = false;
+    return;
+  }
   if(!hover.active || controls.changed) return;
   if(std::abs(pitch) < 0.0001) {
     if(std::abs(forward_velocity) > 43.2) forward_velocity *= 0.85;
     if(std::abs(lateral_velocity) > 43.2) lateral_velocity *= 0.85;
   }
-  if(delta_vertical_velocity < 0) delta_vertical_velocity += dt * 0.3;
-  else if(delta_vertical_velocity > 0) delta_vertical_velocity -= dt * 0.3;
+  if(delta_vertical_velocity < 0) {
+    delta_vertical_velocity += dt * 0.3;
+  } else if(delta_vertical_velocity > 0) delta_vertical_velocity -= dt * 0.3;
 }
 void arcade_flight::request_death(unsigned int const cause) {
   if(death || invulnerable || (no_crashes && (cause == 2 || cause == 3 || cause == 12))) return;
-  death = cause; if(died) died();
+  death = cause;
+  if(died) died();
 }
 void arcade_flight::toggle_hover() {
   hover.active = std::abs(static_cast<int>(forward_velocity)) < 4320 && !hover.active;

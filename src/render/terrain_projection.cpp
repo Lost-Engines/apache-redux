@@ -11,10 +11,15 @@ int32_t grid_term(int32_t const coefficient, int const index, unsigned int const
 struct grid_position {
   int coarse{0};
   int fine{0};
-  explicit grid_position(int const steps) : coarse{(steps + (steps < 0 ? -128 : 128)) / 256}, fine{steps - coarse * 256} {}
+  explicit grid_position(int const steps)
+    : coarse{(steps + (steps < 0 ? -128 : 128)) / 256},
+      fine{steps - coarse * 256} {}
   void advance() {
     fine += 4;
-    if(fine > 128) { fine -= 256; ++coarse; }
+    if(fine > 128) {
+      fine -= 256;
+      ++coarse;
+    }
   }
 };
 } // anonymous namespace

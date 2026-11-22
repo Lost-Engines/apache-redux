@@ -6,22 +6,42 @@
 #include "weapon_info.h"
 
 namespace apache::simulation {
-struct player_pylon { unsigned int weapon{0}; int32_t ammunition{0}; };
+struct player_pylon {
+  unsigned int weapon{0};
+  int32_t ammunition{0};
+};
 struct player_weapon_context {
-  int32_t now{0}, control_mode{2}, game_mode{0};
+  int32_t now{0};
+  int32_t control_mode{2};
+  int32_t game_mode{0};
   double frame_time{0.05};
-  bool dead{false}, landed{false}, active{true}, ground_radar{false}, air_radar{false};
+  bool dead{false};
+  bool landed{false};
+  bool active{true};
+  bool ground_radar{false};
+  bool air_radar{false};
   unsigned int target_kind{0};
   uint32_t faults{0};
 };
-struct player_shot { unsigned int weapon; math::pose pose; bool guided, laser, untracked; };
+struct player_shot {
+  unsigned int weapon;
+  math::pose pose;
+  bool guided;
+  bool laser;
+  bool untracked;
+};
 struct player_weapon_callbacks {
   std::function<bool(uint16_t)> key_event;
-  std::function<void(unsigned int)> cockpit_sound, launch_sound;
-  std::function<void()> clear_impact_times, cycle_target, fired_at;
+  std::function<void(unsigned int)> cockpit_sound;
+  std::function<void(unsigned int)> launch_sound;
+  std::function<void()> clear_impact_times;
+  std::function<void()> cycle_target;
+  std::function<void()> fired_at;
   std::function<math::pose(unsigned int, size_t)> launch_pose;
   std::function<std::optional<size_t>(player_shot const &)> launch;
-  std::function<void(size_t)> missile_launched, impact_time, remote_fire;
+  std::function<void(size_t)> missile_launched;
+  std::function<void(size_t)> impact_time;
+  std::function<void(size_t)> remote_fire;
   std::function<void(size_t, int32_t)> remove_missile;
 };
 class player_weapons {
@@ -31,9 +51,15 @@ class player_weapons {
   void announce() const;
 public:
   std::array<player_pylon, 9> pylons{};
-  std::array<int32_t, 9> ammunition{}, selected{}, deadlines{};
-  unsigned int current{1}, helmet_mode{0};
-  bool armed{false}, infinite{false}, automatic_chaff{true}, gun_fired{false};
+  std::array<int32_t, 9> ammunition{};
+  std::array<int32_t, 9> selected{};
+  std::array<int32_t, 9> deadlines{};
+  unsigned int current{1};
+  unsigned int helmet_mode{0};
+  bool armed{false};
+  bool infinite{false};
+  bool automatic_chaff{true};
+  bool gun_fired{false};
   player_weapon_callbacks events;
   explicit player_weapons(resources::executable_data const &executable);
   void rearm();

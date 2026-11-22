@@ -17,7 +17,10 @@ class preferences_menu {
   void dropdown(widget const &button, std::string const &key, std::vector<std::pair<std::string, int>> choices);
 public:
   int zone{2};
-  preferences_menu(resources::data_store const &data, menu &interface, configuration::settings &settings) : data{data}, interface{interface}, settings{settings} {}
+  preferences_menu(resources::data_store const &data, menu &interface, configuration::settings &settings)
+    : data{data},
+      interface{interface},
+      settings{settings} {}
   std::pair<size_t, size_t> preview_issues() const {
     return world ? std::pair{world->missing_normals, world->invalid_texture_samples} : std::pair<size_t, size_t>{};
   }

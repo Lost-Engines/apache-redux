@@ -23,7 +23,8 @@ class mission_damage {
   resources::model_archive const &models;
   scenery_collisions const &structures;
   render::mobile_scene &mobiles;
-  combat_random &war_random, &weapon_random;
+  combat_random &war_random;
+  combat_random &weapon_random;
   mission_damage_callbacks events;
   damage_recipient read(target_identity const &id) const;
   void write(target_identity const &id, damage_recipient const &state);

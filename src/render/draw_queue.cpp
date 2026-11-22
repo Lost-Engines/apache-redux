@@ -44,7 +44,10 @@ std::vector<queued_draw> draw_queue::ordered() const {
   std::vector<queued_draw> result;
   result.reserve(items.size());
   auto const append{[&](int index){
-    while(index != -1) { result.push_back(items[index].draw); index = items[index].next; }
+    while(index != -1) {
+      result.push_back(items[index].draw);
+      index = items[index].next;
+    }
   }};
   append(flat_head);
   for(auto i{bins.rbegin()}; i != bins.rend(); ++i) append(*i);

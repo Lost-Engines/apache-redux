@@ -26,8 +26,13 @@ class player_sensors {
   uint32_t model(target_reference const &target) const;
 public:
   player_targeting state;
-  std::vector<sensor_contact> ground, mobile, missiles;
-  std::vector<radar_return> ground_radar, air_radar, tactical, ranked;
+  std::vector<sensor_contact> ground;
+  std::vector<sensor_contact> mobile;
+  std::vector<sensor_contact> missiles;
+  std::vector<radar_return> ground_radar;
+  std::vector<radar_return> air_radar;
+  std::vector<radar_return> tactical;
+  std::vector<radar_return> ranked;
   target_reference optical;
   math::vector3 current_display{};
   std::optional<std::array<int32_t, 2>> optical_symbol;

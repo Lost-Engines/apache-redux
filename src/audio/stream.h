@@ -15,9 +15,13 @@ struct stream_source {
 };
 // Original 22000 Hz stream timing and block-reader policy, without a platform thread.
 class stream {
-  static size_t constexpr capacity{1 << 20}, block{2048};
+  static size_t constexpr capacity{1 << 20};
+  static size_t constexpr block{2048};
   resources::bytes ring = resources::bytes(capacity, 128);
-  struct saved_stream { stream_source source; size_t position{0}; };
+  struct saved_stream {
+    stream_source source;
+    size_t position{0};
+  };
   std::optional<saved_stream> saved;
   void preread();
   void read_block();
@@ -26,9 +30,16 @@ class stream {
   void begin(stream_source source, size_t offset);
 public:
   stream_source source;
-  uint64_t clock{0}, due{0};
-  size_t head{0}, tail{0}, position{0}, space{capacity}, file_position{0};
-  bool open{false}, waiting{false}, playing{false};
+  uint64_t clock{0};
+  uint64_t due{0};
+  size_t head{0};
+  size_t tail{0};
+  size_t position{0};
+  size_t space{capacity};
+  size_t file_position{0};
+  bool open{false};
+  bool waiting{false};
+  bool playing{false};
   unsigned int volume{63};
   std::function<void(stream_source const &, uint64_t)> started;
   using pcm_sink = std::function<void(std::span<uint8_t const>, unsigned int)>;

@@ -19,7 +19,8 @@ struct incoming_warning_events {
 };
 class player_warnings {
 public:
-  size_t count{0}, previous_count{0};
+  size_t count{0};
+  size_t previous_count{0};
   std::array<int32_t, 3> priorities{INT32_MAX, INT32_MAX, INT32_MAX};
   std::array<incoming_warning, 3> entries;
   void begin();

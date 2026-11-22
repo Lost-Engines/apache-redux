@@ -3,7 +3,9 @@
 #include "pilot_log.h"
 
 namespace apache::simulation {
-struct debrief_record { std::array<uint32_t, 6> words{}; };
+struct debrief_record {
+  std::array<uint32_t, 6> words{};
+};
 class debrief_records {
   math::vector3 previous_position{};
 public:
@@ -17,9 +19,14 @@ public:
 // Pilot outcome is distinct from the saved log status: 0 safe, 1 missing,
 // 2 captured, 3 injured, 4 killed, 5 escaped.
 struct debrief_result {
-  mission_result mission{mission_result::failure}, targets{mission_result::failure}, player{mission_result::success};
-  uint32_t pilot{0}, time{0};
-  bool aborted{false}, dead{false}, landed_in_enemy{false};
+  mission_result mission{mission_result::failure};
+  mission_result targets{mission_result::failure};
+  mission_result player{mission_result::success};
+  uint32_t pilot{0};
+  uint32_t time{0};
+  bool aborted{false};
+  bool dead{false};
+  bool landed_in_enemy{false};
   uint8_t front_distance{0};
   std::vector<std::string> explanations;
   void survive(bool enemy, bool injury, unsigned int distance, uint32_t &random);

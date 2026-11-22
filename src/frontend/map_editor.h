@@ -6,7 +6,8 @@ namespace apache::frontend {
 // Editable planning routes. Aircraft and task identities stay in the mission definition.
 class map_editor {
   resources::mission_task *task{nullptr};
-  int32_t start_x{-1}, start_y{-1};
+  int32_t start_x{-1};
+  int32_t start_y{-1};
 public:
   size_t group{0};
   int selected{-1};

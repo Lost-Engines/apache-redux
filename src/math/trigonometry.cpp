@@ -34,7 +34,8 @@ uint32_t trigonometry::arccosine(int32_t const value) const {
 uint32_t trigonometry::arctangent(int32_t const x, int32_t const y) const {
   if(!x) return y < 0 ? 0x80000000u : 0;
   if(!y) return x < 0 ? 0xc0000000u : 0x40000000u;
-  auto const ax{static_cast<uint64_t>(std::abs(int64_t{x}))}, ay{static_cast<uint64_t>(std::abs(int64_t{y}))};
+  auto const ax{static_cast<uint64_t>(std::abs(int64_t{x}))};
+  auto const ay{static_cast<uint64_t>(std::abs(int64_t{y}))};
   uint32_t angle{0x20000000};
   if(ax != ay) {
     uint64_t const ratio{ax < ay ? (ax << 31) / ay : (ay << 31) / ax};
@@ -52,8 +53,14 @@ std::array<uint32_t, 3> trigonometry::angles(matrix3 const &matrix) const {
   return {arctangent(matrix[3], matrix[4]), pitch, arctangent(negate(matrix[2]), matrix[8])};
 }
 matrix3 trigonometry::transformation(uint32_t const heading, uint32_t const pitch, uint32_t const roll) const {
-  int32_t const sh{sine(heading)}, ch{cosine(heading)}, sp{sine(pitch)}, cp{cosine(pitch)}, sr{sine(roll)}, cr{cosine(roll)};
-  int32_t const sr_sp{multiply_q31(sr, sp)}, negative_cr_sp{multiply_q31(negate(cr), sp)};
+  int32_t const sh{sine(heading)};
+  int32_t const ch{cosine(heading)};
+  int32_t const sp{sine(pitch)};
+  int32_t const cp{cosine(pitch)};
+  int32_t const sr{sine(roll)};
+  int32_t const cr{cosine(roll)};
+  int32_t const sr_sp{multiply_q31(sr, sp)};
+  int32_t const negative_cr_sp{multiply_q31(negate(cr), sp)};
   return {
     rounded_q31(product_bits(cr, ch) + product_bits(sh, sr_sp)),
     rounded_q31(product_bits(negate(cr), sh) + product_bits(ch, sr_sp)),
@@ -67,11 +74,21 @@ matrix3 trigonometry::transformation(uint32_t const heading, uint32_t const pitc
   };
 }
 matrix3 trigonometry::rotation(vector3 const &axis, uint32_t const angle) const {
-  int32_t const c{cosine(angle)}, s{sine(angle)};
-  int32_t const xs{multiply_q31(axis[0], s)}, ys{multiply_q31(axis[1], s)}, zs{multiply_q31(axis[2], s)};
-  int32_t const xx{multiply_q31(axis[0], axis[0])}, yy{multiply_q31(axis[1], axis[1])}, zz{multiply_q31(axis[2], axis[2])};
-  auto const cross{[&](size_t const a, size_t const b){ int32_t const v{multiply_q31(axis[a], axis[b])}; return subtract(v, multiply_q31(v, c)); }};
-  int32_t const xy{cross(0, 1)}, xz{cross(0, 2)}, yz{cross(1, 2)};
+  int32_t const c{cosine(angle)};
+  int32_t const s{sine(angle)};
+  int32_t const xs{multiply_q31(axis[0], s)};
+  int32_t const ys{multiply_q31(axis[1], s)};
+  int32_t const zs{multiply_q31(axis[2], s)};
+  int32_t const xx{multiply_q31(axis[0], axis[0])};
+  int32_t const yy{multiply_q31(axis[1], axis[1])};
+  int32_t const zz{multiply_q31(axis[2], axis[2])};
+  auto const cross{[&](size_t const a, size_t const b){
+    int32_t const v{multiply_q31(axis[a], axis[b])};
+    return subtract(v, multiply_q31(v, c));
+  }};
+  int32_t const xy{cross(0, 1)};
+  int32_t const xz{cross(0, 2)};
+  int32_t const yz{cross(1, 2)};
   return {add(xx, multiply_q31(subtract(INT32_MAX, xx), c)), subtract(xy, zs), add(xz, ys), add(xy, zs), add(yy, multiply_q31(subtract(INT32_MAX, yy), c)), subtract(yz, xs), subtract(xz, ys), add(yz, xs), add(zz, multiply_q31(subtract(INT32_MAX, zz), c))};
 }
 } // namespace apache::math

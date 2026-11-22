@@ -10,7 +10,13 @@ namespace apache::render {
 class landscape;
 struct model_instance;
 struct sky_lighting;
-enum class mfd_panel { pilot_left, pilot_right, gunner_left, gunner_right, gunner_middle };
+enum class mfd_panel {
+  pilot_left,
+  pilot_right,
+  gunner_left,
+  gunner_right,
+  gunner_middle
+};
 struct engine_instruments {
   double torque_left{0};
   double torque_right{0};
@@ -35,7 +41,12 @@ struct weapon_instruments {
   bool auto_chaff{false};
   bool auto_ecm{false};
 };
-enum class radar_mode { inactive, ground, air, tactical };
+enum class radar_mode {
+  inactive,
+  ground,
+  air,
+  tactical
+};
 struct radar_contact {
   int32_t x{0};
   int32_t y{0};

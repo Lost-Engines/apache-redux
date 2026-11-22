@@ -13,24 +13,38 @@ void require_inside(screen_vertex const &v, framebuffer const &target) {
   if(v.x < 0 || v.y < 0 || v.x >= static_cast<int>(target.image.width) || v.y >= static_cast<int>(target.image.height)) throw std::runtime_error{"Raster input must be clipped to the screen"};
 }
 } // anonymous namespace
-rasterizer::rasterizer(framebuffer &destination) : target{destination}, left(destination.image.height), right(destination.image.height), perspective_left(destination.image.height), perspective_right(destination.image.height) {}
+rasterizer::rasterizer(framebuffer &destination)
+  : target{destination},
+    left(destination.image.height),
+    right(destination.image.height),
+    perspective_left(destination.image.height),
+    perspective_right(destination.image.height) {}
 void rasterizer::line(screen_vertex a, screen_vertex const b, uint8_t const colour) {
   require_inside(a, target);
   require_inside(b, target);
-  int const dx{std::abs(b.x - a.x)}, dy{std::abs(b.y - a.y)};
-  int const sx{b.x < a.x ? -1 : 1}, sy{b.y < a.y ? -1 : 1};
+  int const dx{std::abs(b.x - a.x)};
+  int const dy{std::abs(b.y - a.y)};
+  int const sx{b.x < a.x ? -1 : 1};
+  int const sy{b.y < a.y ? -1 : 1};
   bool const horizontal{dx > dy};
-  int const major{horizontal ? dx : dy}, minor{horizontal ? dy : dx};
+  int const major{horizontal ? dx : dy};
+  int const minor{horizontal ? dy : dx};
   int error{(major + 1) / 2};
   for(int i{0}; i <= major; ++i) {
     target.point(a.x, a.y, colour);
-    if(horizontal) a.x += sx;
-    else a.y += sy;
+    if(horizontal) {
+      a.x += sx;
+    } else {
+      a.y += sy;
+    }
     error -= minor;
     if(error <= 0) {
       error += major;
-      if(horizontal) a.y += sy;
-      else a.x += sx;
+      if(horizontal) {
+        a.y += sy;
+      } else {
+        a.x += sx;
+      }
     }
   }
 }
@@ -45,21 +59,33 @@ void rasterizer::scan(std::span<screen_vertex const> const polygon) {
   for(size_t i{0}; i != polygon.size(); ++i) {
     auto const &a{polygon[i]};
     auto const &b{polygon[(i + 1) % polygon.size()]};
-    if(b.y < first_row) { first_row = b.y; left[b.y] = right[b.y] = edge(b); }
-    if(b.y > last_row) { last_row = b.y; left[b.y] = right[b.y] = edge(b); }
+    if(b.y < first_row) {
+      first_row = b.y;
+      left[b.y] = right[b.y] = edge(b);
+    }
+    if(b.y > last_row) {
+      last_row = b.y;
+      left[b.y] = right[b.y] = edge(b);
+    }
     if(a.y == b.y) {
       if(b.x > a.x && b.x > right[b.y].x) right[b.y] = edge(b);
       if(b.x < a.x && b.x < left[b.y].x) left[b.y] = edge(b);
       continue;
     }
-    int const dx{std::abs(b.x - a.x)}, dy{std::abs(b.y - a.y)};
-    int const sx{b.x < a.x ? -1 : 1}, sy{b.y < a.y ? -1 : 1};
+    int const dx{std::abs(b.x - a.x)};
+    int const dy{std::abs(b.y - a.y)};
+    int const sx{b.x < a.x ? -1 : 1};
+    int const sy{b.y < a.y ? -1 : 1};
     auto &side{sy > 0 ? right : left};
     auto value{edge(a)};
     int y{a.y};
     int const major{std::max(dx, dy)};
     scan_edge const increment{sx, (b.u - a.u) / major, (b.v - a.v) / major, (b.intensity - a.intensity) / major};
-    auto const advance{[&]{ value.u = math::add(value.u, increment.u); value.v = math::add(value.v, increment.v); value.intensity = math::add(value.intensity, increment.intensity); }};
+    auto const advance{[&]{
+      value.u = math::add(value.u, increment.u);
+      value.v = math::add(value.v, increment.v);
+      value.intensity = math::add(value.intensity, increment.intensity);
+    }};
     if(dx <= dy) {
       int error{dy / 2};
       for(int step{0}; step <= dy; ++step) {
@@ -67,18 +93,31 @@ void rasterizer::scan(std::span<screen_vertex const> const polygon) {
         y += sy;
         advance();
         error -= dx;
-        if(dx && error <= 0) { error += dy; value.x += sx; }
+        if(dx && error <= 0) {
+          error += dy;
+          value.x += sx;
+        }
       }
     } else {
       // The shallow edges keep the outside pixel of each scan line. The
       // original uses different entry/exit handling for the two slopes.
       int error{dx / 2};
       bool const outward{sx == sy};
-      if(!outward) { side[y] = value; y += sy; }
+      if(!outward) {
+        side[y] = value;
+        y += sy;
+      }
       for(int row{0}; row < dy; ++row) {
-        if(row || !outward) { value.x += sx; advance(); }
+        if(row || !outward) {
+          value.x += sx;
+          advance();
+        }
         error -= dy;
-        while(error > 0) { value.x += sx; advance(); error -= dy; }
+        while(error > 0) {
+          value.x += sx;
+          advance();
+          error -= dy;
+        }
         error += dx;
         side[y] = value;
         y += sy;
@@ -88,7 +127,12 @@ void rasterizer::scan(std::span<screen_vertex const> const polygon) {
   }
 }
 void rasterizer::polygon(std::span<screen_vertex const> const vertices, uint32_t const colours, fill_pattern const pattern, std::span<uint8_t const> const remapping) {
-  fill(vertices, {.colours{colours}, .pattern{pattern}, .remapping{remapping}, .intensity_map{}});
+  fill(vertices, {
+    .colours{colours},
+    .pattern{pattern},
+    .remapping{remapping},
+    .intensity_map{}
+  });
 }
 void rasterizer::fill(std::span<screen_vertex const> const vertices, material const &paint) {
   scan(vertices);
@@ -99,28 +143,39 @@ void rasterizer::circle_outline(int const cx, int const cy, int const radius, ui
   if(radius > 1048576) throw std::runtime_error{"Circle radius exceeds the rasterizer limit"};
   auto const &area{target.clip};
   if(int64_t{cx} - radius > area.right || int64_t{cx} + radius < area.left || int64_t{cy} - radius > area.bottom || int64_t{cy} + radius < area.top) return;
-  int y{radius}, error{3 - radius * 2};
+  int y{radius};
+  int error{3 - radius * 2};
   for(int x{0}; x <= y; ++x) {
-    target.point(cx + x, cy + y, colour); target.point(cx - x, cy + y, colour);
-    target.point(cx - x, cy - y, colour); target.point(cx + x, cy - y, colour);
-    target.point(cx + y, cy + x, colour); target.point(cx - y, cy + x, colour);
-    target.point(cx - y, cy - x, colour); target.point(cx + y, cy - x, colour);
-    if(error < 0) error += x * 4 + 6;
-    else { error += (x - y) * 4 + 10; --y; }
+    target.point(cx + x, cy + y, colour);
+    target.point(cx - x, cy + y, colour);
+    target.point(cx - x, cy - y, colour);
+    target.point(cx + x, cy - y, colour);
+    target.point(cx + y, cy + x, colour);
+    target.point(cx - y, cy + x, colour);
+    target.point(cx - y, cy - x, colour);
+    target.point(cx + y, cy - x, colour);
+    if(error < 0) {
+      error += x * 4 + 6;
+    } else {
+      error += (x - y) * 4 + 10;
+      --y;
+    }
   }
 }
 void rasterizer::circle(int const centre_x, int const centre_y, int const radius, material const &paint) {
   if(paint.image || paint.light != shading::none) throw std::runtime_error{"Circles do not carry texture or lighting coordinates"};
   if(radius <= 0) return;
   if(radius > 1048576) throw std::runtime_error{"Circle radius exceeds the rasterizer limit"};
-  int64_t const cx{centre_x}, cy{centre_y};
+  int64_t const cx{centre_x};
+  int64_t const cy{centre_y};
   auto const area{intersect(target.clip, {0, 0, static_cast<int>(target.image.width) - 1, static_cast<int>(target.image.height) - 1})};
   if(area.left > area.right || area.top > area.bottom || cx - radius > area.right || cx + radius < area.left || cy - radius > area.bottom || cy + radius < area.top) return;
   first_row = static_cast<int>(target.image.height);
   last_row = -1;
   auto const span{[&](int64_t const y, int64_t const extent){
     if(y < area.top || y > area.bottom) return;
-    int64_t const lhs{std::max<int64_t>(cx - extent, area.left)}, rhs{std::min<int64_t>(cx + extent, area.right)};
+    int64_t const lhs{std::max<int64_t>(cx - extent, area.left)};
+    int64_t const rhs{std::min<int64_t>(cx + extent, area.right)};
     if(lhs > rhs) return;
     int const row{static_cast<int>(y)};
     left[row] = {static_cast<int>(lhs), 0, 0, 0};
@@ -128,12 +183,16 @@ void rasterizer::circle(int const centre_x, int const centre_y, int const radius
     first_row = std::min(first_row, row);
     last_row = std::max(last_row, row);
   }};
-  int y{radius}, error{3 - radius * 2};
+  int y{radius};
+  int error{3 - radius * 2};
   for(int x{0}; x <= y; ++x) {
-    span(cy + x, y); span(cy - x, y);
-    if(error < 0) error += x * 4 + 6;
-    else {
-      span(cy + y, x); span(cy - y, x);
+    span(cy + x, y);
+    span(cy - x, y);
+    if(error < 0) {
+      error += x * 4 + 6;
+    } else {
+      span(cy + y, x);
+      span(cy - y, x);
       error += (x - y) * 4 + 10;
       --y;
     }
@@ -146,13 +205,17 @@ void rasterizer::paint_scans(material const &paint) {
   if(paint.image && (!paint.image->width || paint.image->pixels.empty() || paint.image->pixels.size() % paint.image->width)) throw std::runtime_error{"Texture dimensions disagree with its pixels"};
   bool const flat{!paint.image && paint.light != shading::gouraud};
   std::array<uint8_t, 2> colours{static_cast<uint8_t>(paint.colours), static_cast<uint8_t>(paint.colours >> 8)};
-  if(flat && paint.light == shading::constant) for(auto &colour : colours) {
-    colour = paint.intensity_map[(size_t{colour} << 8) | (static_cast<uint32_t>(std::max(paint.intensity, 0)) >> 23)];
+  if(flat && paint.light == shading::constant) {
+    for(auto &colour : colours) {
+      colour = paint.intensity_map[(size_t{colour} << 8) | (static_cast<uint32_t>(std::max(paint.intensity, 0)) >> 23)];
+    }
   }
   uint8_t heat{std::array<uint8_t, 4>{204, 102, 51, 153}[paint.heat_phase & 3]};
   for(int y{std::max(first_row, target.clip.top)}; y <= std::min(last_row, target.clip.bottom); ++y) {
-    int const lhs{std::min(left[y].x, right[y].x)}, rhs{std::max(left[y].x, right[y].x)};
-    int const start{std::max(lhs, target.clip.left)}, end{std::min(rhs, target.clip.right)};
+    int const lhs{std::min(left[y].x, right[y].x)};
+    int const rhs{std::max(left[y].x, right[y].x)};
+    int const start{std::max(lhs, target.clip.left)};
+    int const end{std::min(rhs, target.clip.right)};
     if(paint.pattern == fill_pattern::heat_haze) {
       bool const shift_right{bool(heat & 1)};
       heat = static_cast<uint8_t>((heat >> 1) | (heat << 7));
@@ -160,8 +223,15 @@ void rasterizer::paint_scans(material const &paint) {
         size_t const row{static_cast<size_t>(y) * target.image.width};
         uint8_t previous{target.image.pixels[row + start]};
         for(int x{start}; x <= end; ++x) {
-          auto &pixel{target.image.pixels[row + x]}; target.mark(row + x);
-          if(shift_right) { auto const old{pixel}; pixel = previous; previous = old; } else pixel = target.image.pixels[std::min(row + static_cast<size_t>(x) + 1, target.image.pixels.size() - 1)];
+          auto &pixel{target.image.pixels[row + x]};
+          target.mark(row + x);
+          if(shift_right) {
+            auto const old{pixel};
+            pixel = previous;
+            previous = old;
+          } else {
+            pixel = target.image.pixels[std::min(row + static_cast<size_t>(x) + 1, target.image.pixels.size() - 1)];
+          }
         }
       }
       if(shift_right) ++y;
@@ -188,7 +258,9 @@ void rasterizer::paint_scans(material const &paint) {
         int const offset{paint.pattern == fill_pattern::coarse ? (y & 1) * 2 : paint.pattern == fill_pattern::fine ? y & 1 : 0};
         int const first{start + ((offset - start) & (step - 1))};
         for(int x{first}; x <= end; x += step) out[x] = colours[(x + y) & 1];
-        if(coverage) for(int x{first}; x <= end; x += step) coverage[x] = 1;
+        if(coverage) {
+          for(int x{first}; x <= end; x += step) coverage[x] = 1;
+        }
       }
       continue;
     }
@@ -202,13 +274,17 @@ void rasterizer::paint_scans(material const &paint) {
       // choose the lighting routine once per span, outside the texture loop
       auto const textured{[&]<shading light>(){
         for(int x{start}; x <= end; ++x) {
-          auto const tx{static_cast<uint32_t>(value.u) >> 16}, ty{static_cast<uint32_t>(value.v) >> 16};
+          auto const tx{static_cast<uint32_t>(value.u) >> 16};
+          auto const ty{static_cast<uint32_t>(value.v) >> 16};
           size_t const address{size_t{ty} * paint.image->width + tx};
           int32_t const intensity{light == shading::constant ? paint.intensity : value.intensity};
           value.u = math::add(value.u, increment.u);
           value.v = math::add(value.v, increment.v);
           if constexpr(light == shading::gouraud) value.intensity = math::add(value.intensity, increment.intensity);
-          if(address >= paint.image->pixels.size()) { ++invalid_texture_samples; continue; }
+          if(address >= paint.image->pixels.size()) {
+            ++invalid_texture_samples;
+            continue;
+          }
           uint8_t colour{paint.image->pixels[address]};
           if(paint.masked && !colour) continue;
           if constexpr(light != shading::none) {
@@ -219,9 +295,15 @@ void rasterizer::paint_scans(material const &paint) {
         }
       }};
       switch(paint.light) {
-        case shading::none: textured.template operator()<shading::none>(); break;
-        case shading::constant: textured.template operator()<shading::constant>(); break;
-        case shading::gouraud: textured.template operator()<shading::gouraud>(); break;
+      case shading::none:
+        textured.template operator()<shading::none>();
+        break;
+      case shading::constant:
+        textured.template operator()<shading::constant>();
+        break;
+      case shading::gouraud:
+        textured.template operator()<shading::gouraud>();
+        break;
       }
       continue;
     }
@@ -235,7 +317,9 @@ void rasterizer::paint_scans(material const &paint) {
       continue;
     }
     for(int x{start}; x <= end; ++x) {
-      int32_t const u{value.u}, v{value.v}, intensity{paint.light == shading::constant ? paint.intensity : value.intensity};
+      int32_t const u{value.u};
+      int32_t const v{value.v};
+      int32_t const intensity{paint.light == shading::constant ? paint.intensity : value.intensity};
       value.u = math::add(value.u, increment.u);
       value.v = math::add(value.v, increment.v);
       value.intensity = math::add(value.intensity, increment.intensity);
@@ -244,12 +328,16 @@ void rasterizer::paint_scans(material const &paint) {
       if(paint.pattern == fill_pattern::coarse && ((x - ((y & 1) * 2)) & 3)) continue;
       uint8_t colour{static_cast<uint8_t>(paint.colours >> (8 * ((x + y) & 1)))};
       if(paint.image) {
-        auto const tx{static_cast<uint32_t>(u) >> 16}, ty{static_cast<uint32_t>(v) >> 16};
+        auto const tx{static_cast<uint32_t>(u) >> 16};
+        auto const ty{static_cast<uint32_t>(v) >> 16};
         // Authored UVs include the right edge (u == width). The original
         // addresses the contiguous image, so that endpoint samples the next
         // row. Bound the final address rather than rejecting the coordinate.
         size_t const address{static_cast<size_t>(ty) * paint.image->width + tx};
-        if(address >= paint.image->pixels.size()) { ++invalid_texture_samples; continue; }
+        if(address >= paint.image->pixels.size()) {
+          ++invalid_texture_samples;
+          continue;
+        }
         colour = paint.image->pixels[address];
         if(paint.masked && !colour) continue;
       }

@@ -9,7 +9,11 @@
 #include "resources/features.h"
 
 namespace apache::simulation {
-struct mission_random_state { uint32_t global{1}, weapons{1}, damage{1}; };
+struct mission_random_state {
+  uint32_t global{1};
+  uint32_t weapons{1};
+  uint32_t damage{1};
+};
 struct mission_runtime_events {
   std::function<void(size_t)> fire;
   std::function<void(size_t)> waypoint;
@@ -17,7 +21,8 @@ struct mission_runtime_events {
   std::function<void(size_t, projectile_record const &)> launched;
   std::function<void(size_t, projectile_record &, projectile_event_info const &)> projectile;
   std::function<void(target_identity const &, target_identity const &)> killed;
-  std::function<void(target_identity const &)> collision, player_killed;
+  std::function<void(target_identity const &)> collision;
+  std::function<void(target_identity const &)> player_killed;
   std::function<void(unsigned int, bool)> sound;
   std::function<void(std::string_view)> message;
   std::function<void(std::string_view, int32_t, int32_t)> notice;
@@ -25,7 +30,10 @@ struct mission_runtime_events {
   std::function<void(bool)> impact_sound;
   std::function<void(unsigned int)> radar_toggle;
   std::function<void(unsigned int)> launch_sound;
-  std::function<void()> cycle_target, incoming_sound, player_weapon_update, instrument_update;
+  std::function<void()> cycle_target;
+  std::function<void()> incoming_sound;
+  std::function<void()> player_weapon_update;
+  std::function<void()> instrument_update;
   std::function<void(bool)> gun_sound;
   std::function<void(size_t, bool, std::string_view)> warning_message;
   std::function<void(size_t)> missile_camera;
@@ -47,7 +55,8 @@ public:
   resources::terrain terrain;
   resources::model_archive models;
   mission_scenery scene;
-  resources::feature_layer features, super_features;
+  resources::feature_layer features;
+  resources::feature_layer super_features;
   math::trigonometry trig;
   std::vector<std::vector<resources::formation_member>> formations;
   actor_environment environment;
@@ -72,8 +81,12 @@ public:
   player_route route;
   movement_time timing;
   size_t frame{0};
-  bool check_collisions{true}, subdivide_flight{true}, flight_active{true}, move_actors{true};
-  int32_t smoke_radius{2048}, smoke_lifetime{400};
+  bool check_collisions{true};
+  bool subdivide_flight{true};
+  bool flight_active{true};
+  bool move_actors{true};
+  int32_t smoke_radius{2048};
+  int32_t smoke_lifetime{400};
   unsigned int smoke_density{2};
   fragments debris;
   craters collision_marks;

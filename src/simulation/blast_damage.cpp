@@ -11,7 +11,16 @@ bool same(target_identity const &a, target_identity const &b) {
   return a.kind == b.kind && a.index == b.index && (a.kind != target_kind::scenery || a.layer == b.layer);
 }
 }
-blast_damage::blast_damage(unsigned int const id, damage_source const &origin, damage_environment const &settings, damage_random &rng, resources::model_archive const &definitions, scenery_collisions const &structures, render::mobile_scene const &objects, blast_callbacks handlers) : weapon_id{id}, weapon{weapon_definitions().at(id)}, source{origin}, environment{settings}, random{rng}, models{definitions}, scenery{structures}, mobiles{objects}, callbacks{std::move(handlers)} {
+blast_damage::blast_damage(unsigned int const id, damage_source const &origin, damage_environment const &settings, damage_random &rng, resources::model_archive const &definitions, scenery_collisions const &structures, render::mobile_scene const &objects, blast_callbacks handlers)
+  : weapon_id{id},
+    weapon{weapon_definitions().at(id)},
+    source{origin},
+    environment{settings},
+    random{rng},
+    models{definitions},
+    scenery{structures},
+    mobiles{objects},
+    callbacks{std::move(handlers)} {
   if(!callbacks.read || !callbacks.write || !callbacks.action) throw std::runtime_error{"Blast damage requires live object handlers"};
 }
 int32_t blast_damage::damage_one(target_identity const &id, math::vector3 const &impact) {
@@ -48,8 +57,9 @@ void blast_damage::hit(target_identity const &id, math::vector3 const &impact) {
   int32_t radius{multiply(weapon.blast_radius, 2)};
   auto const amount{damage_one(id, impact)};
   auto target{callbacks.read(id)};
-  if(target.flags & 1) radius = std::max(radius, multiply(models.at(target.model)->metadata[4], 2));
-  else if(amount > 10 && callbacks.partial_explosion) callbacks.partial_explosion(id);
+  if(target.flags & 1) {
+    radius = std::max(radius, multiply(models.at(target.model)->metadata[4], 2));
+  } else if(amount > 10 && callbacks.partial_explosion) callbacks.partial_explosion(id);
   damage_ground(impact, radius, id.kind == target_kind::scenery ? std::optional{id} : std::nullopt);
   damage_mobiles(impact, radius, id.kind == target_kind::mobile ? std::optional{id} : std::nullopt);
   if((callbacks.read(id).flags & 1) && callbacks.auxiliary) callbacks.auxiliary(id);

@@ -64,7 +64,9 @@ void mobile_scene::move(uint32_t const id, math::pose const &pose) {
   place(id);
 }
 void mobile_scene::remove(uint32_t const id) {
-  at(id); unplace(id); objects[id].reset();
+  at(id);
+  unplace(id);
+  objects[id].reset();
 }
 void mobile_scene::clear() {
   for(auto &sector : sectors) sector.clear();
@@ -88,39 +90,46 @@ void mobile_scene::submit(draw_queue &queue, math::pose const &camera, mobile_vi
   bool const clouds{(visibility.cloud_flags & 2) != 0};
   if(visibility.cloud_mode == 1 && (clouds || visibility.weather == 1)) return;
   bool const below{visibility.cloud_mode == 0 || (!clouds && visibility.weather == 0)};
-  auto sort_casting{casting}; sort_casting.cloud_mode = below ? 0 : 2;
-  int const sx{camera.position[0] >> 22}, sy{camera.position[1] >> 22};
+  auto sort_casting{casting};
+  sort_casting.cloud_mode = below ? 0 : 2;
+  int const sx{camera.position[0] >> 22};
+  int const sy{camera.position[1] >> 22};
   int const radius{lod_sector_radius(visibility.lod_distance_multiplier)};
-  for(int x{-radius}; x <= radius; ++x) for(int y{-radius}; y <= radius; ++y) {
-    if(sx + x < 0 || sx + x >= 64 || sy + y < 0 || sy + y >= 64) continue;
-    for(auto const id : sectors[static_cast<size_t>((sx + x) * 64 + sy + y)]) {
-      auto const &object{*objects[id]->object};
-      auto const &position{object.relative.position};
-      if(below ? (clouds && position[2] >= visibility.cloud_bottom) : position[2] <= visibility.cloud_top) continue;
-      auto const delta{relative_to(position, camera.position)};
-      int32_t const depth{math::transform(camera.rotation, delta)[1]};
-      if(depth <= visibility.near_depth || depth >= visibility.far_depth) continue;
-      if(queue.full()) return;
-      auto const distance{static_cast<int32_t>(approximate_range(delta))};
-      queued_draw const model{draw_kind::mobile, id, depth < 0 ? -distance : distance};
-      std::optional<queued_draw> shadow;
-      if(visibility.shadows && (models.at(object.id)->properties & 1)) {
-        auto const point{sort_casting.project(position)};
-        auto const delta_shadow{relative_to(point.position, camera.position)};
-        int32_t const depth_shadow{math::transform(camera.rotation, delta_shadow)[1]};
-        if(depth_shadow > visibility.near_depth && depth_shadow < lod_cutoff(0x80000, visibility.lod_distance_multiplier)) {
-          auto const range{static_cast<int32_t>(approximate_range(delta_shadow))};
-          shadow = {draw_kind::shadow, id, depth_shadow < 0 ? -range : range};
+  for(int x{-radius}; x <= radius; ++x) {
+    for(int y{-radius}; y <= radius; ++y) {
+      if(sx + x < 0 || sx + x >= 64 || sy + y < 0 || sy + y >= 64) continue;
+      for(auto const id : sectors[static_cast<size_t>((sx + x) * 64 + sy + y)]) {
+        auto const &object{*objects[id]->object};
+        auto const &position{object.relative.position};
+        if(below ? (clouds && position[2] >= visibility.cloud_bottom) : position[2] <= visibility.cloud_top) continue;
+        auto const delta{relative_to(position, camera.position)};
+        int32_t const depth{math::transform(camera.rotation, delta)[1]};
+        if(depth <= visibility.near_depth || depth >= visibility.far_depth) continue;
+        if(queue.full()) return;
+        auto const distance{static_cast<int32_t>(approximate_range(delta))};
+        queued_draw const model{draw_kind::mobile, id, depth < 0 ? -distance : distance};
+        std::optional<queued_draw> shadow;
+        if(visibility.shadows && (models.at(object.id)->properties & 1)) {
+          auto const point{sort_casting.project(position)};
+          auto const delta_shadow{relative_to(point.position, camera.position)};
+          int32_t const depth_shadow{math::transform(camera.rotation, delta_shadow)[1]};
+          if(depth_shadow > visibility.near_depth && depth_shadow < lod_cutoff(0x80000, visibility.lod_distance_multiplier)) {
+            auto const range{static_cast<int32_t>(approximate_range(delta_shadow))};
+            shadow = {draw_kind::shadow, id, depth_shadow < 0 ? -range : range};
+          }
         }
+        if(below && shadow) {
+          // The original reserves the model's slot before trying the shadow,
+          // but submits the shadow first. A full buffer leaves that slot unused.
+          if(queue.available() < 2) {
+            queue.consume_unused_slot();
+            return;
+          }
+          queue.push(*shadow);
+        }
+        queue.push(model);
+        if(!below && shadow && !queue.push(*shadow)) return;
       }
-      if(below && shadow) {
-        // The original reserves the model's slot before trying the shadow,
-        // but submits the shadow first. A full buffer leaves that slot unused.
-        if(queue.available() < 2) { queue.consume_unused_slot(); return; }
-        queue.push(*shadow);
-      }
-      queue.push(model);
-      if(!below && shadow && !queue.push(*shadow)) return;
     }
   }
 }

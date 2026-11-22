@@ -6,7 +6,12 @@
 namespace apache::simulation {
 using target_slot_lookup = std::function<std::shared_ptr<target_reference>(uint32_t, target_slot)>;
 struct tracking_environment {
-  int32_t now{0}, weather{0}, cloud_bottom{0}, cloud_top{0}, mode{0}, decoy_modifier{0};
+  int32_t now{0};
+  int32_t weather{0};
+  int32_t cloud_bottom{0};
+  int32_t cloud_top{0};
+  int32_t mode{0};
+  int32_t decoy_modifier{0};
 };
 projectile_target_binding selected_projectile_target(projectile_record &round, weapon_info const &weapon, target_world const &world, target_slot_lookup const &slots);
 target_reference *adjusted_projectile_target(projectile_record &round, target_world const &world, target_slot_lookup const &slots);

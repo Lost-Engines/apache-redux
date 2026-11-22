@@ -16,10 +16,15 @@ class mission_frontend {
   std::vector<size_t> listed;
   std::unique_ptr<mission_session> prepared;
   std::optional<simulation::debrief_result> result;
-  int flow{2}, zone{4}, selected{-1}, campaign_mission{0};
+  int flow{2};
+  int zone{4};
+  int selected{-1};
+  int campaign_mission{0};
   unsigned int last_result{0};
   bool departing{false};
-  bool first_launch{false}, first_quick{false}, invincible_quick{false};
+  bool first_launch{false};
+  bool first_quick{false};
+  bool invincible_quick{false};
   void launch_quick();
   void start_network();
   void receive_selection(unsigned int code, int value);

@@ -24,8 +24,19 @@ struct perspective_edge {
   double v{0};
   double intensity{0};
 };
-enum class fill_pattern { solid, fine, medium, coarse, remap, heat_haze };
-enum class shading { none, constant, gouraud };
+enum class fill_pattern {
+  solid,
+  fine,
+  medium,
+  coarse,
+  remap,
+  heat_haze
+};
+enum class shading {
+  none,
+  constant,
+  gouraud
+};
 struct material {
   uint32_t colours{0};
   fill_pattern pattern{fill_pattern::solid};

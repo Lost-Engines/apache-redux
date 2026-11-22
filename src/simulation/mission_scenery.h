@@ -13,11 +13,13 @@ struct gameplay_object {
   std::optional<size_t> scenery;
 };
 class mission_scenery {
-  std::array<std::vector<size_t>, 4096> base_sectors, extra_sectors;
+  std::array<std::vector<size_t>, 4096> base_sectors;
+  std::array<std::vector<size_t>, 4096> extra_sectors;
   void mark_laser_objects();
   void calculate_front();
 public:
-  std::vector<resources::scenery_placement> base, extra;
+  std::vector<resources::scenery_placement> base;
+  std::vector<resources::scenery_placement> extra;
   std::array<gameplay_sector, 4096> sectors;
   std::array<uint8_t, 4096> front_distance;
   std::vector<gameplay_object> objects;

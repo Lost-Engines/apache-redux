@@ -16,7 +16,8 @@ mfd_state::mfd_state(unsigned int const game_mode) {
 void mfd_state::initialise(unsigned int const game_mode) {
   reset();
   if(game_mode == 1 || game_mode == 4 || game_mode == 5) {
-    pages[0][1] = mfd_page::tactical; pages[1] = {mfd_page::flight_plan, mfd_page::map};
+    pages[0][1] = mfd_page::tactical;
+    pages[1] = {mfd_page::flight_plan, mfd_page::map};
   }
 }
 void mfd_state::reset() {
@@ -33,8 +34,11 @@ void mfd_state::cycle(bool const gunner, bool const right, bool const forward) {
 }
 void mfd_state::toggle(bool const gunner, bool const right, uint32_t const faults) {
   auto &page{pages[gunner][right]};
-  if(page != mfd_page::off) page = mfd_page::off;
-  else page = (faults & fault_bits[gunner][right]) ? mfd_page::damaged : exclusive(gunner, right, mfd_page::map);
+  if(page != mfd_page::off) {
+    page = mfd_page::off;
+  } else {
+    page = (faults & fault_bits[gunner][right]) ? mfd_page::damaged : exclusive(gunner, right, mfd_page::map);
+  }
 }
 void mfd_state::show_radar(bool const gunner, uint32_t const faults) {
   auto &seat{pages[gunner]};
@@ -43,6 +47,8 @@ void mfd_state::show_radar(bool const gunner, uint32_t const faults) {
   } else if(!(faults & fault_bits[gunner][1]) && seat[1] != mfd_page::radar) seat[1] = mfd_page::radar;
 }
 void mfd_state::apply_faults(bool const gunner, uint32_t const faults) {
-  for(size_t side{0}; side != 2; ++side) if((faults & fault_bits[gunner][side]) && pages[gunner][side] != mfd_page::off) pages[gunner][side] = mfd_page::damaged;
+  for(size_t side{0}; side != 2; ++side) {
+    if((faults & fault_bits[gunner][side]) && pages[gunner][side] != mfd_page::off) pages[gunner][side] = mfd_page::damaged;
+  }
 }
 } // namespace apache::simulation
