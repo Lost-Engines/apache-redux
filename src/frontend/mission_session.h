@@ -1,13 +1,13 @@
 #pragma once
-#include "multiplayer_chat.h"
 #include "configuration/graphics.h"
+#include "multiplayer_chat.h"
 #include "render/avionics.h"
 #include "render/landscape.h"
-#include "simulation/control_input.h"
 #include "simulation/communications.h"
+#include "simulation/control_input.h"
 #include "simulation/daylight.h"
-#include "simulation/mission_debrief.h"
 #include "simulation/mission_crew.h"
+#include "simulation/mission_debrief.h"
 #include "simulation/mission_end.h"
 #include "simulation/mission_instruments.h"
 #include "simulation/player_views.h"
@@ -89,12 +89,16 @@ public:
   int32_t network_wait_ticks{0};
   mission_session(resources::data_store const &data, int mission_id, mission_options options = {});
   mission_session(resources::data_store const &data, resources::mission_briefing briefing, mission_options options = {}, resources::mission_definition const *edited = nullptr);
-  mission_options const &launch_options() const { return settings; }
+  mission_options const &launch_options() const {
+    return settings;
+  }
   static resources::mission_briefing quick_start(resources::data_store const &data, int zone);
   mission_session(mission_session const &) = delete;
   mission_session &operator=(mission_session const &) = delete;
   void key(uint16_t scan, bool down, bool dispatch = true);
-  void post(uint16_t key) { commands.push_back(key); }
+  void post(uint16_t key) {
+    commands.push_back(key);
+  }
   void select_view(unsigned int mode);
   void request_end(unsigned int cause);
   void detail(unsigned int level);

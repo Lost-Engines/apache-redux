@@ -1,7 +1,7 @@
 #pragma once
-#include "mission_flight.h"
-#include "mission_combat.h"
 #include "damage.h"
+#include "mission_combat.h"
+#include "mission_flight.h"
 
 namespace apache::simulation {
 struct player_damage_callbacks {

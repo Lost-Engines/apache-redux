@@ -22,7 +22,7 @@ model_instance construct(resources::model_archive const &models, uint32_t const 
   }
   return object;
 }
-} // namespace
+} // anonymous namespace
 model_instance construct_model(resources::model_archive const &models, uint32_t const id, math::pose const &position, std::span<uint32_t const> variable_children) {
   return construct(models, id, position, 0, variable_children);
 }
@@ -161,8 +161,7 @@ int model_renderer::draw_face(resources::primitive const &face, std::span<vertex
   material paint;
   paint.intensity_map = palette.intensity;
   paint.heat_phase = style.heat_phase;
-  if(type == 6) { paint.pattern = fill_pattern::remap; paint.remapping = palette.glass; }
-  else if(type == 21) paint.pattern = fill_pattern::heat_haze;
+  if(type == 6) { paint.pattern = fill_pattern::remap; paint.remapping = palette.glass; } else if(type == 21) paint.pattern = fill_pattern::heat_haze;
   else {
     unsigned int const a{remap(face.attributes[0])}, b{two_colours ? remap(face.attributes[1]) : a};
     paint.colours = (a | (b << 8)) * 0x10001;

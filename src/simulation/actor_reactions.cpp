@@ -12,7 +12,7 @@ int32_t distance2(math::vector3 const &a, math::vector3 const &b) {
   if(y < 0) y = math::negate(y);
   return std::bit_cast<int32_t>(static_cast<uint32_t>(std::max(x, y)) * 4u + static_cast<uint32_t>(std::min(x, y))) >> 2;
 }
-}
+} // anonymous namespace
 bool acquire_attacker(actor_state &actor, actor_armament &armament, actor_type const &type, std::array<weapon_info, 55> const &weapons, uint32_t &war_random, combat_random &weapon_random, actor_reaction_context const &context, actor_reaction_callbacks const &callbacks) {
   if(!(actor.conditions & 0x40) || (actor.conditions & 0x10) || !context.reference) return false;
   if(static_cast<int32_t>((actor.object.status >> 1) & 3) == context.attacker_side) return false;

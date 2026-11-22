@@ -10,7 +10,9 @@ class help_menu {
   void move(int direction);
 public:
   help_menu(resources::data_store const &data, menu &interface);
-  int page() const { return current_page; }
+  int page() const {
+    return current_page;
+  }
   void select(int page);
   void generic(int page);
   bool activate(widget const &object);

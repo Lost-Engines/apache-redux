@@ -71,16 +71,18 @@ joystick_commands control_input::button_commands() const {
   }
   return decode_joystick_buttons(configuration.button_mode, bits, configuration.analogue_hat, position);
 }
-void control_input::key(unsigned int const scan, bool const down) { if(scan < held.size()) held[scan] = down; }
-void control_input::timer(uint32_t const ticks) { for(size_t i{0}; i != held.size(); ++i) if(held[i]) counts[i] += ticks; }
+void control_input::key(unsigned int const scan, bool const down) {
+  if(scan < held.size()) held[scan] = down;
+}
+void control_input::timer(uint32_t const ticks) {
+  for(size_t i{0}; i != held.size(); ++i) if(held[i]) counts[i] += ticks;
+}
 void control_input::update(unsigned int const view_moves, bool const gunner, bool const joystick_alt, bool const throttle_reversed) {
-  static constexpr std::array<std::array<unsigned int, 4>, 6> keys{{{0x10, 0x4e, 0x1e, 0x4a}, {0x2c, 0x52, 0x2d, 0x53}, {0x50, 0x50, 0x48, 0x48}, {0x4d, 0x4d, 0x4b, 0x4b}, {0x11, 0x11, 0x1f, 0x1f}, {0x34, 0x34, 0x33, 0x33}}};
+  static std::array<std::array<unsigned int, 4>, 6> constexpr keys{{{0x10, 0x4e, 0x1e, 0x4a}, {0x2c, 0x52, 0x2d, 0x53}, {0x50, 0x50, 0x48, 0x48}, {0x4d, 0x4d, 0x4b, 0x4b}, {0x11, 0x11, 0x1f, 0x1f}, {0x34, 0x34, 0x33, 0x33}}};
   for(size_t i{0}; i != keys.size(); ++i) {
     auto const &k{keys[i]}; auto const positive{std::max(counts[k[0]], counts[k[1]])}, negative{std::max(counts[k[2]], counts[k[3]])};
     auto &v{keyboard[i]};
-    if(positive || held[k[0]] || held[k[1]]) { v = math::add(std::max(v, 0), std::bit_cast<int32_t>(positive << 25)); if(v < 0) v = INT32_MAX; }
-    else if(negative || held[k[2]] || held[k[3]]) { v = math::subtract(std::min(v, 0), std::bit_cast<int32_t>(negative << 25)); if(v > 0) v = -INT32_MAX; }
-    else v = 0;
+    if(positive || held[k[0]] || held[k[1]]) { v = math::add(std::max(v, 0), std::bit_cast<int32_t>(positive << 25)); if(v < 0) v = INT32_MAX; } else if(negative || held[k[2]] || held[k[3]]) { v = math::subtract(std::min(v, 0), std::bit_cast<int32_t>(negative << 25)); if(v > 0) v = -INT32_MAX; } else v = 0;
     for(auto key : k) counts[key] = 0;
   }
   std::array<int32_t, 4> axes; std::copy_n(keyboard.begin(), 4, axes.begin());

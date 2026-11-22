@@ -8,7 +8,10 @@ struct projectile_launch_state {
   uint32_t random{0};
   int32_t launched_at{0}, impact_at{0}, simple_value{0};
   math::vector3 impact{};
-  projectile_launch_state() { body.seeker.flags = 0; body.motion.flags = 0; }
+  projectile_launch_state() {
+    body.seeker.flags = 0;
+    body.motion.flags = 0;
+  }
 };
 struct projectile_launch_inputs {
   math::pose pose;

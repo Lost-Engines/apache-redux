@@ -55,7 +55,7 @@ std::array<std::string, 3> const &communications::compose(communication_status c
       while(at + 1 < order.size() && messages[i].priority < messages[order[at]].priority) ++at;
       if(messages[order[at]].priority >= messages[i].priority) ++at;
     }
-    order.insert(order.begin() + static_cast<std::ptrdiff_t>(at), i);
+    order.insert(order.begin() + static_cast<ptrdiff_t>(at), i);
   }
   if(order.empty()) {
     char text[96];
@@ -65,8 +65,7 @@ std::array<std::string, 3> const &communications::compose(communication_status c
       std::string const score{text}; lines[1] = std::string(score.size() < 17 ? (17 - score.size()) / 2 : 0, ' ') + score;
       return lines;
     }
-    if(status.infinite_fuel) { lines[0] = "FUEL: INFINITE"; lines[1] = "FLY TIME:  ---:--"; }
-    else {
+    if(status.infinite_fuel) { lines[0] = "FUEL: INFINITE"; lines[1] = "FLY TIME:  ---:--"; } else {
       std::snprintf(text, sizeof(text), "FUEL:       %05d", status.fuel); lines[0] = text;
       std::snprintf(text, sizeof(text), "FLY TIME:  %3d:%02d", status.endurance / 60, status.endurance % 60); lines[1] = text;
     }

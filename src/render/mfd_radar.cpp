@@ -1,6 +1,6 @@
-#include "mfd.h"
 #include <format>
 #include <stdexcept>
+#include "mfd.h"
 
 namespace apache::render {
 namespace {
@@ -23,7 +23,7 @@ void mark(framebuffer &target, projection2 plane, radar_contact const &contact, 
   case 6: line(0, p, 0, n); line(n, n, p, n); break;
   }
 }
-}
+} // anonymous namespace
 void mfd_renderer::radar(framebuffer &target, rectangle const area, radar_instruments const &state, std::span<radar_contact const> const contacts, math::trigonometry const &trig) const {
   if(state.range < 1 || state.range > 0x10000000 || state.corner_range < 0 || state.corner_range > 0x20000000 || state.mark_length < 0 || state.mark_length > 0x10000000 || state.range_index > 2 || state.threat < 1 || state.threat > 4 || state.target_distance < 0) throw std::runtime_error{"Invalid radar instrument state"};
   off(target, area);

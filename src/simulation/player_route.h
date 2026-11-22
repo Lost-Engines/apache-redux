@@ -1,7 +1,7 @@
 #pragma once
-#include "resources/missions.h"
 #include <functional>
 #include <span>
+#include "resources/missions.h"
 
 namespace apache::simulation {
 struct route_events {

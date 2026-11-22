@@ -1,6 +1,6 @@
 #pragma once
-#include "menu.h"
 #include "configuration/profiles.h"
+#include "menu.h"
 
 namespace apache::frontend {
 class pilot_menu {

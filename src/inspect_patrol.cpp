@@ -1,13 +1,14 @@
 #include "inspect_patrol.h"
-#include "simulation/combat_air_patrol.h"
 #include <istream>
-#include <ostream>
 #include <map>
+#include <ostream>
 #include <stdexcept>
 #include <string>
+#include "simulation/combat_air_patrol.h"
 
 void inspect_patrol(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
+  namespace math = apache::math;
+  namespace simulation = apache::simulation;
   math::trigonometry const trig{data}; auto const weapons{simulation::weapon_definitions()};
   auto const read{[&](auto &v){ for(auto &x : v) input >> x; }};
   auto const print{[&](auto const &v){ for(auto x : v) output << ' ' << x; }};
@@ -36,7 +37,7 @@ void inspect_patrol(std::istream &input, std::ostream &output, apache::resources
       unsigned int const side{(actor.object.status & 6) == 2 ? 0u : 1u}; contacts.assigned.at(side).at(slot) = target(100, {});
       input >> count; if(count > 40) throw std::runtime_error{"Too many patrol contacts"};
       for(size_t i{0}; i != count; ++i) { math::vector3 p; read(p); contacts.visible[side].push_back(target(static_cast<uint32_t>(i + 1), p)); }
-      auto const t{simulation::select_patrol_target(contacts, actor, attention, path, slot, now, trig, [&](){ event({1}); contacts.last_scan = now; }, [](auto const &p){ return p.position; })};
+      auto const t{simulation::select_patrol_target(contacts, actor, attention, path, slot, now, trig, [&]{ event({1}); contacts.last_scan = now; }, [](auto const &p){ return p.position; })};
       output << id(t) << ' ' << id(contacts.assigned.at(side).at(slot)) << ' ' << contacts.last_scan;
     } else if(op == "acquire") {
       simulation::actor_state actor; simulation::actor_armament arms; int32_t now{0}, floor{0}, radar_status{0}; unsigned int weapon{0}; bool has_target{false}, basic{false}, selection{false}, radar_present{false};
@@ -45,13 +46,13 @@ void inspect_patrol(std::istream &input, std::ostream &output, apache::resources
       for(uint32_t i{1}; i != 6; ++i) { unsigned int kind{0}; math::vector3 p; input >> kind >> classes[i]; read(p); refs[i] = target(i, p, static_cast<simulation::target_kind>(kind)); }
       if(has_target) arms.target = refs[1];
       simulation::patrol_acquisition_callbacks cb; cb.radar.position = [](auto const &t){ return t.position; };
-      cb.basic = [&](){ event({1}); if(basic) arms.target = refs[2]; };
-      cb.weapon_range = [&](){ event({2}); return weapons.at(weapon).maximum_range; };
+      cb.basic = [&]{ event({1}); if(basic) arms.target = refs[2]; };
+      cb.weapon_range = [&]{ event({2}); return weapons.at(weapon).maximum_range; };
       cb.radar.floor = [&](math::vector3 const &p, unsigned int side){ event({3, side, p[0], p[1]}); return floor; };
       cb.radar.radar = [&](math::vector3 const &p, unsigned int side){ event({4, side, p[0], p[1]}); return radar_present ? refs[5] : nullptr; };
       cb.radar.status = [&](auto const &t){ event({5, t.identity.index}); return radar_status; };
       cb.fixed = [&](math::vector3 const &p){ event({6, p[0], p[1], p[2]}); refs[6] = target(6, p, simulation::target_kind::fixed); return refs[6]; };
-      cb.released = [&](){ event({7}); }; cb.select = [&](){ event({8, (actor.object.status & 6) == 2 ? 1 : 2}); return selection ? refs[3] : nullptr; }; cb.actor_class = [&](auto const &t){ return classes.at(t.identity.index); };
+      cb.released = [&]{ event({7}); }; cb.select = [&]{ event({8, (actor.object.status & 6) == 2 ? 1 : 2}); return selection ? refs[3] : nullptr; }; cb.actor_class = [&](auto const &t){ return classes.at(t.identity.index); };
       simulation::acquire_patrol_target(actor, arms, refs[4], now, cb);
       output << actor.conditions << ' ' << actor.retreat_until << ' ' << id(arms.target);
     } else throw std::runtime_error{"Unknown patrol command"};

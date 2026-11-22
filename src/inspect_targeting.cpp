@@ -1,21 +1,29 @@
 #include "inspect_targeting.h"
-#include "simulation/player_targeting.h"
-#include "simulation/player_route.h"
 #include <iomanip>
 #include <istream>
 #include <ostream>
 #include <stdexcept>
 #include <vector>
+#include "simulation/player_route.h"
+#include "simulation/player_targeting.h"
 
 void inspect_targeting(apache::resources::data_store const &data, std::istream &input, std::ostream &output) {
-  using namespace apache; using namespace simulation;
-  math::trigonometry trig{data}; std::string command;
+    using apache::simulation::player_route;
+  using apache::simulation::player_targeting;
+  using apache::simulation::radar_target_priority;
+  using apache::simulation::route_events;
+  using apache::simulation::target_description;
+  using apache::simulation::target_kind;
+  using apache::simulation::target_priority_inputs;
+  using apache::simulation::target_reference;
+  using apache::simulation::targeting_events;
+  apache::math::trigonometry trig{data}; std::string command;
   while(input >> command) {
     if(command == "route") {
-      player_route state; unsigned int action{0}, count{0}, mode{0}, key{0}, surface{0}; int index{-1}; bool handled{false}; math::vector3 position;
+      player_route state; unsigned int action{0}, count{0}, mode{0}, key{0}, surface{0}; int index{-1}; bool handled{false}; apache::math::vector3 position;
       input >> action >> count >> index >> state.last_distance >> state.landing_message >> mode >> key >> handled >> surface;
       for(auto &v : position) input >> v;
-      std::vector<resources::route_waypoint> path(count);
+      std::vector<apache::resources::route_waypoint> path(count);
       for(auto &point : path) { input >> point.type; for(auto &v : point.position) input >> v; }
       std::optional<size_t> current; if(index >= 0) current = static_cast<size_t>(index);
       std::vector<int64_t> calls; route_events callbacks;
@@ -38,7 +46,7 @@ void inspect_targeting(apache::resources::data_store const &data, std::istream &
       std::vector<int64_t> events; targeting_events callbacks;
       callbacks.key_event = [&](uint16_t k){ events.insert(events.end(), {1, k}); return handled; };
       callbacks.cockpit_sound = [&](unsigned int id){ events.insert(events.end(), {2, id}); };
-      callbacks.show_radar = [&](){ events.insert(events.end(), {3, 0}); };
+      callbacks.show_radar = [&]{ events.insert(events.end(), {3, 0}); };
       if(command == "cycle-target") state.cycle_target(value != 0, mode);
       else if(command == "auto") state.toggle_automatic(mode, faults);
       else if(command == "lock") state.toggle_lock(static_cast<uint16_t>(key), mode, faults, callbacks);

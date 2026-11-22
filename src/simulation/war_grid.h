@@ -6,8 +6,12 @@ struct war_sector {
   shared_target radar;
   std::array<int32_t, 9> floor;
   contact_bucket air, ground;
-  war_sector() { floor.fill(INT32_MAX); }
-  bool empty() const { return !radar && !air.count && !ground.count; }
+  war_sector() {
+    floor.fill(INT32_MAX);
+  }
+  bool empty() const {
+    return !radar && !air.count && !ground.count;
+  }
 };
 struct war_contact {
   shared_target target;
@@ -31,7 +35,11 @@ public:
   shared_target radar(int32_t x, int32_t y, unsigned int side) const;
   int32_t floor(int32_t x, int32_t y, unsigned int side) const;
   int32_t status(int32_t sector_x, int32_t sector_y, unsigned int side, std::function<int32_t(target_reference const &)> const &target_status) const;
-  std::array<size_t, 2> const &counts() const { return used; }
-  std::array<size_t, 2> const &peak_counts() const { return maximum; }
+  std::array<size_t, 2> const &counts() const {
+    return used;
+  }
+  std::array<size_t, 2> const &peak_counts() const {
+    return maximum;
+  }
 };
 } // namespace apache::simulation

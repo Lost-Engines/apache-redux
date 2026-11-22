@@ -1,8 +1,8 @@
 #pragma once
-#include "mission_targets.h"
 #include "actor_reactions.h"
-#include "combat_air_patrol.h"
 #include "battles.h"
+#include "combat_air_patrol.h"
+#include "mission_targets.h"
 
 namespace apache::simulation {
 struct mission_combat_callbacks {

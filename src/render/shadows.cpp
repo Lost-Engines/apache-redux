@@ -4,12 +4,14 @@
 
 namespace apache::render {
 namespace {
-int32_t times_eight(int32_t const value) { return std::bit_cast<int32_t>(static_cast<uint32_t>(value) << 3); }
+int32_t times_eight(int32_t const value) {
+  return std::bit_cast<int32_t>(static_cast<uint32_t>(value) << 3);
+}
 resources::model const &model_at(resources::model_archive const &models, uint32_t const id) {
   if(id >= models.size() || !models[id]) throw std::runtime_error{"Unavailable shadow model"};
   return *models[id];
 }
-} // namespace
+} // anonymous namespace
 shadow_projection::shadow_projection(resources::terrain const &heights, math::trigonometry const &trig, sky_lighting const &light) : terrain{heights} {
   auto const pitch{static_cast<uint32_t>(std::min(std::bit_cast<int32_t>(light.pitch), -0x71c71c7))};
   int32_t const sine{trig.sine(pitch)}, cosine{trig.cosine(pitch)};

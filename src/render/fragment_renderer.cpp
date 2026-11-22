@@ -8,7 +8,7 @@ void fracture_parts(model_instance const &object, simulation::fragments &fragmen
   fragments.create(object.id, object.flags, object.world, seed);
   for(auto const &child : object.children) if(child) fracture_parts(*child, fragments, seed);
 }
-} // namespace
+} // anonymous namespace
 void fracture_model(model_instance &object, simulation::fragments &fragments, uint32_t &random_seed) {
   // Children retain the transform established by their most recent maintenance.
   // Advancing the attachments here changes the original crash/debris poses.

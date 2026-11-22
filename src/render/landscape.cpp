@@ -45,7 +45,9 @@ void landscape::refresh_scenery(size_t const index) {
   }
   cached = source; object.flags = source.animation; object.alternate_colours = (source.status & 0x2000) != 0;
 }
-uint8_t landscape::surface_type(int32_t const x, int32_t const y) const { return resources::surface_type(features, super_features, x, y); }
+uint8_t landscape::surface_type(int32_t const x, int32_t const y) const {
+  return resources::surface_type(features, super_features, x, y);
+}
 void landscape::advance(int32_t const delta_time, uint32_t &random_seed) {
   if(delta_time < 0) throw std::runtime_error{"Visual time cannot run backwards"};
   craters.advance(); effects.advance(delta_time, terrain);

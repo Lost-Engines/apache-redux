@@ -1,6 +1,6 @@
 #pragma once
-#include "mission_combat.h"
 #include "countermeasures.h"
+#include "mission_combat.h"
 #include "projectile_tracking.h"
 
 namespace apache::simulation {

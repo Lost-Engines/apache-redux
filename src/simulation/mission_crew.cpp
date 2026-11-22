@@ -13,7 +13,9 @@ mission_crew::mission_crew(mission_runtime &mission, mission_network &connection
   }
   network.state.crew_received = [this](uint32_t, auto const &state){ receive(state); };
 }
-mission_crew::~mission_crew() { network.state.crew_received = {}; }
+mission_crew::~mission_crew() {
+  network.state.crew_received = {};
+}
 void mission_crew::receive(multiplayer::crew_state const &state) {
   if(!runtime.pilot || !runtime.player_armament || !runtime.sensors || !runtime.spatial.player) return;
   auto &pilot{*runtime.pilot}; auto &arm{*runtime.player_armament}; auto &sensors{*runtime.sensors};

@@ -1,7 +1,7 @@
 #include "projection.h"
 #include <algorithm>
-#include <cstdlib>
 #include <cmath>
+#include <cstdlib>
 #include <numbers>
 #include <optional>
 #include <stdexcept>
@@ -44,7 +44,7 @@ int cross_sign(vertex3 const &a, vertex3 const &b, vertex3 const &c) {
   int64_t const cross{int64_t{a.screen.x - b.screen.x} * (b.screen.y - c.screen.y) - int64_t{b.screen.x - c.screen.x} * (a.screen.y - b.screen.y)};
   return static_cast<int>(cross >> 32);
 }
-} // namespace
+} // anonymous namespace
 uint8_t outcode(math::vector3 const &point) {
   std::array<uint8_t, 18> constexpr codes{0, 8, 4, 2, 10, 6, 1, 9, 5, 0x8f, 0x8b, 0x87, 0x8e, 0x8a, 0x86, 0x8d, 0x89, 0x85};
   unsigned int index{point[1] < 1 ? 9u : 0u};
@@ -100,13 +100,15 @@ math::vector3 projection::scale(math::vector3 eye) const {
     eye[0] = bounded(eye[0] * horizontal_factor); eye[2] = bounded(eye[2] * vertical_factor);
   }
   // Retain the reference scale for fog and undo this shear before unprojecting.
-  if(reference_height != height || vertical_offset)
+  if(reference_height != height || vertical_offset) {
     eye[2] = static_cast<int32_t>(std::clamp((int64_t{eye[2]} * reference_height + int64_t{eye[1]} * vertical_offset) / height, int64_t{INT32_MIN}, int64_t{INT32_MAX}));
+  }
   return eye;
 }
 math::vector3 projection::unframe(math::vector3 eye) const {
-  if(reference_height != height || vertical_offset)
+  if(reference_height != height || vertical_offset) {
     eye[2] = static_cast<int32_t>(std::clamp((int64_t{eye[2]} * height - int64_t{eye[1]} * vertical_offset) / reference_height, int64_t{INT32_MIN}, int64_t{INT32_MAX}));
+  }
   return eye;
 }
 vertex3 projection::prepare(math::vector3 eye, int32_t const u, int32_t const v, int32_t const intensity) const {
@@ -118,7 +120,7 @@ vertex3 projection::prepare(math::vector3 eye, int32_t const u, int32_t const v,
 std::optional<screen_vertex> projection::project_unclipped(math::vector3 eye) const {
   if(eye[1] <= 0) return {};
   eye = scale(eye);
-  auto const coordinate{[&](int32_t const side, int const extent) -> std::optional<int32_t> {
+  auto const coordinate{[&](int32_t const side, int const extent)->std::optional<int32_t> {
     int64_t const product{int64_t{math::add(side, eye[1])} * extent};
     if((static_cast<uint64_t>(std::abs(product)) >> 32) >= static_cast<uint32_t>(eye[1])) return {};
     int64_t const result{(product >> 1) / eye[1]};
@@ -131,8 +133,9 @@ std::optional<screen_vertex> projection::project_unclipped(math::vector3 eye) co
 }
 math::vector3 projection::unmagnify(math::vector3 eye) const {
   eye = unframe(eye);
-  if(horizontal_factor != 1) for(auto axis : {0, 2})
+  if(horizontal_factor != 1) for(auto axis : {0, 2}) {
     eye[axis] = static_cast<int32_t>(std::clamp(std::round(eye[axis] / horizontal_factor), double{INT32_MIN}, double{INT32_MAX}));
+  }
   return eye;
 }
 math::vector3 projection::unscale(math::vector3 eye) const {

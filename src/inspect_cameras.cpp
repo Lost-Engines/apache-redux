@@ -1,27 +1,40 @@
 #include "inspect_cameras.h"
-#include "simulation/camera_geometry.h"
-#include "simulation/view_modes.h"
-#include "simulation/player_views.h"
-#include "simulation/daylight.h"
-#include "simulation/sight_geometry.h"
-#include <memory>
 #include <iomanip>
 #include <istream>
+#include <memory>
 #include <ostream>
 #include <stdexcept>
+#include "simulation/camera_geometry.h"
+#include "simulation/daylight.h"
+#include "simulation/player_views.h"
+#include "simulation/sight_geometry.h"
+#include "simulation/view_modes.h"
 
 void inspect_cameras(apache::resources::data_store const &data, std::istream &input, std::ostream &output) {
-  using namespace apache; using namespace simulation;
-  math::trigonometry trig{data}; resources::executable_data executable{data}; std::string kind;
+    using apache::simulation::camera_geometry;
+  using apache::simulation::camera_input;
+  using apache::simulation::chain_gun_impact;
+  using apache::simulation::look_camera;
+  using apache::simulation::optical_devices;
+  using apache::simulation::orbit_camera;
+  using apache::simulation::player_targeting;
+  using apache::simulation::player_views;
+  using apache::simulation::view_context;
+  using apache::simulation::view_events;
+  using apache::simulation::view_modes;
+  using apache::simulation::view_sources;
+  using apache::simulation::view_subject;
+  using apache::simulation::view_target;
+  apache::math::trigonometry trig{data}; apache::resources::executable_data executable{data}; std::string kind;
   std::unique_ptr<player_views> views; player_targeting targeting; uint32_t seed{1}; int32_t floor{0};
   while(input >> kind) {
     if(kind == "daylight") {
       int32_t time{0}, now{0}, update{0}; input >> time >> now >> update;
-      simulation::daylight state{executable, time, now}; state.update(update);
+      apache::simulation::daylight state{executable, time, now}; state.update(update);
       output << state.light.heading << ' ' << state.light.pitch << ' ' << state.light.night << ' ' << state.night_vision() << '\n'; continue;
     }
     if(kind == "gun-impact") {
-      math::pose barrel; int32_t speed{0}, ground{0}; bool selected{false}; math::vector3 intercept;
+      apache::math::pose barrel; int32_t speed{0}, ground{0}; bool selected{false}; apache::math::vector3 intercept;
       input >> speed >> ground >> selected; for(auto &v : barrel.position) input >> v; for(auto &v : barrel.rotation) input >> v; for(auto &v : intercept) input >> v;
       auto const result{chain_gun_impact(barrel, speed, selected ? std::optional{intercept} : std::nullopt, [&](int32_t, int32_t){ return ground; })};
       output << result[0] << ' ' << result[1] << ' ' << result[2] << '\n'; continue;
@@ -34,14 +47,14 @@ void inspect_cameras(apache::resources::data_store const &data, std::istream &in
       if(!views) throw std::runtime_error{"Camera sequence not initialised"};
       auto &v{*views}; view_sources sources; camera_input controls; unsigned int action{0}, value{0}, target_kind{0}, valid{0}, targets{0}, locks{0}; bool drone{false};
       input >> action >> value >> controls.delta >> controls.turn >> controls.pitch >> controls.zoom >> sources.faults >> targeting.locked >> targeting.tads >> targeting.automatic >> target_kind >> drone >> valid >> targets >> locks;
-      auto const read_pose{[&](math::pose &pose){ for(auto &i : pose.position) input >> i; for(auto &i : pose.rotation) input >> i; }};
+      auto const read_pose{[&](apache::math::pose &pose){ for(auto &i : pose.position) input >> i; for(auto &i : pose.rotation) input >> i; }};
       sources.player.model = 208; sources.player.radius = 5000; read_pose(sources.player.position);
       view_target aim; aim.height = 12000; for(auto &i : aim.position) input >> i;
-      targeting.current.identity.kind = static_cast<simulation::target_kind>(target_kind); if(target_kind || targeting.locked) sources.target = aim;
+      targeting.current.identity.kind = static_cast<apache::simulation::target_kind>(target_kind); if(target_kind || targeting.locked) sources.target = aim;
       view_subject other; other.model = 34; other.radius = 7000; read_pose(other.position); if(drone) sources.drone = other;
       std::array<view_subject, 2> rounds; rounds[0].model = 103; rounds[1].model = 607; for(auto &round : rounds) read_pose(round.position);
-      sources.weapon = [&](size_t i) -> std::optional<view_subject> { return (valid & (1u << i)) ? std::optional{rounds.at(i)} : std::nullopt; };
-      sources.weapon_target = [&](size_t) -> std::optional<view_target> { return aim; };
+      sources.weapon = [&](size_t i)->std::optional<view_subject> { return (valid & (1u << i)) ? std::optional{rounds.at(i)} : std::nullopt; };
+      sources.weapon_target = [&](size_t)->std::optional<view_target> { return aim; };
       v.context.has_target = [&](size_t i){ return (targets & (1u << i)) != 0; }; v.context.has_lock = [&](size_t i){ return (locks & (1u << i)) != 0; };
       for(size_t i{0}; i != 2; ++i) if(!(valid & (1u << i))) v.removed(i);
       int crash_event{0}; v.crashed = [&](bool air){ crash_event = air ? 2 : 1; };
@@ -76,7 +89,7 @@ void inspect_cameras(apache::resources::data_store const &data, std::istream &in
       if(action == 0) state.select(value, faults); else if(action == 1) state.cycle(view, faults); else if(action == 2) state.check(faults); else state.zoom(view, value != 0);
       output << state.device; for(auto v : state.selected) output << ' ' << v; auto const &level{state.magnification()}; output << ' ' << level.distance << ' ' << level.rate << ' ' << std::quoted(state.name()) << ' ' << std::quoted(level.label) << '\n'; continue;
     }
-    orbit_camera state; camera_input controls; math::pose body, result; math::vector3 target; uint32_t model{0}; int32_t radius{0}, target_height{0}, floor{0}, rate{0}, distance{0}; bool locked{false};
+    orbit_camera state; camera_input controls; apache::math::pose body, result; apache::math::vector3 target; uint32_t model{0}; int32_t radius{0}, target_height{0}, floor{0}, rate{0}, distance{0}; bool locked{false};
     input >> state.heading >> state.pitch >> state.zoom >> controls.delta >> controls.turn >> controls.pitch >> controls.zoom >> model >> radius >> target_height >> floor;
     for(auto &v : body.position) input >> v; for(auto &v : body.rotation) input >> v; for(auto &v : target) input >> v; input >> locked >> rate >> distance;
     camera_geometry camera{trig, [&](int32_t, int32_t){ return floor; }};
@@ -87,10 +100,9 @@ void inspect_cameras(apache::resources::data_store const &data, std::istream &in
     else if(kind == "missile") result = camera.missile_target(body.position, target, target_height);
     else if(kind == "target") result = camera.target_lock(body.position, target);
     else if(kind == "crash") result = camera.crash(state, body.position, locked, controls.delta);
-    else if(kind == "magnify") { result = body; camera.magnify(result, distance); }
-    else if(kind == "helmet" || kind == "goggles") {
+    else if(kind == "magnify") { result = body; camera.magnify(result, distance); } else if(kind == "helmet" || kind == "goggles") {
       look_camera look{std::bit_cast<int32_t>(state.heading), state.pitch};
-      std::optional<math::vector3> aim; if(locked) aim = target;
+      std::optional<apache::math::vector3> aim; if(locked) aim = target;
       result = kind == "helmet" ? camera.helmet(look, body, controls, aim) : camera.goggles(look, body, controls, aim, rate, distance);
       state.heading = static_cast<uint32_t>(look.heading); state.pitch = look.pitch;
     } else throw std::runtime_error{"Unknown camera geometry command"};

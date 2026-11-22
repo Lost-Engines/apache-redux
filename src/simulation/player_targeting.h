@@ -1,8 +1,8 @@
 #pragma once
-#include "targets.h"
 #include <functional>
 #include <span>
 #include <string>
+#include "targets.h"
 
 namespace apache::simulation {
 struct target_priority_inputs {

@@ -1,25 +1,22 @@
 #include "inspect_war_grid.h"
-#include "simulation/war_grid.h"
-#include "resources/terrain.h"
 #include <istream>
-#include <ostream>
 #include <map>
+#include <ostream>
 #include <stdexcept>
 #include <string>
+#include "resources/terrain.h"
+#include "simulation/war_grid.h"
 
 void inspect_war_grid(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
-  auto grid{std::make_unique<simulation::war_grid>()}; std::unique_ptr<resources::terrain> terrain;
+  namespace simulation = apache::simulation;
+  auto grid{std::make_unique<simulation::war_grid>()}; std::unique_ptr<apache::resources::terrain> terrain;
   std::map<uint32_t, simulation::war_contact> contacts;
   auto const target{[&](uint32_t id){ auto &c{contacts[id]}; if(!c.target) c.target = std::make_shared<simulation::target_reference>(simulation::target_reference{{simulation::target_kind::mobile, 0, id}, {}, 0}); return c.target; }};
   auto const id{[](simulation::shared_target const &t){ return t ? t->identity.index : 0; }};
   std::string op;
   while(input >> op) {
-    if(op == "reset") { std::string zone; input >> zone; terrain = std::make_unique<resources::terrain>(data.read(zone + ".WZ/GRIDPOST.BIN")); grid = std::make_unique<simulation::war_grid>(); contacts.clear(); }
-    else if(op == "metadata") { for(uint32_t model{0}; model != 1315; ++model) output << simulation::radar_model(model) << ' ' << simulation::radar_range(model) << ' ' << simulation::radar_floor(model) << ' '; output << '\n'; }
-    else if(op == "height") { int32_t x{0}, y{0}; input >> x >> y; if(!terrain) throw std::runtime_error{"No terrain"}; output << terrain->approximate_elevation(x, y) << '\n'; }
-    else if(op == "radar") {
-      uint32_t tid{0}, model{0}, side{0}; int32_t x{0}, y{0}; math::vector3 p; input >> tid >> model >> side >> x >> y; for(auto &v : p) input >> v;
+    if(op == "reset") { std::string zone; input >> zone; terrain = std::make_unique<apache::resources::terrain>(data.read(zone + ".WZ/GRIDPOST.BIN")); grid = std::make_unique<simulation::war_grid>(); contacts.clear(); } else if(op == "metadata") { for(uint32_t model{0}; model != 1315; ++model) output << simulation::radar_model(model) << ' ' << simulation::radar_range(model) << ' ' << simulation::radar_floor(model) << ' '; output << '\n'; } else if(op == "height") { int32_t x{0}, y{0}; input >> x >> y; if(!terrain) throw std::runtime_error{"No terrain"}; output << terrain->approximate_elevation(x, y) << '\n'; } else if(op == "radar") {
+      uint32_t tid{0}, model{0}, side{0}; int32_t x{0}, y{0}; apache::math::vector3 p; input >> tid >> model >> side >> x >> y; for(auto &v : p) input >> v;
       if(!terrain) throw std::runtime_error{"No terrain"};
       auto t{target(tid)}; t->position = p; grid->insert_radar(x, y, side, t, model, p, [&](int32_t a, int32_t b){ return terrain->approximate_elevation(a, b); });
     } else if(op == "contact") {

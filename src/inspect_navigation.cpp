@@ -1,12 +1,13 @@
 #include "inspect_navigation.h"
-#include "simulation/actor_navigation.h"
 #include <istream>
 #include <ostream>
 #include <stdexcept>
+#include "simulation/actor_navigation.h"
 
 void inspect_navigation(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
-  math::trigonometry const trig{data}; simulation::navigation_tables const tables{resources::executable_data{data}};
+  namespace math = apache::math;
+  namespace simulation = apache::simulation;
+  math::trigonometry const trig{data}; simulation::navigation_tables const tables{apache::resources::executable_data{data}};
   bool ship{false}; size_t type{0};
   while(input >> ship >> type) {
     simulation::actor_state unit; simulation::navigation_order order;

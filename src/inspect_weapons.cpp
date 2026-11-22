@@ -17,7 +17,22 @@ void inspect_weapon_definitions(std::ostream &output) {
   }
 }
 void inspect_weapon_rules(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache::simulation;
+  using apache::simulation::acquisition_delay;
+  using apache::simulation::actor_types;
+  using apache::simulation::can_fire;
+  using apache::simulation::combat_random;
+  using apache::simulation::combat_tables;
+  using apache::simulation::damage_context;
+  using apache::simulation::fire_conditions;
+  using apache::simulation::firing_interval;
+  using apache::simulation::projectile_damage;
+  using apache::simulation::projectile_expired;
+  using apache::simulation::projectile_motion;
+  using apache::simulation::select_air_weapon;
+  using apache::simulation::select_ground_weapon;
+  using apache::simulation::update_projectile_speed;
+  using apache::simulation::weapon_definitions;
+  using apache::simulation::weapon_selection;
   auto const weapons{weapon_definitions()}; auto const actors{actor_types()};
   combat_tables const tables{apache::resources::executable_data{data}};
   std::string operation;

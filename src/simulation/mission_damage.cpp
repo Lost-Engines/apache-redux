@@ -17,8 +17,7 @@ damage_recipient mission_damage::read(target_identity const &id) const {
   return result;
 }
 void mission_damage::write(target_identity const &id, damage_recipient const &state) {
-  if(id.kind == target_kind::scenery) { auto &object{(id.layer ? scenery.extra : scenery.base).at(id.index)}; object.status = static_cast<uint16_t>(state.flags); }
-  else { mobiles.at(id.index).status = state.flags; if(auto i{spatial.actor_index(id.index)}) combat.attention[*i].damage = state.damage; }
+  if(id.kind == target_kind::scenery) { auto &object{(id.layer ? scenery.extra : scenery.base).at(id.index)}; object.status = static_cast<uint16_t>(state.flags); } else { mobiles.at(id.index).status = state.flags; if(auto i{spatial.actor_index(id.index)}) combat.attention[*i].damage = state.damage; }
 }
 void mission_damage::kill(target_identity const &id, target_identity const &source) {
   if(id.kind == target_kind::scenery) {
@@ -42,13 +41,11 @@ void mission_damage::kill(target_identity const &id, target_identity const &sour
   for(size_t child{0}; child != actor.object.children.size(); ++child) if(auto &object{actor.object.children[child]}) {
     std::optional<size_t> occupant;
     for(auto const &carrier : actors.carriers) if(carrier.actor == *index) for(auto const &slot : carrier.slots) if(slot.attachment == child) occupant = slot.occupant;
-    if(occupant) { object->status |= 1; actors.units[*occupant].object.status |= 1; combat.kill(*occupant); }
-    else { render::maintain_model(actor.object); explosions.mobile(object->id, object->world, false); }
+    if(occupant) { object->status |= 1; actors.units[*occupant].object.status |= 1; combat.kill(*occupant); } else { render::maintain_model(actor.object); explosions.mobile(object->id, object->world, false); }
   }
 }
 void mission_damage::partial(target_identity const &id) {
-  if(id.kind == target_kind::scenery) { auto &object{(id.layer ? scenery.extra : scenery.base).at(id.index)}; explosions.ground(object, {object.x, object.y, 0}, true); }
-  else { auto const &object{mobiles.at(id.index)}; explosions.mobile(object.id, object.world, true); }
+  if(id.kind == target_kind::scenery) { auto &object{(id.layer ? scenery.extra : scenery.base).at(id.index)}; explosions.ground(object, {object.x, object.y, 0}, true); } else { auto const &object{mobiles.at(id.index)}; explosions.mobile(object.id, object.world, true); }
 }
 void mission_damage::auxiliary(target_identity const &id, projectile_record const &round) {
   auto const recipient{read(id)}; if(!(models.at(recipient.model)->metadata[7] & 1)) return;
@@ -57,8 +54,7 @@ void mission_damage::auxiliary(target_identity const &id, projectile_record cons
   bool const player_source{spatial.player && equivalent_targets(round.source, *spatial.targets[*spatial.player])};
   if(player_source) {
     if(events.score) events.score(static_cast<int32_t>(recipient.model));
-    if(side == 1) { sound(friendly_fire < 3 ? 0x4a : 0x4b, true); if(events.message) events.message(friendly_fire < 3 ? "HIT ALLIED TARGET" : "CEASE FIRE"); ++friendly_fire; }
-    else if(weapon_random.next() % 10 < 2) {
+    if(side == 1) { sound(friendly_fire < 3 ? 0x4a : 0x4b, true); if(events.message) events.message(friendly_fire < 3 ? "HIT ALLIED TARGET" : "CEASE FIRE"); ++friendly_fire; } else if(weapon_random.next() % 10 < 2) {
       auto const id{round.state.weapon};
       if(id >= 1 && id <= 6) sound(id == 1 ? 0x43 : id <= 3 ? 0x40 : id <= 5 ? 0x41 : 0x42, true);
     } else if(weapon_random.next() % 10 > 8) sound(0x44, true);
@@ -96,10 +92,10 @@ void mission_damage::impact(projectile_record &round, projectile_event_info cons
   }};
   blast_callbacks callbacks;
   callbacks.read = [&](auto const &id){ return read(id); }; callbacks.write = [&](auto const &id, auto const &state){ write(id, state); };
-  callbacks.action = [&](auto const &id, damage_action action){ effects([&](){ if(action == damage_action::kill) kill(id, round.source.identity); else if(events.player) events.player(action, round.source.identity); }); };
-  callbacks.partial_explosion = [&](auto const &id){ effects([&](){ partial(id); }); };
-  callbacks.auxiliary = [&](auto const &id){ effects([&](){ auxiliary(id, round); }); };
-  callbacks.weapon_explosion = [&](auto const &position){ effects([&](){ explosions.weapon(round.state.weapon, round.state.body.pose, false, false, position); }); };
+  callbacks.action = [&](auto const &id, damage_action action){ effects([&]{ if(action == damage_action::kill) kill(id, round.source.identity); else if(events.player) events.player(action, round.source.identity); }); };
+  callbacks.partial_explosion = [&](auto const &id){ effects([&]{ partial(id); }); };
+  callbacks.auxiliary = [&](auto const &id){ effects([&]{ auxiliary(id, round); }); };
+  callbacks.weapon_explosion = [&](auto const &position){ effects([&]{ explosions.weapon(round.state.weapon, round.state.body.pose, false, false, position); }); };
   blast_damage blast{round.state.weapon, source, environment, random, models, structures, mobiles, callbacks};
   if(event.target) blast.hit(*event.target, event.position); else blast.detonate(event.position);
   weapon_random.value = random.weapon; weapon_random.global_seed = war_random.global_seed = random.global; round.state.random = random.round;

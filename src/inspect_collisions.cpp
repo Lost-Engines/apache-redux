@@ -1,25 +1,28 @@
 #include "inspect_collisions.h"
-#include "simulation/collisions.h"
-#include "simulation/target_visibility.h"
-#include <map>
-#include "simulation/actor_movement.h"
 #include <algorithm>
 #include <istream>
+#include <map>
 #include <memory>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include "simulation/actor_movement.h"
+#include "simulation/collisions.h"
+#include "simulation/target_visibility.h"
 
 void inspect_collisions(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
+  namespace math = apache::math;
+  namespace render = apache::render;
+  namespace resources = apache::resources;
+  namespace simulation = apache::simulation;
   auto const models{resources::read_models(data.read("3DDATA/3DOBJS.BIN"))};
   math::trigonometry const trig{data}; render::mobile_scene mobiles{models}; simulation::craters craters;
   std::vector<resources::scenery_placement> scenery, extra;
   std::unique_ptr<simulation::scenery_collisions> collisions;
   std::optional<resources::terrain> terrain;
   int32_t tallest_crater{0}; for(auto id : {11, 257, 385, 62}) tallest_crater = std::max(tallest_crater, models.at(id)->height);
-  auto const point{[&](){ math::vector3 p; for(auto &v : p) input >> v; return p; }};
-  auto const pose{[&](){ auto p{point()}; uint32_t h{0}, pitch{0}, r{0}; input >> h >> pitch >> r; return math::pose{p, trig.transformation(h, pitch, r)}; }};
+  auto const point{[&]{ math::vector3 p; for(auto &v : p) input >> v; return p; }};
+  auto const pose{[&]{ auto p{point()}; uint32_t h{0}, pitch{0}, r{0}; input >> h >> pitch >> r; return math::pose{p, trig.transformation(h, pitch, r)}; }};
   auto const ignored{[&]()->std::optional<uint32_t>{ int64_t id{-1}; input >> id; return id < 0 ? std::nullopt : std::optional{static_cast<uint32_t>(id)}; }};
   auto const ignored_scenery{[&]()->std::optional<std::array<size_t, 2>>{ int64_t layer{-1}, id{-1}; input >> layer >> id; return layer < 0 || id < 0 ? std::nullopt : std::optional{std::array{static_cast<size_t>(layer), static_cast<size_t>(id)}}; }};
   auto const print_scenery{[&](std::optional<simulation::scenery_hit> const &hit){

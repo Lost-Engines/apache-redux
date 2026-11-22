@@ -4,8 +4,12 @@
 
 namespace apache::simulation {
 namespace {
-int32_t multiply(int32_t const a, int32_t const b) { return std::bit_cast<int32_t>(static_cast<uint32_t>(a) * static_cast<uint32_t>(b)); }
-int32_t magnitude(int32_t const a) { return a < 0 ? math::negate(a) : a; }
+int32_t multiply(int32_t const a, int32_t const b) {
+  return std::bit_cast<int32_t>(static_cast<uint32_t>(a) * static_cast<uint32_t>(b));
+}
+int32_t magnitude(int32_t const a) {
+  return a < 0 ? math::negate(a) : a;
+}
 }
 math::vector3 chain_gun_impact(math::pose const &barrel, int32_t const speed, std::optional<math::vector3> const &intercept, std::function<int32_t(int32_t, int32_t)> const &height) {
   if(intercept) return *intercept;

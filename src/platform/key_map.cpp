@@ -54,4 +54,4 @@ std::optional<uint16_t> scan_code(int const key, int const modifiers) {
   if(modifiers & GLFW_MOD_SHIFT) scan |= 0x4000;
   return scan;
 }
-}
+} // namespace apache::platform

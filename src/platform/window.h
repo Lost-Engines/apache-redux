@@ -5,8 +5,8 @@
 #include <span>
 #include <string>
 #include <GLFW/glfw3.h>
-#include "render/framebuffer.h"
 #include "configuration/graphics.h"
+#include "render/framebuffer.h"
 
 namespace apache::platform {
 struct cursor {

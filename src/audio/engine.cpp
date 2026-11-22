@@ -86,11 +86,26 @@ void engine::mission(bool const active) {
   } else if(music_enabled && transport.stored()) change(transition::restore);
   else if(music_enabled && theme.pcm) change(transition::start, theme);
 }
-void engine::cinematic(bool const active) { std::lock_guard lock{mutex}; movie_active = active; }
-void engine::pause(bool const active) { std::lock_guard lock{mutex}; sounds.paused = active; }
-void engine::play(unsigned int const id, int32_t const volume, int32_t const pan) { std::lock_guard lock{mutex}; sounds.play(id, static_cast<unsigned int>(std::clamp(volume, 0, 63)), pan); }
-void engine::voice(unsigned int const id, bool const cockpit) { std::lock_guard lock{mutex}; if(cockpit) sounds.cockpit(id); else sounds.radio(id); }
-void engine::gun(bool const active) { std::lock_guard lock{mutex}; if(active) sounds.play(8, 40); else sounds.stop_effect(8); }
+void engine::cinematic(bool const active) {
+  std::lock_guard lock{mutex};
+  movie_active = active;
+}
+void engine::pause(bool const active) {
+  std::lock_guard lock{mutex};
+  sounds.paused = active;
+}
+void engine::play(unsigned int const id, int32_t const volume, int32_t const pan) {
+  std::lock_guard lock{mutex};
+  sounds.play(id, static_cast<unsigned int>(std::clamp(volume, 0, 63)), pan);
+}
+void engine::voice(unsigned int const id, bool const cockpit) {
+  std::lock_guard lock{mutex};
+  if(cockpit) sounds.cockpit(id); else sounds.radio(id);
+}
+void engine::gun(bool const active) {
+  std::lock_guard lock{mutex};
+  if(active) sounds.play(8, 40); else sounds.stop_effect(8);
+}
 void engine::flight(simulation::flight_event const event) {
   std::lock_guard lock{mutex};
   using enum simulation::flight_event;

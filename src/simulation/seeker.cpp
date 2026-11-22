@@ -7,7 +7,9 @@ uint32_t range(math::vector3 const &a, math::vector3 const &b) {
   double const x{static_cast<double>(math::subtract(a[0], b[0]))}, y{static_cast<double>(math::subtract(a[1], b[1]))}, z{static_cast<double>(math::subtract(a[2], b[2]))};
   return static_cast<uint32_t>(static_cast<uint64_t>(std::sqrt(x * x + y * y + z * z)));
 }
-bool crosses(int32_t const a, int32_t const b, int32_t const plane) { return (a < plane && plane < b) || (b < plane && plane < a); }
+bool crosses(int32_t const a, int32_t const b, int32_t const plane) {
+  return (a < plane && plane < b) || (b < plane && plane < a);
+}
 }
 bool decoy_distracts(weapon_info const &weapon, int32_t const mode, bool const enemy, int32_t const modifier, combat_random &random) {
   int32_t const value{random.next()};
@@ -18,8 +20,8 @@ bool decoy_distracts(weapon_info const &weapon, int32_t const mode, bool const e
 }
 bool update_seeker(seeker_state &state, weapon_info const &weapon, seeker_inputs const &input, seeker_queries const &queries) {
   if(!(state.flags & 2) && input.now < state.retry_time && ((state.adjusted != seeker_target::none && input.adjusted_valid) || state.retry_time == INT32_MAX)) return false;
-  auto const lose{[&](){ state.adjusted = seeker_target::none; state.flags &= ~2u; }};
-  auto const permanent{[&](){ lose(); state.retry_time = INT32_MAX; }};
+  auto const lose{[&]{ state.adjusted = seeker_target::none; state.flags &= ~2u; }};
+  auto const permanent{[&]{ lose(); state.retry_time = INT32_MAX; }};
   if(input.target_status == 1) { lose(); return true; }
   if(weapon.guidance == 1) {
     if(!input.has_designator) { lose(); return true; }

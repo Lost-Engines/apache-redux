@@ -1,5 +1,5 @@
-#include "mission_frontend.h"
 #include <algorithm>
+#include "mission_frontend.h"
 
 namespace apache::frontend {
 void mission_frontend::network_error(std::string const &message) {
@@ -48,8 +48,7 @@ void mission_frontend::start_network() {
 }
 void mission_frontend::receive_selection(unsigned int const code, int const value) {
   if(!network.selecting()) return;
-  if(code >= 13 && code <= 15) { zone = static_cast<int>(code - 12); preferences.zone = zone; list(); }
-  else if(code == 17) select(value);
+  if(code >= 13 && code <= 15) { zone = static_cast<int>(code - 12); preferences.zone = zone; list(); } else if(code == 17) select(value);
   else if(code == 16 && selected >= 0) prepare(definitions[listed[static_cast<size_t>(selected)]].id);
   else if(code == 18) departing = prepared != nullptr;
 }

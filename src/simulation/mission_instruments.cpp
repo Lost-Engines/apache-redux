@@ -1,9 +1,9 @@
 #include "mission_instruments.h"
-#include "instrument_state.h"
-#include "sight_geometry.h"
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include "instrument_state.h"
+#include "sight_geometry.h"
 
 namespace apache::simulation {
 namespace {
@@ -20,15 +20,16 @@ std::vector<uint8_t> letters(std::span<resources::route_waypoint const> path) {
   }
   return result;
 }
-}
+} // anonymous namespace
 mission_instruments::mission_instruments(mission_runtime &runtime, unsigned int const video_mode, unsigned int const game_mode)
-  : mission{runtime}, helmet{runtime.executable, runtime.trig, video_mode} { state.displays.initialise(game_mode); }
+  : mission{runtime}, helmet{runtime.executable, runtime.trig, video_mode} {
+  state.displays.initialise(game_mode);
+}
 void mission_instruments::radar_contacts(std::span<radar_return const> const contacts, bool const tactical, std::vector<render::radar_contact> &output) const {
   output.clear(); auto const &selected{mission.sensors->state.current};
   for(auto const &contact : contacts) {
     auto const &id{contact.target.identity}; uint32_t model{0}, status{0};
-    if(id.kind == target_kind::scenery) { auto const &object{mission.structures.at(id.layer, id.index)}; model = object.model; status = object.status; }
-    else if(id.kind == target_kind::mobile && mission.mobiles.contains(id.index)) { auto const &object{mission.mobiles.at(id.index)}; model = object.id; status = object.status; }
+    if(id.kind == target_kind::scenery) { auto const &object{mission.structures.at(id.layer, id.index)}; model = object.model; status = object.status; } else if(id.kind == target_kind::mobile && mission.mobiles.contains(id.index)) { auto const &object{mission.mobiles.at(id.index)}; model = object.id; status = object.status; }
     if(model >= mission.models.size() || !mission.models[model]) continue;
     auto symbol{static_cast<unsigned int>(mission.models[model]->metadata[6])};
     if(tactical && id.kind == target_kind::mobile && symbol == 2 && (status & 6) == 4) symbol = 1;
@@ -86,8 +87,7 @@ void mission_instruments::update(unsigned int const view, math::pose const &came
     if(auto const point{helmet.project_point(view, camera, projection, aim)}) w.intercept = *point;
   }
   state.target_model = nullptr; state.target_camera_aim = {};
-  if(target.identity.kind == target_kind::mobile && mission.mobiles.contains(target.identity.index)) { state.target_model = &mission.mobiles.at(target.identity.index); state.target_camera_aim = state.target_model->relative.position; }
-  else if(target.identity.kind == target_kind::scenery) {
+  if(target.identity.kind == target_kind::mobile && mission.mobiles.contains(target.identity.index)) { state.target_model = &mission.mobiles.at(target.identity.index); state.target_camera_aim = state.target_model->relative.position; } else if(target.identity.kind == target_kind::scenery) {
     auto const &source{mission.structures.at(target.identity.layer, target.identity.index)};
     if(source.model && source.model < mission.models.size() && mission.models[source.model]) {
       auto const angle{static_cast<uint32_t>(source.heading) << 16}; auto const sine{mission.trig.sine(angle)}, cosine{mission.trig.cosine(angle)};

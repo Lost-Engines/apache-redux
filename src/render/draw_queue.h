@@ -1,7 +1,7 @@
 #pragma once
 #include <array>
-#include <cstdint>
 #include <cstddef>
+#include <cstdint>
 #include <vector>
 
 namespace apache::render {
@@ -27,8 +27,12 @@ public:
   void clear();
   bool push(queued_draw const &draw);
   bool consume_unused_slot();
-  size_t available() const { return 7200 - items.size(); }
-  bool full() const { return items.size() == 7200; }
+  size_t available() const {
+    return 7200 - items.size();
+  }
+  bool full() const {
+    return items.size() == 7200;
+  }
   std::vector<queued_draw> ordered() const;
 };
 } // namespace apache::render

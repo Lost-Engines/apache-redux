@@ -10,7 +10,7 @@ player_weapons::player_weapons(resources::executable_data const &executable) {
   selected.fill(-1); pylons[7] = {8, 32}; pylons[8] = {7, 32}; rearm();
 }
 void player_weapons::rearm() {
-  static constexpr std::array<int32_t, 9> capacity{0, 1200, 4, 4, 19, 19, 2, 32, 32};
+  static std::array<int32_t, 9> constexpr capacity{0, 1200, 4, 4, 19, 19, 2, 32, 32};
   ammunition.fill(0); selected.fill(-1);
   for(size_t i{0}; i != pylons.size(); ++i) {
     auto &p{pylons[i]}; if(p.weapon >= 9) throw std::runtime_error{"Invalid player pylon weapon"};
@@ -25,7 +25,7 @@ bool player_weapons::accepts(uint16_t const key, player_weapon_context const &co
   return context.control_mode != 0 && !(context.control_mode == 1 && events.key_event && events.key_event(key));
 }
 void player_weapons::announce() const {
-  static constexpr std::array<unsigned int, 7> sounds{0, 30, 27, 27, 28, 28, 29};
+  static std::array<unsigned int, 7> constexpr sounds{0, 30, 27, 27, 28, 28, 29};
   if(armed && current > 0 && current < sounds.size() && events.cockpit_sound) events.cockpit_sound(sounds[current]);
 }
 bool player_weapons::available(unsigned int const id, int32_t const now) const {
@@ -63,7 +63,7 @@ bool player_weapons::fire(uint16_t const key, player_weapon_context const &conte
   if(!armed) { armed = true; if(!helmet_mode) helmet_mode = 1; return false; }
   if(!available(current, context.now) || current < 1 || current > 6) return false;
   size_t const slot{static_cast<size_t>(selected[current])};
-  auto consume{[&](){ if(!infinite) { --pylons[slot].ammunition; --ammunition[current]; } }};
+  auto consume{[&]{ if(!infinite) { --pylons[slot].ammunition; --ammunition[current]; } }};
   auto make{[&](math::pose const &pose){ return events.launch ? events.launch({current, pose, current == 2 || current == 3 || current == 6, current == 2, context.target_kind == 0}) : std::optional<size_t>{}; }};
   std::optional<size_t> last;
   if(current == 1) {
@@ -96,7 +96,7 @@ bool player_weapons::fire(uint16_t const key, player_weapon_context const &conte
   if(context.target_kind == 2 && events.fired_at) events.fired_at();
   deadlines[current] = math::add(context.now, definitions[current].fire_interval_ticks);
   if(!infinite && (current == 2 || current == 3) && events.remove_missile) events.remove_missile(slot, pylons[slot].ammunition);
-  static constexpr std::array<int32_t, 9> alternate{1, 0, 3, 2, 5, 4, 6, 7, 8};
+  static std::array<int32_t, 9> constexpr alternate{1, 0, 3, 2, 5, 4, 6, 7, 8};
   selected[current] = alternate[slot];
   if(pylons[static_cast<size_t>(selected[current])].ammunition < 1) {
     std::array<bool, 9> seen{};

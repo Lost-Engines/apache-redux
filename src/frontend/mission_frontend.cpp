@@ -25,10 +25,10 @@ uint32_t hours_now() {
 std::string zone_name(int const zone) {
   return std::array<std::string, 4>{"yemen", "korea", "cyprus", "fhood"}.at(static_cast<size_t>(zone - 1));
 }
-}
+} // anonymous namespace
 mission_frontend::mission_frontend(resources::data_store const &data, mission_options const settings)
   : data{data}, definitions{resources::read_mission_briefings(data.read("MISSDATA/MISSIONS.BLK"))}, interface{data}, options{settings}, settings{data}, preferences{data, interface, this->settings}, help{data, interface}, planner{data, interface, this->settings}, logs{hours_now()}, pilots{data, interface, logs, definitions}, scores{data, interface, this->settings}, network{interface, this->settings} {
-  network.start = [this](){ start_network(); };
+  network.start = [this]{ start_network(); };
   network.mission_selection = [this](unsigned int code, int value){ receive_selection(code, value); };
   interface.link_scroll("_map_briefing_subtitle_text", "_map_briefing_subtitle_scrollbar");
   interface.link_scroll("_situation_text", "_situation_scroll_bar");
@@ -41,7 +41,12 @@ mission_frontend::mission_frontend(resources::data_store const &data, mission_op
     if(prepared) planner.paint(frame, object);
   };
 }
-void mission_frontend::load_profiles(std::filesystem::path const &path) { logs.load(path, hours_now()); settings.load(path); scores.load(); apply_preferences(); }
+void mission_frontend::load_profiles(std::filesystem::path const &path) {
+  logs.load(path, hours_now());
+  settings.load(path);
+  scores.load();
+  apply_preferences();
+}
 void mission_frontend::count_run() {
   auto const runs{settings.values.integer("Quick Start Game Runs").value_or(0)};
   settings.set("Quick Start Game Runs", runs < INT32_MAX ? runs + 1 : runs); settings.save();
@@ -121,16 +126,16 @@ void mission_frontend::subtitles(bool const expanded) {
   auto &body{interface.named("_map_briefing_subtitle_text")}; body.area.bottom = body.area.top + height - 20;
   auto &bar{interface.named("_map_briefing_subtitle_scrollbar")}; bar.area.bottom = bar.area.top + height - 20;
 }
-void mission_frontend::map() { planner.open(*prepared); }
+void mission_frontend::map() {
+  planner.open(*prepared);
+}
 void mission_frontend::campaign(bool const fresh) {
   if(fresh || pilot().campaign.warzone != static_cast<uint32_t>(zone)) {
     pilot().campaign = {static_cast<uint32_t>(zone), 1, 4, static_cast<uint32_t>(std::chrono::system_clock::now().time_since_epoch().count()) & 0x7fff, {}}; last_result = 0;
   }
   campaign_mission = fresh ? 0 : pilot().next_mission(definitions);
   int level{static_cast<int>(pilot().campaign.level)}; std::string section{"Situation"};
-  if(fresh) { level = 0; section = "Description"; }
-  else if(campaign_mission == -2 || campaign_mission == -3) { level = 0; section = campaign_mission == -2 ? "Failure" : "Success"; }
-  else if(last_result == 2) { ++level; section = "Failure"; }
+  if(fresh) { level = 0; section = "Description"; } else if(campaign_mission == -2 || campaign_mission == -3) { level = 0; section = campaign_mission == -2 ? "Failure" : "Success"; } else if(last_result == 2) { ++level; section = "Failure"; }
   auto const raw{data.read("MISSDATA/C" + std::to_string(zone) + std::to_string(level) + ".TXT")};
   std::string_view const source{reinterpret_cast<char const*>(raw.data()), raw.size()};
   auto start{source.find(":" + section)};
@@ -143,8 +148,7 @@ void mission_frontend::campaign(bool const fresh) {
   std::erase(body.text, '\r'); body.start_line = 0;
   interface.named("_situation_screen").picture = "menuscrn/c_" + zone_name(zone) + ".lbm";
   visible("_situation_ok_button", campaign_mission >= 0);
-  if(campaign_mission == -3) { pilot().victories[static_cast<size_t>(zone - 1)] = true; pilot().campaign = {}; }
-  else if(campaign_mission == -2) pilot().campaign = {};
+  if(campaign_mission == -3) { pilot().victories[static_cast<size_t>(zone - 1)] = true; pilot().campaign = {}; } else if(campaign_mission == -2) pilot().campaign = {};
   logs.save(); interface.show("_situation_screen");
   if(speak) speak(fresh ? 2 : campaign_mission == -3 ? 5 : campaign_mission == -2 || last_result == 2 ? 4 : 1, 4, zone, static_cast<int>(pilot().campaign.level), 0);
 }
@@ -163,8 +167,7 @@ void mission_frontend::complete(std::unique_ptr<mission_session> mission) {
     if(mode == multiplayer::game_mode::combat || mode == multiplayer::game_mode::multiplayer || mode == multiplayer::game_mode::capture_the_flag) { planner.close(); prepared.reset(); interface.show(mode == multiplayer::game_mode::combat ? "_modem_screen" : "_network_screen"); return; }
   }
   if(mission->briefing.flow == 1) {
-    if(first_quick) { first_quick = false; interface.show("_main_screen"); }
-    else if(!invincible_quick) { interface.back(); scores.record(mission->runtime.quick_score, pilot().name); scores.show(); }
+    if(first_quick) { first_quick = false; interface.show("_main_screen"); } else if(!invincible_quick) { interface.back(); scores.record(mission->runtime.quick_score, pilot().name); scores.show(); }
     return;
   }
   prepared = std::move(mission);
@@ -256,29 +259,19 @@ bool mission_frontend::activate(widget &object, int const line) {
   else if(action == "notify_top_ten_exit_button_") back();
   else if(action == "notify_quick_start_arcade_button_" || action == "notify_quick_start_invin_button_") {
     flow = 1; invincible_quick = action == "notify_quick_start_invin_button_"; interface.show("_world_screen");
-  }
-  else if(action == "notify_training_no_crashes_" || action == "notify_training_infinite_weapons_") object.on = !object.on;
-  else if(action == "notify_training_button_") { flow = 2; zone = 4; preferences.zone = zone; list(); }
-  else if(action == "notify_single_button_" || action == "notify_campaign_button_") { flow = action == "notify_single_button_" ? 3 : 4; interface.show("_world_screen"); }
-  else if(action == "notify_map_yemen_button_" || action == "notify_map_korea_button_" || action == "notify_map_cyprus_button_") {
+  } else if(action == "notify_training_no_crashes_" || action == "notify_training_infinite_weapons_") object.on = !object.on;
+  else if(action == "notify_training_button_") { flow = 2; zone = 4; preferences.zone = zone; list(); } else if(action == "notify_single_button_" || action == "notify_campaign_button_") { flow = action == "notify_single_button_" ? 3 : 4; interface.show("_world_screen"); } else if(action == "notify_map_yemen_button_" || action == "notify_map_korea_button_" || action == "notify_map_cyprus_button_") {
     zone = action == "notify_map_yemen_button_" ? 1 : action == "notify_map_korea_button_" ? 2 : 3; preferences.zone = zone;
     if(network.selecting()) network.send_selection(static_cast<unsigned int>(12 + zone));
     if(flow == 1) launch_quick(); else if(flow == 4) campaign(pilot().campaign.warzone != static_cast<uint32_t>(zone)); else list();
-  } else if(action == "notify_mission_selection_list_") { select(line); if(network.selecting()) network.send_selection(17, line); }
-  else if(action == "notify_mission_selection_load_") { if(selected >= 0) { if(network.selecting()) network.send_selection(16); prepare(definitions[listed[static_cast<size_t>(selected)]].id); } }
-  else if(action == "notify_situation_ok_button_") { if(campaign_mission == 0) campaign(); else if(campaign_mission > 0) prepare(campaign_mission); }
-  else if(action == "notify_takeoff_button_") { departing = prepared != nullptr; if(departing && network.selecting()) network.send_selection(18); }
-  else if(action == "notify_debrief_log_button_") log_result(true);
+  } else if(action == "notify_mission_selection_list_") { select(line); if(network.selecting()) network.send_selection(17, line); } else if(action == "notify_mission_selection_load_") { if(selected >= 0) { if(network.selecting()) network.send_selection(16); prepare(definitions[listed[static_cast<size_t>(selected)]].id); } } else if(action == "notify_situation_ok_button_") { if(campaign_mission == 0) campaign(); else if(campaign_mission > 0) prepare(campaign_mission); } else if(action == "notify_takeoff_button_") { departing = prepared != nullptr; if(departing && network.selecting()) network.send_selection(18); } else if(action == "notify_debrief_log_button_") log_result(true);
   else if(action == "notify_debrief_do_not_log_button_") log_result(false);
-  else if(action == "notify_debrief_retry_mission_button_") { if(prepared) prepare(prepared->briefing.id); }
-  else if(action == "notify_preferences_exit_" || action == "notify_promotion_exit_button_" || action == "notify_exit_log_screen_" || action == "notify_mission_select_exit_button_" || action == "notify_map_exit_button_" || action == "notify_debrief_exit_button_" || action == "notify_situation_exit_button_") back();
-  else if(action == "notify_briefing_subtitle_min_max_button_") { auto const &area{interface.named("_map_briefing_subtitle_box").area}; subtitles(area.bottom - area.top < 51); }
-  else if(action == "notify_briefing_button_") {
+  else if(action == "notify_debrief_retry_mission_button_") { if(prepared) prepare(prepared->briefing.id); } else if(action == "notify_preferences_exit_" || action == "notify_promotion_exit_button_" || action == "notify_exit_log_screen_" || action == "notify_mission_select_exit_button_" || action == "notify_map_exit_button_" || action == "notify_debrief_exit_button_" || action == "notify_situation_exit_button_") back();
+  else if(action == "notify_briefing_subtitle_min_max_button_") { auto const &area{interface.named("_map_briefing_subtitle_box").area}; subtitles(area.bottom - area.top < 51); } else if(action == "notify_briefing_button_") {
     bool const show{!(interface.named("_map_briefing_subtitle_box").flags & 1)};
     visible("_map_briefing_subtitle_box", show);
     if(show && !result && prepared && speak && (!speech_playing || !speech_playing())) speak(flow == 2 ? 10 : flow == 3 ? 6 : 3, flow, zone, prepared->briefing.level, flow == 4 ? prepared->briefing.id : selected + 1);
-  }
-  else return false;
+  } else return false;
   return true;
 }
 } // namespace apache::frontend

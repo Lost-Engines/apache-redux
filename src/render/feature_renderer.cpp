@@ -9,7 +9,7 @@ int32_t grid_term(int32_t const coefficient, int const index, unsigned int const
   auto const value{static_cast<int32_t>((int64_t{coefficient} * magnitude) >> shift)};
   return index < 0 ? math::negate(value) : value;
 }
-} // namespace
+} // anonymous namespace
 math::vector3 feature_origin(math::pose const &camera, int const x_sector, int const y_sector, bool const super) {
   int32_t const offset{super ? 0x18000000 : 0}, mask{super ? 0x3ffffff : 0x3fffff};
   unsigned int const shift{super ? 26u : 22u};

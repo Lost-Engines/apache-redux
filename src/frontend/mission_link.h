@@ -26,6 +26,8 @@ public:
   void poll();
   void wait();
   void close();
-  bool ready() const { return complete && !transferring; }
+  bool ready() const {
+    return complete && !transferring;
+  }
 };
 } // namespace apache::frontend

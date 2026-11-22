@@ -1,7 +1,7 @@
 #pragma once
-#include "weapon_rules.h"
-#include "math/geometry.h"
 #include <functional>
+#include "math/geometry.h"
+#include "weapon_rules.h"
 
 namespace apache::simulation {
 enum class seeker_target : uint8_t { none, selected, chaff, flare };

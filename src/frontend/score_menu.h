@@ -1,6 +1,6 @@
 #pragma once
-#include "menu.h"
 #include "configuration/settings.h"
+#include "menu.h"
 
 namespace apache::frontend {
 struct score_entry { int32_t score{0}; std::string name{"Blank"}; };
@@ -19,7 +19,10 @@ public:
   void load();
   void record(int32_t score, std::string_view pilot);
   void show();
-  void close() { editing = false; settings.save(); }
+  void close() {
+    editing = false;
+    settings.save();
+  }
   bool key(unsigned int character);
 };
 } // namespace apache::frontend

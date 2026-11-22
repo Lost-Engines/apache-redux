@@ -1,15 +1,17 @@
 #include "inspect_blasts.h"
-#include "simulation/blast_damage.h"
 #include <algorithm>
 #include <istream>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include "simulation/blast_damage.h"
 
 void inspect_blasts(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
+  namespace math = apache::math;
+  namespace resources = apache::resources;
+  namespace simulation = apache::simulation;
   auto models{resources::read_models(data.read("3DDATA/3DOBJS.BIN"))}; resources::executable_data const executable{data}; resources::initialise_model_metadata(models, executable);
-  simulation::combat_tables const tables{executable}; math::trigonometry const trig{data}; render::mobile_scene mobiles{models};
+  simulation::combat_tables const tables{executable}; math::trigonometry const trig{data}; apache::render::mobile_scene mobiles{models};
   std::array<std::vector<resources::scenery_placement>, 2> placements, initial;
   std::vector<simulation::damage_recipient> actors, initial_actors;
   std::unique_ptr<simulation::scenery_collisions> scenery;
@@ -22,8 +24,7 @@ void inspect_blasts(std::istream &input, std::ostream &output, apache::resources
     auto result{actors.at(id.index)}; auto const &object{mobiles.at(id.index)}; result.model = object.id; result.flags = object.status; result.position = object.world.position; return result;
   }};
   auto const write{[&](simulation::target_identity const &id, simulation::damage_recipient const &target){
-    if(id.kind == simulation::target_kind::scenery) { auto &record{placements.at(id.layer).at(id.index)}; record.model = static_cast<uint16_t>(target.model); record.status = static_cast<uint16_t>(target.flags); }
-    else { actors.at(id.index) = target; mobiles.at(id.index).status = target.flags; }
+    if(id.kind == simulation::target_kind::scenery) { auto &record{placements.at(id.layer).at(id.index)}; record.model = static_cast<uint16_t>(target.model); record.status = static_cast<uint16_t>(target.flags); } else { actors.at(id.index) = target; mobiles.at(id.index).status = target.flags; }
   }};
   simulation::blast_callbacks callbacks;
   callbacks.read = read; callbacks.write = write;
@@ -37,7 +38,7 @@ void inspect_blasts(std::istream &input, std::ostream &output, apache::resources
   callbacks.partial_explosion = [&](simulation::target_identity const &id){ event(1, id); };
   callbacks.auxiliary = [&](simulation::target_identity const &id){ auto const target{read(id)}; events.insert(events.end(), {2, (target.flags & 7) >> 1, target.model, id.kind == simulation::target_kind::mobile ? static_cast<int64_t>(id.index) : -1}); };
   callbacks.weapon_explosion = [&](math::vector3 const &p){ events.insert(events.end(), {3, p[0], p[1], p[2]}); };
-  auto const point{[&](){ math::vector3 p; for(auto &v : p) input >> v; return p; }};
+  auto const point{[&]{ math::vector3 p; for(auto &v : p) input >> v; return p; }};
   std::string command;
   while(input >> command) {
     if(command == "reset") {

@@ -1,7 +1,7 @@
 #include "multiplayer_chat.h"
 #include <algorithm>
-#include <cstdlib>
 #include <cstdio>
+#include <cstdlib>
 #include <sstream>
 #include "math/fixed.h"
 
@@ -17,7 +17,7 @@ int integer(std::string const &value) {
   char *end; auto const number{std::strtoll(value.c_str(), &end, 10)};
   return static_cast<int>(std::clamp(number, static_cast<long long>(INT32_MIN), static_cast<long long>(INT32_MAX)));
 }
-}
+} // anonymous namespace
 multiplayer_chat::multiplayer_chat(resources::executable_data const &exe) : font{exe, true} {
   auto const keys{exe.at(0x4ecc24, ascii.size())}; std::ranges::copy(keys, ascii.begin());
   for(size_t i{0}; i < commands.size(); ++i) {
@@ -32,9 +32,17 @@ multiplayer_chat::multiplayer_chat(resources::executable_data const &exe) : font
   for(size_t i{0}; i < 2; ++i) std::ranges::copy(exe.at(i ? 0x4ef3dc : 0x4ef31c, 96), terrain_presets[i].begin());
   resources::reader v{exe.at(0x4d9910, 4)}; version = string_at(exe, v.u32());
 }
-std::string_view multiplayer_chat::text() const { return {entry.data(), static_cast<size_t>(std::ranges::find(entry, '\0') - entry.begin())}; }
-void multiplayer_chat::begin() { std::fill_n(entry.begin(), 78, ' '); entry[78] = 0; writing = true; }
-void multiplayer_chat::scroll() { for(unsigned int i{1}; i < lines; ++i) messages[i - 1] = messages[i]; }
+std::string_view multiplayer_chat::text() const {
+  return {entry.data(), static_cast<size_t>(std::ranges::find(entry, '\0') - entry.begin())};
+}
+void multiplayer_chat::begin() {
+  std::fill_n(entry.begin(), 78, ' ');
+  entry[78] = 0;
+  writing = true;
+}
+void multiplayer_chat::scroll() {
+  for(unsigned int i{1}; i < lines; ++i) messages[i - 1] = messages[i];
+}
 void multiplayer_chat::add(std::string_view const value, int32_t const now) {
   scroll(); messages[lines - 1] = value.substr(0, 99); empty = false; last_message = scroll_time = now;
 }
@@ -71,9 +79,7 @@ void multiplayer_chat::command(std::string_view const text, int32_t const now) {
     else { blank_seconds = static_cast<unsigned int>(value); add("Blank time set to: " + std::to_string(value), now); }
   } else if(name == "/text") {
     auto const setting{integer(arguments[1])};
-    if(arguments[0] == "colour") { if(setting >= 1 && setting <= 255) { colour = static_cast<unsigned int>(setting); add("Message text colour set to palette number: " + std::to_string(setting), now); } }
-    else if(arguments[0] == "shadow") { if(setting >= 0 && setting <= 8) { shadow = static_cast<unsigned int>(setting); add("Message shadow level set to : " + std::to_string(setting), now); } }
-    else add(arguments[0] + " is not a correct argument for the text command.", now);
+    if(arguments[0] == "colour") { if(setting >= 1 && setting <= 255) { colour = static_cast<unsigned int>(setting); add("Message text colour set to palette number: " + std::to_string(setting), now); } } else if(arguments[0] == "shadow") { if(setting >= 0 && setting <= 8) { shadow = static_cast<unsigned int>(setting); add("Message shadow level set to : " + std::to_string(setting), now); } } else add(arguments[0] + " is not a correct argument for the text command.", now);
   } else if(name == "/help") {
     if(arguments[0].empty()) {
       add("Commands available are:", now);
@@ -84,7 +90,7 @@ void multiplayer_chat::command(std::string_view const text, int32_t const now) {
   } else if(name == "/version") {
     add(languages.at(language) + " version " + version + " Dated Jan 14 1998 at 17:03:57", now);
   } else if(name == "/language") {
-    static constexpr std::array<std::pair<std::string_view, unsigned int>, 5> choices{{{"english",1},{"american",2},{"french",3},{"german",4},{"italian",6}}};
+    static std::array<std::pair<std::string_view, unsigned int>, 5> constexpr choices{{{"english",1},{"american",2},{"french",3},{"german",4},{"italian",6}}};
     auto const found{std::ranges::find_if(choices, [&](auto const &choice){ return choice.first == arguments[0]; })};
     if(found == choices.end()) add("Set Language to : english, american, french, german or italian", now);
     else { language = found->second; auto label{arguments[0]}; label[0] = static_cast<char>(label[0] - 'a' + 'A'); add("Language set to " + label + ".", now); if(change_language) change_language(language); }
@@ -96,7 +102,7 @@ void multiplayer_chat::terrain_command(std::array<std::string, 4> const &argumen
     lines = 20; scroll_seconds = 60; blank_seconds = 1000;
     for(size_t i{0}; i < 48; i += 3) {
       std::array<char, 100> text;
-      std::snprintf(text.data(), text.size(), "r1 = %d, g1 = %d, b1 = %d         r2 = %d, g2 = %d, b2= %d", terrain_colours[i], terrain_colours[i+1], terrain_colours[i+2], terrain_colours[i+48], terrain_colours[i+49], terrain_colours[i+50]);
+      std::snprintf(text.data(), text.size(), "r1 = %d, g1 = %d, b1 = %d         r2 = %d, g2 = %d, b2= %d", terrain_colours[i], terrain_colours[i + 1], terrain_colours[i + 2], terrain_colours[i + 48], terrain_colours[i + 49], terrain_colours[i + 50]);
       add(text.data(), now);
     }
     return;
@@ -140,7 +146,7 @@ void multiplayer_chat::draw(render::framebuffer &frame, int32_t const now) {
     return;
   }
   if(math::subtract(now, scroll_time) > static_cast<int32_t>(scroll_seconds * 200)) { scroll(); messages[lines - 1] = "> "; scroll_time = now; }
-  static constexpr std::array<std::array<int, 2>, 8> offsets{{{2,1},{0,-1},{2,-1},{0,1},{1,1},{1,-1},{0,0},{2,0}}};
+  static std::array<std::array<int, 2>, 8> constexpr offsets{{{2,1},{0,-1},{2,-1},{0,1},{1,1},{1,-1},{0,0},{2,0}}};
   for(unsigned int i{0}; i < lines; ++i) {
     auto const y{static_cast<int>(i * 10)};
     for(unsigned int j{0}; j < shadow; ++j) font.draw(frame, messages[i], offsets[j][0], y + offsets[j][1], 0);

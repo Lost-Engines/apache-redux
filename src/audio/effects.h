@@ -22,13 +22,15 @@ struct effect_channel {
 class effects {
   std::array<effect, 189> bank;
 public:
-  static constexpr unsigned int output_rate{48000};
+  static unsigned int constexpr output_rate{48000};
   std::array<effect_channel, 16> channels;
   bool enabled{true}, minimal{false}, voices{true}, paused{false};
   unsigned int master{63};
   int radio_channel{-1}, cockpit_channel{-1}, cockpit_effect{-1};
   explicit effects(resources::data_store const &data) : bank{load_effects(data)} {}
-  effect const &sample(size_t id) const { return bank.at(id); }
+  effect const &sample(size_t id) const {
+    return bank.at(id);
+  }
   int play(unsigned int id, unsigned int volume, int pan = 32768);
   void cockpit(unsigned int id);
   void radio(unsigned int id);

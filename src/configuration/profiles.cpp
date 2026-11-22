@@ -27,11 +27,11 @@ void write(std::filesystem::path const &path, resources::bytes const &data) {
 resources::bytes text(std::string const &value) {
   resources::bytes result{value.begin(), value.end()}; result.push_back(0); return result;
 }
-}
+} // anonymous namespace
 std::filesystem::path default_save_directory() {
 #ifdef _WIN32
   if(auto const *path{std::getenv("LOCALAPPDATA")}; path && *path) return std::filesystem::path{path} / "apache-redux";
-#endif
+#endif // _WIN32
   if(auto const *path{std::getenv("XDG_DATA_HOME")}; path && *path && std::filesystem::path{path}.is_absolute()) return std::filesystem::path{path} / "apache-redux";
   if(auto const *path{std::getenv("HOME")}; path && *path) return std::filesystem::path{path} / ".local/share/apache-redux";
   return "apache-redux-saves";
@@ -48,8 +48,12 @@ void profiles::ensure_pilot(uint32_t const now) {
   }
   if(profile.selected >= profile.pilots.size()) profile.selected = 0;
 }
-simulation::pilot_log &profiles::current() { return users.at(user).pilots.at(users.at(user).selected).log; }
-simulation::pilot_log const &profiles::current() const { return users.at(user).pilots.at(users.at(user).selected).log; }
+simulation::pilot_log &profiles::current() {
+  return users.at(user).pilots.at(users.at(user).selected).log;
+}
+simulation::pilot_log const &profiles::current() const {
+  return users.at(user).pilots.at(users.at(user).selected).log;
+}
 void profiles::select_user(size_t const index, uint32_t const now) {
   if(index >= users.size()) throw std::runtime_error{"Invalid pilot group"};
   user = index; ensure_pilot(now);

@@ -1,18 +1,18 @@
 #include "inspect_projectiles.h"
-#include "resources/terrain.h"
-#include "simulation/projectile_dynamics.h"
-#include "simulation/projectile_launch.h"
 #include <istream>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include "resources/terrain.h"
+#include "simulation/projectile_dynamics.h"
+#include "simulation/projectile_launch.h"
 
 void inspect_projectiles(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
-  math::trigonometry const trig{data}; auto const weapons{simulation::weapon_definitions()};
-  std::optional<resources::terrain> terrain;
-  auto const models{resources::read_models(data.read("3DDATA/3DOBJS.BIN"))};
-  auto const point{[&](){ math::vector3 v; for(auto &x : v) input >> x; return v; }};
+  namespace simulation = apache::simulation;
+  apache::math::trigonometry const trig{data}; auto const weapons{simulation::weapon_definitions()};
+  std::optional<apache::resources::terrain> terrain;
+  auto const models{apache::resources::read_models(data.read("3DDATA/3DOBJS.BIN"))};
+  auto const point{[&]{ apache::math::vector3 v; for(auto &x : v) input >> x; return v; }};
   auto const print{[&](auto const &v){ for(auto x : v) output << x << ' '; }};
   std::string command;
   while(input >> command) {

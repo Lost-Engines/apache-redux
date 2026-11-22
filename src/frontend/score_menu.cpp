@@ -50,12 +50,16 @@ void score_menu::record(int32_t const score, std::string_view const pilot) {
   *place = {score, std::string{pilot.substr(0, 30)}};
   last = static_cast<int>(place - entries.begin()); editing = true;
 }
-void score_menu::show() { update(); interface.toggle_quick(false); interface.show("_top_ten_screen"); editing = last >= 0 && static_cast<size_t>(last) < entries.size(); }
+void score_menu::show() {
+  update();
+  interface.toggle_quick(false);
+  interface.show("_top_ten_screen");
+  editing = last >= 0 && static_cast<size_t>(last) < entries.size();
+}
 bool score_menu::key(unsigned int const character) {
   if(interface.current() != "_top_ten_screen" || !editing || last < 0 || static_cast<size_t>(last) >= entries.size()) return false;
   auto &name{entries[static_cast<size_t>(last)].name};
-  if(character == 8) { if(!name.empty()) name.pop_back(); }
-  else if(character == 10 || character == 13) editing = false;
+  if(character == 8) { if(!name.empty()) name.pop_back(); } else if(character == 10 || character == 13) editing = false;
   else if(character == 27) name.clear();
   else if(character >= 32 && character <= 126 && name.size() < 30) name += static_cast<char>(character);
   update(); return true;

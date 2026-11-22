@@ -1,8 +1,8 @@
 #include "mfd.h"
-#include "landscape.h"
 #include <algorithm>
 #include <cmath>
 #include <stdexcept>
+#include "landscape.h"
 
 namespace apache::render {
 mfd_renderer::mfd_renderer(cockpit const &artwork, resources::executable_data const &executable) : panels{artwork}, font{executable, artwork.video_mode() != 0}, high{artwork.video_mode() != 0} {}
@@ -66,8 +66,9 @@ void mfd_renderer::flir(framebuffer &target, rectangle const area, landscape &wo
     // The image was drawn directly into the native framebuffer. Only its label
     // and the bezel corners should be copied from the logical cockpit overlay.
     auto const box{target.clip};
-    for(int y{box.top}; y <= box.bottom; ++y) for(int x{box.left}; x <= box.right; ++x)
+    for(int y{box.top}; y <= box.bottom; ++y) for(int x{box.left}; x <= box.right; ++x) {
       target.coverage[size_t(y) * target.image.width + x] = 0;
+    }
   }
   projection2 const plane{area, object ? window2{-0x100000, -0x100000, 0x100000, 0x100000} : window2{-1000, -1000, 1000, 1000}};
   auto const point{plane.project({0, object ? -0xccccc : -800})};

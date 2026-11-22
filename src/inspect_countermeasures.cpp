@@ -1,13 +1,13 @@
 #include "inspect_countermeasures.h"
-#include "simulation/countermeasures.h"
 #include <istream>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include "simulation/countermeasures.h"
 
 void inspect_countermeasures(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
-  simulation::combat_tables const tables{resources::executable_data{data}};
+  namespace simulation = apache::simulation;
+  simulation::combat_tables const tables{apache::resources::executable_data{data}};
   auto const weapons{simulation::weapon_definitions()};
   std::string command;
   while(input >> command) {
@@ -16,7 +16,7 @@ void inspect_countermeasures(std::istream &input, std::ostream &output, apache::
     unsigned int weapon{0}, key{0}; int32_t now{0}, speed{0}; int level{0}; uint32_t seed{0}; bool handled{false};
     input >> weapon >> now >> level >> key >> actor.classification >> actor.player >> actor.conditions >> actor.retreat_until >> actor.chaff_at >> actor.flare_at >> actor.random >> seed;
     for(auto &x : actor.position) input >> x;
-    math::vector3 position; for(auto &x : position) input >> x;
+    apache::math::vector3 position; for(auto &x : position) input >> x;
     input >> speed >> controls.mode >> controls.faults >> controls.infinite >> controls.automatic >> handled;
     for(auto *values : {&controls.ammunition, &controls.pylon_ammunition, &controls.deadline}) for(auto &x : *values) input >> x;
     if(!input) throw std::runtime_error{"Incomplete countermeasure inspection operation"};

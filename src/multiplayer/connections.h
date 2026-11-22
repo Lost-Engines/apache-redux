@@ -1,7 +1,7 @@
 #pragma once
-#include "platform/datagram.h"
 #include <array>
 #include <optional>
+#include "platform/datagram.h"
 
 namespace apache::multiplayer {
 struct connection {

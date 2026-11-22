@@ -13,8 +13,14 @@ int32_t range(math::vector3 const &a, math::vector3 const &b, bool mobile) {
   double const x{static_cast<double>(d[0])}, y{static_cast<double>(d[1])}, z{static_cast<double>(d[2])};
   return std::bit_cast<int32_t>(static_cast<uint32_t>(static_cast<uint64_t>(std::sqrt(x * x + y * y + z * z))));
 }
-int32_t next(uint32_t &value, uint32_t &global) { combat_random r{value, global}; auto result{r.next()}; value = r.value; global = r.global_seed; return result; }
+int32_t next(uint32_t &value, uint32_t &global) {
+  combat_random r{value, global};
+  auto result{r.next()};
+  value = r.value;
+  global = r.global_seed;
+  return result;
 }
+} // anonymous namespace
 damage_result apply_damage(damage_recipient &target, resources::model const &model, damage_source const &source, unsigned int const weapon_id, weapon_info const &weapon, math::vector3 const &impact, blast_limits &blast, damage_random &random, damage_environment const &environment) {
   damage_result result;
   if((target.flags & 1) || (target.mobile && !target.actor)) return result;
@@ -53,7 +59,7 @@ damage_result apply_damage(damage_recipient &target, resources::model const &mod
 }
 void damage_player_item(player_damage_state &state, unsigned int const item, damage_feedbacks &events) {
   struct item_info { uint32_t bit; std::string_view message; unsigned int sound; };
-  static constexpr std::array<item_info, 20> items{{
+  static std::array<item_info, 20> constexpr items{{
     {}, {0x10, "MFD-1 Damaged", 0}, {0x20, "MFD-2 Damaged", 0}, {0x40, "MFD-3 Damaged", 0}, {0x80, "MFD-4 Damaged", 0},
     {0x100, "FLIR Damaged", 0}, {0x200, "Radar Damaged", 0x53}, {}, {0x800, "DTV Damaged", 0x56}, {},
     {0x2000, "TADS Damaged", 0x58}, {}, {0x8000, "Flir Damaged", 0x5a}, {0x10000, "ECM Damaged", 0x5b}, {}, {},
@@ -73,8 +79,7 @@ void damage_player_systems(player_damage_state &state, uint8_t const damage, int
   for(int32_t i{0}; i <= difference / 10; ++i) {
     state.random = state.random * 0x41c64e6du + 0x3039u;
     unsigned int const item{((state.random >> 16) & 0x7fffu) % 20};
-    if(damage < serious) { if(item < 16) damage_player_item(state, item, events); }
-    else {
+    if(damage < serious) { if(item < 16) damage_player_item(state, item, events); } else {
       damage_player_item(state, item, events);
       if(state.warning_at < now) { events.push_back({damage_feedback_kind::cockpit_sound, 0x6e, {}}); state.warning_at = math::add(now, 60000); }
     }

@@ -1,16 +1,18 @@
 #include "inspect_tracking.h"
-#include "simulation/projectile_tracking.h"
 #include <istream>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include "simulation/projectile_tracking.h"
 
 void inspect_tracking(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
+  namespace math = apache::math;
+  namespace resources = apache::resources;
+  namespace simulation = apache::simulation;
   auto models{resources::read_models(data.read("3DDATA/3DOBJS.BIN"))};
   resources::executable_data const executable{data}; resources::initialise_model_metadata(models, executable);
   math::trigonometry const trig{data}; simulation::combat_tables const tables{executable};
-  auto const weapons{simulation::weapon_definitions()}; render::mobile_scene mobiles{models};
+  auto const weapons{simulation::weapon_definitions()}; apache::render::mobile_scene mobiles{models};
   std::array<simulation::mobile_target_state, 8> states{};
   for(size_t i{0}; i != states.size(); ++i) mobiles.add(7, {});
   std::array<resources::scenery_placement, 8> placements{};
@@ -24,7 +26,7 @@ void inspect_tracking(std::istream &input, std::ostream &output, apache::resourc
   simulation::target_slot_lookup const slots{[&](uint32_t id, simulation::target_slot slot){
     int const index{links.at(id).at(static_cast<size_t>(slot))}; return index < 0 ? std::shared_ptr<simulation::target_reference>{} : references.at(index);
   }};
-  auto const point{[&](){ math::vector3 p; for(auto &v : p) input >> v; return p; }};
+  auto const point{[&]{ math::vector3 p; for(auto &v : p) input >> v; return p; }};
   auto const identify{[&](simulation::target_reference const *p){
     if(!p) return -1;
     if(round.selected && p == &*round.selected) return 64;

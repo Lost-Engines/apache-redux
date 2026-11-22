@@ -1,25 +1,27 @@
 #include "inspect_projectile_pool.h"
-#include "simulation/projectiles.h"
 #include <iomanip>
 #include <istream>
 #include <memory>
 #include <ostream>
 #include <stdexcept>
 #include <string>
+#include "simulation/projectiles.h"
 
 void inspect_projectile_pool(std::istream &input, std::ostream &output, apache::resources::data_store const &data) {
-  using namespace apache;
+  namespace math = apache::math;
+  namespace resources = apache::resources;
+  namespace simulation = apache::simulation;
   auto const models{resources::read_models(data.read("3DDATA/3DOBJS.BIN"))};
   math::trigonometry const trig{data}; simulation::combat_tables const tables{resources::executable_data{data}};
-  render::mobile_scene mobiles{models}; simulation::effects smoke;
+  apache::render::mobile_scene mobiles{models}; simulation::effects smoke;
   std::optional<resources::terrain> terrain;
   std::vector<resources::scenery_placement> placements;
   std::unique_ptr<simulation::scenery_collisions> scenery;
   std::unique_ptr<simulation::projectiles> pool;
   std::array<simulation::projectile_aim, 256> aims;
   uint32_t seed{1};
-  auto const point{[&](){ math::vector3 v; for(auto &x : v) input >> x; return v; }};
-  auto const pose{[&](){ auto const p{point()}; uint32_t h{0}, pitch{0}, roll{0}; input >> h >> pitch >> roll; return math::pose{p, trig.transformation(h, pitch, roll)}; }};
+  auto const point{[&]{ math::vector3 v; for(auto &x : v) input >> x; return v; }};
+  auto const pose{[&]{ auto const p{point()}; uint32_t h{0}, pitch{0}, roll{0}; input >> h >> pitch >> roll; return math::pose{p, trig.transformation(h, pitch, roll)}; }};
   auto const print{[&](auto const &v){ for(auto x : v) output << x << ' '; }};
   simulation::projectile_callbacks events;
   events.guidance = [&](simulation::projectile_record &round, int32_t){
@@ -41,7 +43,7 @@ void inspect_projectile_pool(std::istream &input, std::ostream &output, apache::
       scenery = std::make_unique<simulation::scenery_collisions>(models, trig, placements);
       pool = std::make_unique<simulation::projectiles>(models, trig, tables, *terrain, *scenery, mobiles, smoke, seed, events); pool->weapon_random = weapon_random;
     } else if(command == "add") {
-      uint32_t model{0}, flags{0}; input >> model >> flags; auto const p{pose()}; auto const id{mobiles.add(model, p)}; mobiles.at(id).status = flags; render::maintain_model(mobiles.at(id));
+      uint32_t model{0}, flags{0}; input >> model >> flags; auto const p{pose()}; auto const id{mobiles.add(model, p)}; mobiles.at(id).status = flags; apache::render::maintain_model(mobiles.at(id));
     } else if(command == "new") {
       simulation::projectile_request request;
       input >> request.weapon; request.launch.pose = pose(); request.launch.source.position = point(); request.launch.source.direction = point();
@@ -50,8 +52,7 @@ void inspect_projectile_pool(std::istream &input, std::ostream &output, apache::
       request.source.identity.kind = static_cast<simulation::target_kind>(source_kind); request.source.position = request.launch.source.position;
       if(selected) request.selected = simulation::target_reference{{simulation::target_kind::fixed}, {}};
       auto const index{pool->construct(request)};
-      if(index) { pool->launch(*index, now); aims[*index] = {}; output << "N " << *index << ' ' << (pool->at(*index).mobile ? static_cast<int64_t>(*pool->at(*index).mobile) : -1) << '\n'; }
-      else output << "N -1 -1\n";
+      if(index) { pool->launch(*index, now); aims[*index] = {}; output << "N " << *index << ' ' << (pool->at(*index).mobile ? static_cast<int64_t>(*pool->at(*index).mobile) : -1) << '\n'; } else output << "N -1 -1\n";
     } else if(command == "aim") {
       size_t index{0}; bool exists{false}, actor{false}; input >> index >> exists >> actor;
       simulation::movement_target target; target.position = point(); target.direction = point(); input >> target.speed;
@@ -66,8 +67,7 @@ void inspect_projectile_pool(std::istream &input, std::ostream &output, apache::
       for(size_t i{0}; i != pool->entries().size(); ++i) if(pool->entries()[i]) {
         auto const &round{*pool->entries()[i]}; auto const &state{round.state}; auto const &b{state.body};
         output << "R " << i << ' ' << state.weapon << ' ' << state.launched_at << ' ' << state.random << ' ' << b.motion.flags << ' ';
-        if(state.weapon && simulation::weapon_definitions()[state.weapon].movement_class == 3) { print(state.impact); output << state.impact_at << ' '; }
-        else {
+        if(state.weapon && simulation::weapon_definitions()[state.weapon].movement_class == 3) { print(state.impact); output << state.impact_at << ' '; } else {
           output << b.motion.distance << ' ' << b.motion.speed << ' '; print(b.pose.position); print(b.pose.rotation); print(b.previous); print(b.angles);
           output << b.seeker.flags << ' ' << b.seeker.retry_time << ' ' << static_cast<int>(b.seeker.adjusted) << ' ';
           auto const &children{mobiles.at(*round.mobile).children}; output << (children.empty() || !children[0] ? 0 : children[0]->id) << ' ';

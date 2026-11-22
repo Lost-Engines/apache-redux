@@ -5,13 +5,17 @@
 
 namespace apache::simulation {
 namespace {
-constexpr double pi{3.14159265359}, tau{6.28318530718}, half_pi{1.570796326795}, three_half_pi{4.712388980385};
+double constexpr pi{3.14159265359}, tau{6.28318530718}, half_pi{1.570796326795}, three_half_pi{4.712388980385};
 int32_t integer(double const value) {
   if(!std::isfinite(value) || value < -0x1p63 || value >= 0x1p63) throw std::runtime_error{"Invalid Arcade flight conversion"};
   return std::bit_cast<int32_t>(static_cast<uint32_t>(static_cast<int64_t>(value)));
 }
-double angle(uint32_t const value) { return static_cast<double>(std::bit_cast<int32_t>(value)) * tau * 2.328306437080797e-10; }
-double wrap(double const value) { return value >= tau ? value - tau : value < 0 ? value + tau : value; }
+double angle(uint32_t const value) {
+  return static_cast<double>(std::bit_cast<int32_t>(value)) * tau * 2.328306437080797e-10;
+}
+double wrap(double const value) {
+  return value >= tau ? value - tau : value < 0 ? value + tau : value;
+}
 }
 void arcade_flight::initialise(flight_start const &start, math::trigonometry const &trig, arcade_environment const &environment) {
   *this = arcade_flight{}; readings.engines.fill(0);

@@ -61,7 +61,10 @@ void settings::save() const {
   { std::ofstream output{temporary, std::ios::binary | std::ios::trunc}; auto const text{values.serialise()}; if(!output || !output.write(text.data(), static_cast<std::streamsize>(text.size())) || !output.flush()) throw std::runtime_error{"Cannot save preferences: " + filename.string()}; }
   std::filesystem::rename(temporary, filename);
 }
-void settings::set(std::string_view const key, int const value) { values.set(key, value); apply(); }
+void settings::set(std::string_view const key, int const value) {
+  values.set(key, value);
+  apply();
+}
 void settings::set_field_of_view(double const value) {
   auto const text{std::format("{}", value)};
   parse_field_of_view(text);

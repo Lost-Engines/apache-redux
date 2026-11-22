@@ -46,10 +46,17 @@ class helmet_drawing {
   void box(int32_t const left, int32_t const bottom, int32_t const right, int32_t const top) {
     line(left, bottom, right, bottom); line(left, top, right, top); line(left, bottom, left, top); line(right, bottom, right, top);
   }
-  int vertical() const { return high ? -3 : -2; }
-  void rotate(uint32_t const angle) { plane.cosine = trig.cosine(angle); plane.sine = trig.sine(angle); }
+  int vertical() const {
+    return high ? -3 : -2;
+  }
+  void rotate(uint32_t const angle) {
+    plane.cosine = trig.cosine(angle);
+    plane.sine = trig.sine(angle);
+  }
 public:
-  helmet_drawing(framebuffer &destination, instrument_font const &letters, math::trigonometry const &angles, helmet_instruments const &values, bool const large, rectangle const area, rectangle const sight) : target{destination}, font{letters}, trig{angles}, state{values}, high{large}, viewport{area}, sight_viewport{sight}, plane{area, {-0x100000, -0xc0000, 0x100000, 0xc0000}}, raster{destination} { target.clip = area; }
+  helmet_drawing(framebuffer &destination, instrument_font const &letters, math::trigonometry const &angles, helmet_instruments const &values, bool const large, rectangle const area, rectangle const sight) : target{destination}, font{letters}, trig{angles}, state{values}, high{large}, viewport{area}, sight_viewport{sight}, plane{area, {-0x100000, -0xc0000, 0x100000, 0xc0000}}, raster{destination} {
+    target.clip = area;
+  }
   void reticle() {
     plane.origin = {0, 0};
     line(0, 0, 0x2147a, 0, 0x3fffffff); line(0, 0, -0x2147a, 0, 0x3fffffff);
@@ -88,8 +95,7 @@ public:
       } else if(value < 0) {
         bool const reverse{direction != -1 && value != -9};
         for(auto const &[a, b] : std::array<std::array<int, 2>, 4>{{{0x19999, 0x20000}, {0x26666, 0x2cccc}, {0x33333, 0x39999}, {0x40000, 0x46666}}}) {
-          if(reverse) { line(-a, y, -b, y); line(a, y, b, y); }
-          else { line(a, y, b, y); line(-a, y, -b, y); }
+          if(reverse) { line(-a, y, -b, y); line(a, y, b, y); } else { line(a, y, b, y); line(-a, y, -b, y); }
         }
         if(value != -9) {
           int const side{direction == -1 ? 1 : -1}, end{direction == -1 ? lower : upper};
@@ -138,8 +144,14 @@ public:
     text(std::format("{}{}.{}", static_cast<char>(state.waypoint_letter), state.waypoint_distance / 0x17bc00, int64_t{state.waypoint_distance % 0x17bc00} * 10 / 0x17bc00), -0x4cccc, -0x48f5c, 1, vertical());
     text(std::format("{}:{:02}", state.waypoint_time / 12000, int64_t{state.waypoint_time % 12000} * 60 / 12000), -0x4cccc, -0x5c28f, 1, vertical());
   }
-  void airspeed() { plane.origin = {0, 0}; text(std::format("{}", state.airspeed), -0xb9999, 0xcccc, 1, vertical()); }
-  void engines() { plane.origin = {0, 0}; text(std::format("{}%", state.torque), -0xa6666, 0x6cccc, 1, vertical()); }
+  void airspeed() {
+    plane.origin = {0, 0};
+    text(std::format("{}", state.airspeed), -0xb9999, 0xcccc, 1, vertical());
+  }
+  void engines() {
+    plane.origin = {0, 0};
+    text(std::format("{}%", state.torque), -0xa6666, 0x6cccc, 1, vertical());
+  }
   void device() {
     if(state.view != 13) return;
     box(-0xe6666, 0x80000, -0x80000, 0x99999);
@@ -272,7 +284,7 @@ public:
     for(int x{-0xffffa}; x < 0xffffb; x += 0x19999) for(int y{-0xffffa}; y < 0xffffb; y += 0x19999) { auto const point{plane.project({x, y})}; target.point(point.x, point.y, 1); }
   }
 };
-} // namespace
+} // anonymous namespace
 helmet_display::helmet_display(resources::executable_data const &executable, math::trigonometry const &angles, unsigned int const video_mode) : font{executable, video_mode != 0}, trig{angles}, high{video_mode != 0} {
   if(video_mode > 1) throw std::runtime_error{"Invalid helmet display resolution"};
   auto const rectangle_at{[&](uint32_t const address){ resources::reader input{executable.at(address, 16)}; int const x{input.i32()}, y{input.i32()}, width{input.i32()}, height{input.i32()}; return rectangle{x, y, x + width - 1, y + height - 1}; }};

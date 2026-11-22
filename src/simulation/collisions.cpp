@@ -3,24 +3,36 @@
 
 namespace apache::simulation {
 namespace {
-bool outside(math::vector3 const &p) { return p[0] < 0 || p[0] >= 0x10000000 || p[1] < 0 || p[1] >= 0x10000000; }
-size_t sector(math::vector3 const &p) { return static_cast<size_t>((p[0] >> 22) * 64 + (p[1] >> 22)); }
-math::vector3 difference(math::vector3 const &a, math::vector3 const &b) { return {math::subtract(a[0], b[0]), math::subtract(a[1], b[1]), math::subtract(a[2], b[2])}; }
+bool outside(math::vector3 const &p) {
+  return p[0] < 0 || p[0] >= 0x10000000 || p[1] < 0 || p[1] >= 0x10000000;
+}
+size_t sector(math::vector3 const &p) {
+  return static_cast<size_t>((p[0] >> 22) * 64 + (p[1] >> 22));
+}
+math::vector3 difference(math::vector3 const &a, math::vector3 const &b) {
+  return {math::subtract(a[0], b[0]), math::subtract(a[1], b[1]), math::subtract(a[2], b[2])};
+}
 int32_t approximate2(int32_t const x, int32_t const y) {
   auto const a{x < 0 ? math::negate(x) : x}, b{y < 0 ? math::negate(y) : y};
   return math::add(std::bit_cast<int32_t>(static_cast<uint32_t>(std::max(a, b)) * 4), std::min(a, b)) >> 2;
 }
-int32_t approximate3(math::vector3 v) { for(auto &x : v) if(x < 0) x = math::negate(x); std::ranges::sort(v); return math::add(math::add(v[2], v[1] >> 2), v[0] >> 2); }
+int32_t approximate3(math::vector3 v) {
+  for(auto &x : v) if(x < 0) x = math::negate(x);
+  std::ranges::sort(v);
+  return math::add(math::add(v[2], v[1] >> 2), v[0] >> 2);
+}
 std::array<int32_t, 2> search_bounds(int32_t coordinate, int32_t radius) {
   return {std::max(0, std::min(coordinate >> 22, math::subtract(coordinate, radius) >> 22)), std::min(63, std::max(coordinate >> 22, math::add(coordinate, radius) >> 22))};
 }
-bool interval(int32_t value, int32_t a, int32_t b, int32_t radius) { return math::subtract(std::min(a, b), radius) <= value && value <= math::add(std::max(a, b), radius); }
+bool interval(int32_t value, int32_t a, int32_t b, int32_t radius) {
+  return math::subtract(std::min(a, b), radius) <= value && value <= math::add(std::max(a, b), radius);
+}
 bool box_contains(render::model_instance const &object, math::vector3 const &point, resources::model_archive const &models, bool const inclusive) {
   auto const local{math::transform(object.world.rotation, difference(point, object.world.position))}; auto const &bounds{models.at(object.id)->bounds};
   for(size_t i{0}; i != 3; ++i) if(inclusive ? local[i] < bounds[i * 2] || local[i] > bounds[i * 2 + 1] : local[i] <= bounds[i * 2] || local[i] >= bounds[i * 2 + 1]) return false;
   return true;
 }
-}
+} // anonymous namespace
 int32_t perpendicular_distance(math::vector3 const &start, math::vector3 const &end, math::vector3 const &point, math::trigonometry const &trig) {
   auto direction{difference(end, start)}, offset{difference(point, start)};
   int32_t const length{math::normalise_q31_in_place(direction)}, distance{math::normalise_q31_in_place(offset)};
@@ -28,7 +40,9 @@ int32_t perpendicular_distance(math::vector3 const &start, math::vector3 const &
   if(dot < 0 || math::multiply_q31(distance, dot) > length) return INT32_MAX;
   return math::multiply_q31(distance, trig.sine(trig.arccosine(dot)));
 }
-bool rotated_box_contains(render::model_instance const &object, math::vector3 const &point, resources::model_archive const &models) { return box_contains(object, point, models, true); }
+bool rotated_box_contains(render::model_instance const &object, math::vector3 const &point, resources::model_archive const &models) {
+  return box_contains(object, point, models, true);
+}
 render::model_instance const *bounding_box_hit(render::model_instance const &object, math::vector3 const &point, resources::model_archive const &models) {
   if(box_contains(object, point, models, false)) return &object;
   for(auto const &child : object.children) if(child) if(auto const hit{bounding_box_hit(*child, point, models)}) return hit;

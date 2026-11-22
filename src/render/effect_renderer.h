@@ -1,7 +1,7 @@
 #pragma once
+#include "math/geometry.h"
 #include "draw_queue.h"
 #include "horizon.h"
-#include "math/geometry.h"
 #include "simulation/effects.h"
 
 namespace apache::render {

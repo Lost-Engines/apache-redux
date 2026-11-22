@@ -1,6 +1,6 @@
 #pragma once
-#include "actor_firing.h"
 #include <span>
+#include "actor_firing.h"
 
 namespace apache::simulation {
 struct combat_warning_times {

@@ -1,7 +1,7 @@
 #pragma once
 #include "actor_types.h"
-#include "weapon_info.h"
 #include "resources/executable.h"
+#include "weapon_info.h"
 
 namespace apache::simulation {
 struct forces_info {

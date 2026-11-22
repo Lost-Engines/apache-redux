@@ -1,6 +1,6 @@
 #pragma once
-#include "mission_runtime.h"
 #include "instrument_state.h"
+#include "mission_runtime.h"
 #include "render/avionics.h"
 
 namespace apache::simulation {
@@ -15,7 +15,9 @@ class mission_instruments {
 public:
   render::avionics_instruments state;
   mission_instruments(mission_runtime &runtime, unsigned int video_mode, unsigned int game_mode = 0);
-  void sample() { sampled = flight_display(); }
+  void sample() {
+    sampled = flight_display();
+  }
   void update(unsigned int view, math::pose const &camera, render::projection const &projection);
 };
 } // namespace apache::simulation
