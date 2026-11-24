@@ -402,7 +402,7 @@ simulation::view_sources mission_session::sources() {
   return result;
 }
 void mission_session::select_view(unsigned int const mode) {
-  views->select(mode, sources(), runtime.random.global_seed);
+  if(views->select(mode, sources(), runtime.random.global_seed)) hud_mfds = hud_mfd_mode::none;
   runtime.player_armament->in_cockpit = views->modes.in_cockpit;
 }
 void mission_session::crash(bool const airborne) {
@@ -464,7 +464,7 @@ void mission_session::command(uint16_t const key) {
   auto &displays{instruments->state.displays};
   auto const mode{arm.control_mode};
   auto const faults{runtime.pilot->faults()};
-  bool const gunner{views->modes.crew == 1};
+  bool const gunner{views->modes.mode == 12 && hud_mfds != hud_mfd_mode::none ? hud_mfds == hud_mfd_mode::gunner : views->modes.crew == 1};
   simulation::targeting_events const target_events{
     .key_event{crew ? std::function<bool(uint16_t)>{[this](uint16_t code){return crew->notify_key(code);}} : nullptr},
     .cockpit_sound{runtime.events.sound ? std::function<void(unsigned int)>{[this](unsigned int id){runtime.events.sound(id, true);}} : nullptr},
@@ -601,7 +601,22 @@ void mission_session::command(uint16_t const key) {
     select_view(10);
     break;
   case 0x23:
-    select_view(12);
+    if(views->modes.mode == 12) {
+      switch(hud_mfds) {
+      case hud_mfd_mode::none:
+        hud_mfds = hud_mfd_mode::pilot;
+        break;
+      case hud_mfd_mode::pilot:
+        hud_mfds = hud_mfd_mode::gunner;
+        break;
+      case hud_mfd_mode::gunner:
+        hud_mfds = hud_mfd_mode::none;
+        break;
+      }
+      views->modes.changed = true;
+    } else {
+      select_view(12);
+    }
     break;
   case 0x14:
     views->select_optics(sources(), runtime.random.global_seed);
@@ -865,6 +880,29 @@ void mission_session::draw() {
   render::vector_hud vectors{frame, layout.hud_transform(original_view, settings.graphics.field_of_view), state.helmet.colour};
   avionics.draw_helmet(helmet_overlay, state.helmet, &vectors);
   layout.composite_hud(helmet_overlay, frame, original_view, settings.graphics.field_of_view);
+  if(views->modes.mode == 12 && hud_mfds != hud_mfd_mode::none) {
+    bool const gunner{hud_mfds == hud_mfd_mode::gunner};
+    auto const corners{render::hud_mfd_areas(frame.image.width, frame.image.height)};
+    std::array const areas{avionics.mfd_area(gunner, false), avionics.mfd_area(gunner, true)};
+    // Reuse the logical HUD buffer after its lettering has been composited.
+    helmet_overlay.coverage.assign(helmet_overlay.image.pixels.size(), 0);
+    helmet_overlay.reset_clip();
+    render::target_preview_renderer const floating_preview{[&](render::rectangle const area)->std::string_view {
+      auto const destination{corners[area.left == areas[1].left ? 1 : 0]};
+      if(destination.right < destination.left || destination.bottom < destination.top) return "No Target";
+      auto const saved_clip{frame.clip};
+      auto const saved_fov{frame.horizontal_fov};
+      frame.clip = destination;
+      frame.horizontal_fov = 90;
+      frame.fill(destination, 208);
+      auto const name{state.target_model ? world.draw_flir(frame, *state.target_model, state.target_camera_aim, state.helmet.aircraft.position, visual.lighting) : "No Target"};
+      frame.clip = saved_clip;
+      frame.horizontal_fov = saved_fov;
+      return name;
+    }};
+    avionics.draw_mfd_pair(helmet_overlay, state, gunner, world, visual.lighting, floating_preview);
+    for(size_t side{0}; side != 2; ++side) render::composite_region(helmet_overlay, areas[side], frame, corners[side]);
+  }
   // Chat and the quit prompt cover the optical strokes at their normal text size.
   if(scaled) layout.background(frame, overlay);
   for(size_t i{0}; i != 256; ++i) frame.image.colours[i] = {world.palette.modified[i * 3], world.palette.modified[i * 3 + 1], world.palette.modified[i * 3 + 2]};

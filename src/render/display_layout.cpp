@@ -2,7 +2,40 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
+#include <stdexcept>
 namespace apache::render {
+auto hud_mfd_areas(unsigned int const width, unsigned int const height)->std::array<rectangle, 2> {
+  double const scale{std::min(width / 640.0, height / 480.0)};
+  int const margin{std::max(1, static_cast<int>(std::lround(8 * scale)))};
+  int const side{std::min({static_cast<int>(std::lround(140 * scale)), (static_cast<int>(width) - 3 * margin) / 2, static_cast<int>(height) - 2 * margin})};
+  if(side < 1) return {};
+  int const top{static_cast<int>(height) - margin - side};
+  int const right{static_cast<int>(width) - margin - 1};
+  return {{{margin, top, margin + side - 1, top + side - 1}, {right - side + 1, top, right, top + side - 1}}};
+}
+void composite_region(framebuffer const &source, rectangle const source_area, framebuffer &destination, rectangle const destination_area) {
+  if(source_area.right < source_area.left || source_area.bottom < source_area.top || destination_area.right < destination_area.left || destination_area.bottom < destination_area.top) return;
+  auto const clip{intersect(destination_area, {0, 0, static_cast<int>(destination.image.width) - 1, static_cast<int>(destination.image.height) - 1})};
+  if(clip.right < clip.left || clip.bottom < clip.top) return;
+  if(source_area.left < 0 || source_area.top < 0 || source_area.right >= static_cast<int>(source.image.width) || source_area.bottom >= static_cast<int>(source.image.height)) throw std::runtime_error{"MFD source region exceeds its image"};
+  int const source_width{source_area.right - source_area.left + 1};
+  int const source_height{source_area.bottom - source_area.top + 1};
+  int const width{destination_area.right - destination_area.left + 1};
+  int const height{destination_area.bottom - destination_area.top + 1};
+  std::vector<int> columns(static_cast<size_t>(clip.right - clip.left + 1));
+  for(int x{clip.left}; x <= clip.right; ++x) columns[x - clip.left] = source_area.left + static_cast<int>(int64_t{x - destination_area.left} * source_width / width);
+  for(int y{clip.top}; y <= clip.bottom; ++y) {
+    int const sy{source_area.top + static_cast<int>(int64_t{y - destination_area.top} * source_height / height)};
+    size_t const row{size_t(sy) * source.image.width};
+    size_t const out{size_t(y) * destination.image.width};
+    for(int x{clip.left}; x <= clip.right; ++x) {
+      size_t const at{row + columns[x - clip.left]};
+      if(!source.coverage.empty() && !source.coverage[at]) continue;
+      destination.image.pixels[out + x] = source.image.pixels[at];
+      destination.mark(out + x);
+    }
+  }
+}
 display_layout::display_layout(unsigned int width, unsigned int height, unsigned int logical_width,
                                unsigned int logical_height, rectangle viewport, double fov, horizontal_anchor anchor)
   : source_width{logical_width},

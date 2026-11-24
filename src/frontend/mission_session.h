@@ -13,6 +13,11 @@
 #include "simulation/player_views.h"
 
 namespace apache::frontend {
+enum class hud_mfd_mode {
+  none,
+  pilot,
+  gunner
+};
 struct mission_connection {
   multiplayer::game_settings game;
   uint32_t local{0};
@@ -89,6 +94,7 @@ public:
   bool quit_prompt{false};
   bool help_requested{false};
   unsigned int accelerated_time{1};
+  hud_mfd_mode hud_mfds{hud_mfd_mode::none};
   std::function<void(unsigned int, int32_t, int32_t)> play_sound;
   std::function<void(simulation::flight_event)> flight_sound;
   // The transport services incoming packets here, at the original render barrier.

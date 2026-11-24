@@ -259,6 +259,41 @@ int main() try {
       }
     }
   }
+  // Floating MFDs stay square, separated and anchored to the physical corners.
+  for(auto size : {configuration::resolution{160, 160}, {320, 240}, {640, 480}, {1437, 911}, {3840, 2160}, {800, 1000}, {3840, 720}}) {
+    auto const panels{render::hud_mfd_areas(size.width, size.height)};
+    require(panels[0].left > 0 && panels[1].right < static_cast<int>(size.width), "HUD MFDs have no corner margin");
+    require(panels[0].right < panels[1].left, "HUD MFDs overlap");
+    require(panels[0].left == static_cast<int>(size.width) - 1 - panels[1].right && panels[0].top == panels[1].top, "HUD MFD corner placement is asymmetric");
+    for(auto area : panels) {
+      require(area.right - area.left == area.bottom - area.top && area.bottom < static_cast<int>(size.height), "HUD MFD is stretched or outside the image");
+    }
+  }
+  {
+    render::framebuffer source{6, 5};
+    source.coverage.assign(source.image.pixels.size(), 1);
+    for(size_t i{0}; i != source.image.pixels.size(); ++i) source.image.pixels[i] = static_cast<uint8_t>(i + 40);
+    source.coverage[2 * 6 + 3] = 0;
+    render::framebuffer frame{16, 12};
+    frame.clear(17);
+    frame.hud_coverage.assign(frame.image.pixels.size(), 255);
+    render::rectangle const destination{-3, -2, 12, 9};
+    render::composite_region(source, {1, 1, 4, 3}, frame, destination);
+    for(int y{0}; y != 12; ++y) {
+      for(int x{0}; x != 16; ++x) {
+        size_t const at{size_t(y) * 16 + x};
+        if(!destination.contains(x, y)) {
+          require(frame.image.pixels[at] == 17 && frame.hud_coverage[at] == 255, "floating panel changed the surrounding HUD");
+          continue;
+        }
+        int const sx{1 + (x + 3) / 4};
+        int const sy{1 + (y + 2) / 4};
+        size_t const sample{size_t(sy) * 6 + sx};
+        require(frame.image.pixels[at] == (source.coverage[sample] ? source.image.pixels[sample] : 17), "floating panel nearest-neighbour sampling changed");
+        require(frame.hud_coverage[at] == (source.coverage[sample] ? 0 : 255), "floating panel lost its native preview hole or HUD occlusion");
+      }
+    }
+  }
   // Reusing the upload buffer must still reflect palette changes and resizing.
   std::vector<render::rgba> upload;
   for(unsigned int width : {257u, 16u, 1000u}) {

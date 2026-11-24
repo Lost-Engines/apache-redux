@@ -42,6 +42,14 @@ Preferences now has FOV and LOD-distance dropdowns with a preview. `Redux FOV` a
 
 `lod_check DATA_DIRECTORY [PREFERENCES_CAPTURE.ppm]` checks actual menu clicks, saved settings, temporary command-line overrides, A-10 detail/attachment/shadow selection at five distances, expanded mobile visibility and identical terrain-only pixels from 0.1x through 32x. `graphics_tests` rejects malformed multipliers. Captures use local paths and are not published.
 
+## HUD MFD overlays
+
+H enters the original full-screen helmet view, then cycles the presentation through pilot MFDs, gunner MFDs and no MFDs. The camera stays in mode 12 throughout the cycle, preserving head direction, targeting and crew control state. Entering from another view starts with the plain HUD. Brackets, Shift+brackets and Ctrl+brackets act on the displayed seat's MFD state, including automatic radar-page selection. Cockpit and overlay views share their page selections, power state and failures.
+
+The two main displays use the existing avionics renderer, including original frames and artwork. A square 140-pixel reference panel is placed in each lower corner, with an eight-pixel margin at 640×480; panel sizes follow render resolution independently of FOV. Both source artwork resolutions use the same destination sizes. The gunner's separate centre target display stays in the cockpit view. FLIR geometry renders directly into the destination panel at native resolution, with lettering and corners composed from the original pixel artwork. MFD panels cover HUD strokes, and chat and quit prompts remain above them.
+
+`hud_mfd_check DATA_DIRECTORY [CAPTURE_DIRECTORY]` checks H cycling, head-direction and crew-control preservation, shared page controls, every display page, native target previews, failures and off states at both artwork resolutions through 4K and custom FOVs. `graphics_tests` checks square corner placement and clipped resampling with preview transparency.
+
 ## Native HUD strokes and model lines
 
 The helmet renderer sends line endpoints to a native-resolution coverage layer before pixel rounding. Its 2D projection retains subpixel positions, while the existing bitmap-font path keeps the original glyphs and advances. Solid and patterned lines use round-ended, antialiased strokes; the 32-bit masks retain their logical-pixel spacing after scaling. Overlapping strokes take maximum coverage, so joins do not darken or brighten twice. The final RGBA conversion blends the selected black or green HUD colour with the scene, skipping eight empty coverage samples at a time. HUD text and filled indicators keep their existing raster artwork. The same FOV transform places lines and text, with clipping at the active windscreen or sight inset. Chat, prompts and subsequent menu draws cover the stroke layer. PPM captures include the final blended pixels.

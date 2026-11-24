@@ -1,4 +1,5 @@
 #pragma once
+#include <array>
 #include "framebuffer.h"
 namespace apache::render {
 // The authored cockpit stays proportional; the world extends into widescreen space.
@@ -15,6 +16,8 @@ struct hud_mapping {
   double stroke_width{1};
   rectangle clip;
 };
+auto hud_mfd_areas(unsigned int width, unsigned int height)->std::array<rectangle, 2>;
+void composite_region(framebuffer const &source, rectangle source_area, framebuffer &destination, rectangle destination_area);
 class display_layout {
   unsigned int source_width;
   unsigned int source_height;
