@@ -41,6 +41,18 @@ screen_vertex projection2::project_raw(vertex2 const &point) const {
 screen_vertex projection2::project(vertex2 const &point) const {
   return screen(transform(point));
 }
+auto projection2::project_precise(vertex2 const &point) const->std::array<double, 2> {
+  double const x{double(point.x) + origin[0] - centre[0]};
+  double const y{double(point.y) + origin[1] - centre[1]};
+  double const c{double(cosine) / 0x80000000u};
+  double const s{double(sine) / 0x80000000u};
+  double const xx{x * c - y * s + centre[0]};
+  double const yy{y * c + x * s + centre[1]};
+  return {
+    viewport.left + (xx - window.left) * (viewport.right - viewport.left) / (double(window.right) - window.left),
+    viewport.bottom - (yy - window.bottom) * (viewport.bottom - viewport.top) / (double(window.top) - window.bottom),
+  };
+}
 bool projection2::clip_endpoint(vertex2 &point, vertex2 const &other) const {
   uint8_t code{outcode(point)};
   auto const other_code{outcode(other)};

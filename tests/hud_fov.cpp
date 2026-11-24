@@ -147,7 +147,7 @@ int main(int argc, char **argv) try {
     }
     if(argc == 3) {
       std::filesystem::create_directories(argv[2]);
-      apache::resources::write_ppm((std::filesystem::path{argv[2]} / ("hud-" + std::to_string(static_cast<int>(fov)) + ".ppm")).string(), flight->frame.image);
+      flight->frame.write_ppm((std::filesystem::path{argv[2]} / ("hud-" + std::to_string(static_cast<int>(fov)) + ".ppm")).string());
     }
   }
   std::cout << "Full cockpit panel pixels stay identical across FOV changes\n";

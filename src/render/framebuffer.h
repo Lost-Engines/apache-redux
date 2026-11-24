@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <optional>
+#include <string>
 #include <vector>
 #include "resources/image.h"
 
@@ -27,8 +28,11 @@ public:
   // Extend the render area without moving the cockpit's optical axis.
   std::optional<rectangle> projection_reference;
   std::vector<uint8_t> coverage;
+  std::vector<uint8_t> hud_coverage;
+  uint8_t hud_colour{223};
   void mark(size_t index) {
     if(!coverage.empty()) coverage[index] = 1;
+    if(!hud_coverage.empty()) hud_coverage[index] = 0;
   }
   framebuffer(unsigned int width, unsigned int height);
   void reset_clip();
@@ -39,5 +43,6 @@ public:
   void blit(resources::indexed_image const &source, int x, int y, bool transparent = false);
   void colour_pixels(std::vector<rgba> &pixels) const;
   std::vector<rgba> colour_pixels() const;
+  void write_ppm(std::string const &filename) const;
 };
 } // namespace apache::render

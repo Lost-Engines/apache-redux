@@ -3,6 +3,7 @@
 #include <bit>
 #include <format>
 #include <stdexcept>
+#include "vector_hud.h"
 
 namespace apache::render {
 namespace {
@@ -21,7 +22,12 @@ class helmet_drawing {
   rectangle sight_viewport;
   projection2 plane;
   rasterizer raster;
+  vector_hud *vectors;
   void line(int32_t const x, int32_t const y, int32_t const xx, int32_t const yy, uint32_t const pattern = UINT32_MAX) {
+    if(vectors) {
+      vectors->line(plane.project_precise({x, y}), plane.project_precise({xx, yy}), target.clip, pattern);
+      return;
+    }
     if(auto const clipped{plane.clip_line({x, y}, {xx, yy})}) {
       if(pattern == UINT32_MAX) {
         raster.line((*clipped)[0], (*clipped)[1], state.colour);
@@ -81,7 +87,7 @@ class helmet_drawing {
     plane.sine = trig.sine(angle);
   }
 public:
-  helmet_drawing(framebuffer &destination, instrument_font const &letters, math::trigonometry const &angles, helmet_instruments const &values, bool const large, rectangle const area, rectangle const sight)
+  helmet_drawing(framebuffer &destination, instrument_font const &letters, math::trigonometry const &angles, helmet_instruments const &values, bool const large, rectangle const area, rectangle const sight, vector_hud *const lines)
     : target{destination},
       font{letters},
       trig{angles},
@@ -90,7 +96,8 @@ public:
       viewport{area},
       sight_viewport{sight},
       plane{area, {-0x100000, -0xc0000, 0x100000, 0xc0000}},
-      raster{destination} {
+      raster{destination},
+      vectors{lines} {
     target.clip = area;
   }
   void reticle() {
@@ -472,8 +479,8 @@ helmet_display::helmet_display(resources::executable_data const &executable, mat
   for(size_t i{0}; i != viewports.size(); ++i) viewports[i] = rectangle_at(0x4eb668 + static_cast<uint32_t>(i) * 48 + video_mode * 16);
   sight_viewport = rectangle_at(0x4eba28 + video_mode * 16);
 }
-void helmet_display::draw(framebuffer &target, helmet_instruments const &state) const {
-  helmet_drawing drawing{target, font, trig, state, high, viewports.at(state.view), sight_viewport};
+void helmet_display::draw(framebuffer &target, helmet_instruments const &state, vector_hud *const vectors) const {
+  helmet_drawing drawing{target, font, trig, state, high, viewports.at(state.view), sight_viewport, vectors};
   drawing.complete();
 }
 vertex2 helmet_display::unproject_point(unsigned int const view, int32_t const x, int32_t const y) const {
@@ -486,8 +493,8 @@ std::optional<vertex2> helmet_display::project_point(unsigned int const view, ma
   if(!point || point->x < 0 || point->x >= 800 || point->y < 0 || point->y >= 600) return {};
   return unproject_point(view, point->x, point->y);
 }
-void helmet_display::draw_component(framebuffer &target, helmet_instruments const &state, helmet_component const component) const {
-  helmet_drawing drawing{target, font, trig, state, high, viewports.at(state.view), sight_viewport};
+void helmet_display::draw_component(framebuffer &target, helmet_instruments const &state, helmet_component const component, vector_hud *const vectors) const {
+  helmet_drawing drawing{target, font, trig, state, high, viewports.at(state.view), sight_viewport, vectors};
   switch(component) {
   case helmet_component::reticle:
     drawing.reticle();

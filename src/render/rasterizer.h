@@ -69,6 +69,7 @@ public:
   size_t invalid_texture_samples{0};
   explicit rasterizer(framebuffer &destination);
   void line(screen_vertex a, screen_vertex b, uint8_t colour);
+  void wide_line(screen_vertex a, screen_vertex b, uint8_t colour, double width);
   void circle_outline(int x, int y, int radius, uint8_t colour);
   void circle(int x, int y, int radius, material const &paint);
   void fill(std::span<screen_vertex const> vertices, material const &paint);

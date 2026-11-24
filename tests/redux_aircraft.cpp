@@ -348,7 +348,7 @@ int main(int argc, char **argv) try {
     require(ink > 100, "target preview has visible geometry");
     require(size.width == 640 ? changed == 0 : changed > 100, "native target preview differs from enlarged low-resolution image");
     if(argc == 3 && size.width == 1920) {
-      resources::write_ppm((std::filesystem::path{argv[2]} / "f3-native.ppm").string(), session.frame.image);
+      session.frame.write_ppm((std::filesystem::path{argv[2]} / "f3-native.ppm").string());
     }
     std::cout << size.width << 'x' << size.height << ": native F3 pixels match; " << changed << " differ from upscaling\n";
   }

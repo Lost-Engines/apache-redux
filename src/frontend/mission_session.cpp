@@ -5,6 +5,7 @@
 #include <stdexcept>
 #include <utility>
 #include "render/display_layout.h"
+#include "render/vector_hud.h"
 #include "resources/reader.h"
 
 namespace apache::frontend {
@@ -750,6 +751,7 @@ void mission_session::draw() {
   auto const camera_delta{paused ? std::exchange(paused_camera_delta, 0) : last_delta};
   camera = views->update(sources(), {controls.external[3], controls.external[2], controls.keyboard[5], paused && views->modes.mode == 19 ? 0 : camera_delta}, runtime.random.global_seed);
   finished = finished || camera.finished;
+  frame.hud_coverage.clear();
   visual.lighting = daylight.light;
   visual.infrared = night_vision || camera.infrared ? 1 : 0;
   visual.hidden_mobile = views->modes.in_cockpit ? std::optional{runtime.spatial.mobile_id(*runtime.timing.player)} : std::nullopt;
@@ -772,7 +774,6 @@ void mission_session::draw() {
   // then scale the complete HUD about the camera's optical axis for custom FOVs
   render::display_layout const reference_layout{frame.image.width, frame.image.height, overlay.image.width, overlay.image.height, original_view, 90};
   render::projection const projection{viewport[0], viewport[1], viewport[2], viewport[3], reference_layout.instrument_fov};
-  bool const zoom_hud{settings.graphics.field_of_view != 90};
   world.draw(frame, camera.camera, visual);
   frame.projection_reference.reset();
   if(camera.sight) runtime.look_player(camera.camera, projection);
@@ -857,16 +858,15 @@ void mission_session::draw() {
       return name;
     };
   }
-  avionics.draw(hud, state, world, visual.lighting, preview, !zoom_hud);
-  if(zoom_hud) {
-    if(scaled) layout.composite(overlay, frame);
-    helmet_overlay.coverage.assign(helmet_overlay.image.pixels.size(), 0);
-    helmet_overlay.reset_clip();
-    avionics.draw_helmet(helmet_overlay, state.helmet);
-    layout.composite_hud(helmet_overlay, frame, original_view, settings.graphics.field_of_view);
-    // chat and the quit prompt stay above the HUD at their normal text size
-    if(scaled) layout.background(frame, overlay);
-  }
+  avionics.draw(hud, state, world, visual.lighting, preview, false);
+  if(scaled) layout.composite(overlay, frame);
+  helmet_overlay.coverage.assign(helmet_overlay.image.pixels.size(), 0);
+  helmet_overlay.reset_clip();
+  render::vector_hud vectors{frame, layout.hud_transform(original_view, settings.graphics.field_of_view), state.helmet.colour};
+  avionics.draw_helmet(helmet_overlay, state.helmet, &vectors);
+  layout.composite_hud(helmet_overlay, frame, original_view, settings.graphics.field_of_view);
+  // Chat and the quit prompt cover the optical strokes at their normal text size.
+  if(scaled) layout.background(frame, overlay);
   for(size_t i{0}; i != 256; ++i) frame.image.colours[i] = {world.palette.modified[i * 3], world.palette.modified[i * 3 + 1], world.palette.modified[i * 3 + 2]};
   if(chat) chat->draw(hud, runtime.timing.now);
   views->modes.changed = false;

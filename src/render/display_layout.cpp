@@ -77,11 +77,17 @@ void display_layout::composite(framebuffer const &overlay, framebuffer &world) c
         for(int yy{top + 1}; yy != bottom; ++yy) {
           std::copy_n(out + start, count, out + size_t(yy - top) * world.image.width + start);
         }
+        if(!world.hud_coverage.empty()) {
+          for(int yy{top}; yy != bottom; ++yy) {
+            auto *ink{world.hud_coverage.data() + size_t(yy + artwork.top) * world.image.width + artwork.left + start};
+            std::fill_n(ink, count, 0);
+          }
+        }
       }
     }
   }
 }
-void display_layout::composite_hud(framebuffer const &overlay, framebuffer &world, rectangle const reference_view, double const fov) const {
+auto display_layout::hud_transform(rectangle const reference_view, double const fov) const->hud_mapping {
   double const zoom{fov == 90 ? 1 : 1 / std::tan(fov * std::numbers::pi / 360)};
   double const scale_x{double(artwork.right - artwork.left + 1) / source_width * zoom};
   double const scale_y{double(artwork.bottom - artwork.top + 1) / source_height * zoom};
@@ -90,14 +96,25 @@ void display_layout::composite_hud(framebuffer const &overlay, framebuffer &worl
   double const centre_y{scene.bottom - (scene.bottom - scene.top + 1) / 2.0};
   double const source_x{reference_view.left + (reference_view.right - reference_view.left + 1) / 2.0};
   double const source_y{reference_view.bottom - (reference_view.bottom - reference_view.top + 1) / 2.0};
-  auto const clip{intersect(scene, {0, 0, static_cast<int>(world.image.width) - 1, static_cast<int>(world.image.height) - 1})};
+  return {
+    .scale_x{scale_x},
+    .scale_y{scale_y},
+    .offset_x{centre_x - source_x * scale_x},
+    .offset_y{centre_y - source_y * scale_y},
+    .stroke_width{std::max(1.0, 0.75 * std::min(scale_x, scale_y) * source_width / 640)},
+    .clip{scene},
+  };
+}
+void display_layout::composite_hud(framebuffer const &overlay, framebuffer &world, rectangle const reference_view, double const fov) const {
+  auto const mapping{hud_transform(reference_view, fov)};
+  auto const clip{intersect(mapping.clip, {0, 0, static_cast<int>(world.image.width) - 1, static_cast<int>(world.image.height) - 1})};
   std::vector<int> columns(source_width + 1);
   for(unsigned int x{0}; x <= source_width; ++x) {
-    columns[x] = static_cast<int>(std::ceil(centre_x + (x - source_x) * scale_x));
+    columns[x] = static_cast<int>(std::ceil(mapping.offset_x + x * mapping.scale_x));
   }
   for(unsigned int y{0}; y != source_height; ++y) {
-    int const first{static_cast<int>(std::ceil(centre_y + (y - source_y) * scale_y))};
-    int const next{static_cast<int>(std::ceil(centre_y + (y + 1 - source_y) * scale_y))};
+    int const first{static_cast<int>(std::ceil(mapping.offset_y + y * mapping.scale_y))};
+    int const next{static_cast<int>(std::ceil(mapping.offset_y + (y + 1) * mapping.scale_y))};
     int const top{std::max(clip.top, first)};
     int const bottom{std::min(clip.bottom + 1, std::max(first + 1, next))};
     if(top >= bottom) continue;

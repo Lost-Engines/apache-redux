@@ -20,6 +20,8 @@ include(CTest)
 add_library(apache_core
   src/configuration/graphics.cpp src/configuration/graphics.h
   src/render/display_layout.cpp src/render/display_layout.h
+  src/render/stroke.h
+  src/render/vector_hud.cpp src/render/vector_hud.h
   src/frontend/multiplayer_chat.cpp src/frontend/multiplayer_chat.h
   src/multiplayer/peer_group.cpp src/multiplayer/peer_group.h
   src/multiplayer/connections.cpp src/multiplayer/connections.h
@@ -321,10 +323,15 @@ if(BUILD_TESTING)
   target_link_libraries(redux_aircraft_check PRIVATE apache_core)
   add_executable(lod_check tests/lod.cpp)
   target_link_libraries(lod_check PRIVATE apache_core)
+  add_executable(hud_detail_check tests/hud_detail.cpp)
+  target_link_libraries(hud_detail_check PRIVATE apache_core)
   add_executable(hud_fov_check tests/hud_fov.cpp)
   target_link_libraries(hud_fov_check PRIVATE apache_core)
   add_executable(graphics_scene_check tests/graphics_scene.cpp)
   target_link_libraries(graphics_scene_check PRIVATE apache_core)
+  add_executable(stroke_tests tests/strokes.cpp)
+  target_link_libraries(stroke_tests PRIVATE apache_core)
+  add_test(NAME stroke_tests COMMAND stroke_tests)
   add_executable(raster_tests tests/raster.cpp)
   target_link_libraries(raster_tests PRIVATE apache_core)
   add_test(NAME raster_tests COMMAND raster_tests)

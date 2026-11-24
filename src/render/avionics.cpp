@@ -65,8 +65,8 @@ void avionics_renderer::multifunction(framebuffer &target, avionics_instruments 
   }
   screens.corners(target, gunner);
 }
-void avionics_renderer::draw_helmet(framebuffer &target, helmet_instruments const &state) const {
-  if(state.view < 10 || state.view == 12 || state.view == 13 || state.view == 18) helmet.draw(target, state);
+void avionics_renderer::draw_helmet(framebuffer &target, helmet_instruments const &state, vector_hud *const vectors) const {
+  if(state.view < 10 || state.view == 12 || state.view == 13 || state.view == 18) helmet.draw(target, state, vectors);
 }
 void avionics_renderer::draw(framebuffer &target, avionics_instruments &state, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview, bool const draw_hud) const {
   auto const &flight{state.helmet};

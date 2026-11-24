@@ -111,7 +111,7 @@ int main(int argc, char **argv) try {
             if(!samples || visible < samples * 9 / 10) throw std::runtime_error{"Scenery is missing beside the cockpit panel"};
           }
         }
-        if(fov == 90 && size.width == 1920) apache::resources::write_ppm((output / ("view-" + std::to_string(view) + ".ppm")).string(), session.frame.image);
+        if(fov == 90 && size.width == 1920) session.frame.write_ppm((output / ("view-" + std::to_string(view) + ".ppm")).string());
         std::cout << size.width << 'x' << size.height << " FOV " << fov << " view " << view << '\n';
       }
     }

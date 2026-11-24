@@ -28,6 +28,7 @@ struct model_style {
   bool textures{true};
   bool gouraud{true};
   bool glass{true};
+  bool thick_lines{true};
   uint8_t heat_phase{0};
   math::vector3 light{0, 0, INT32_MAX};
 };

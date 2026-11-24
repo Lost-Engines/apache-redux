@@ -1,5 +1,6 @@
 #include "model_renderer.h"
 #include <algorithm>
+#include <cstdlib>
 #include <stdexcept>
 
 namespace apache::render {
@@ -238,7 +239,23 @@ int model_renderer::draw_face(resources::primitive const &face, std::span<vertex
     } else {
       for(size_t i{1}; i != face.indices.size(); ++i) {
         auto const line{view.clip_line(vertices[face.indices[i - 1]], vertices[face.indices[i]])};
-        if(line) raster.line((*line)[0].screen, (*line)[1].screen, colour);
+        if(!line) continue;
+        if(!style.thick_lines) {
+          raster.line((*line)[0].screen, (*line)[1].screen, colour);
+          continue;
+        }
+        auto const a{view.unscale(vertices[face.indices[i - 1]].eye)};
+        auto const b{view.unscale(vertices[face.indices[i]].eye)};
+        int64_t extent{0};
+        for(size_t axis{0}; axis != 3; ++axis) extent = std::max(extent, std::abs(int64_t{a[axis]} - b[axis]));
+        // Give authored line details a small physical diameter. It grows in
+        // perspective, with a resolution-dependent floor and a cap for close wires.
+        double const diameter{std::clamp(double(extent) / 64, 8.0, 128.0)};
+        double const scale{std::max(1.0, std::min(target.image.width / 640.0, target.image.height / 480.0))};
+        double const focal{(target.clip.right - target.clip.left + 1) * view.lateral_scale() / 2};
+        double const depth{(double((*line)[0].eye[1]) + (*line)[1].eye[1]) / 2};
+        double const width{std::clamp(diameter * focal / std::max(1.0, depth), std::max(1.0, scale * 0.4), scale * 2)};
+        raster.wide_line((*line)[0].screen, (*line)[1].screen, colour, width);
       }
     }
     return 0;

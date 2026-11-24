@@ -37,6 +37,7 @@ public:
   std::optional<std::array<screen_vertex, 2>> clip_line_raw(vertex2 const &a, vertex2 const &b) const;
   std::vector<screen_vertex> clip_raw(std::span<vertex2 const> vertices) const;
   screen_vertex project(vertex2 const &point) const;
+  auto project_precise(vertex2 const &point) const->std::array<double, 2>;
   std::optional<std::array<screen_vertex, 2>> clip_line(vertex2 const &a, vertex2 const &b) const;
   std::vector<screen_vertex> clip(std::span<vertex2 const> vertices) const;
 };

@@ -280,7 +280,7 @@ int main(int const argc, char const *const argv[]) try {
         mission->draw();
       }
     }
-    apache::resources::write_ppm(capture, mission ? mission->frame.image : frame.image);
+    (mission ? mission->frame : frame).write_ppm(capture);
     return EXIT_SUCCESS;
   }
   auto const data_root{std::filesystem::weakly_canonical(data.directory())};

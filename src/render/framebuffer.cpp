@@ -1,5 +1,7 @@
 #include "framebuffer.h"
 #include <algorithm>
+#include <cstring>
+#include <fstream>
 #include <stdexcept>
 
 namespace apache::render {
@@ -22,6 +24,7 @@ void framebuffer::reset_clip() {
 void framebuffer::clear(uint8_t const colour) {
   std::ranges::fill(image.pixels, colour);
   std::ranges::fill(coverage, 1);
+  hud_coverage.clear();
 }
 void framebuffer::point(int const x, int const y, uint8_t const colour) {
   if(clip.contains(x, y) && x >= 0 && y >= 0 && x < static_cast<int>(image.width) && y < static_cast<int>(image.height)) {
@@ -37,6 +40,7 @@ void framebuffer::fill(rectangle area, uint8_t const colour) {
     auto const start{image.pixels.begin() + static_cast<ptrdiff_t>(y) * image.width + area.left};
     std::fill_n(start, area.right - area.left + 1, colour);
     if(!coverage.empty()) std::fill_n(coverage.begin() + (start - image.pixels.begin()), area.right - area.left + 1, 1);
+    if(!hud_coverage.empty()) std::fill_n(hud_coverage.begin() + (start - image.pixels.begin()), area.right - area.left + 1, 0);
   }
 }
 void framebuffer::surround(rectangle const area, bool const pressed) {
@@ -68,6 +72,7 @@ void framebuffer::blit(resources::indexed_image const &source, int const x, int 
     } else {
       std::copy_n(from, count, to);
       if(!coverage.empty()) std::fill_n(coverage.begin() + (to - image.pixels.begin()), count, 1);
+      if(!hud_coverage.empty()) std::fill_n(hud_coverage.begin() + (to - image.pixels.begin()), count, 0);
     }
   }
 }
@@ -80,10 +85,55 @@ void framebuffer::colour_pixels(std::vector<rgba> &pixels) const {
   pixels.resize(image.pixels.size());
   std::transform(image.pixels.begin(), image.pixels.end(), pixels.begin(),
     [&palette](uint8_t index){return palette[index];});
+  if(hud_coverage.empty()) return;
+  auto const colour{palette[hud_colour]};
+  auto const blend_pixel{[&](size_t i){
+    unsigned int const alpha{hud_coverage[i]};
+    if(!alpha) return;
+    auto &value{pixels[i]};
+    auto const blend{[alpha](unsigned int background, unsigned int foreground){
+      return static_cast<uint8_t>((background * (255 - alpha) + foreground * alpha + 127) / 255);
+    }};
+    value.r = blend(value.r, colour.r);
+    value.g = blend(value.g, colour.g);
+    value.b = blend(value.b, colour.b);
+  }};
+  // Most of the image contains no HUD ink. Skip eight empty samples at once,
+  // retaining the fast indexed-to-RGBA conversion for the world and panels.
+  size_t i{0};
+  for(; i + sizeof(uint64_t) <= pixels.size(); i += sizeof(uint64_t)) {
+    uint64_t ink{0};
+    std::memcpy(&ink, hud_coverage.data() + i, sizeof(ink));
+    if(ink) {
+      for(size_t j{0}; j != sizeof(ink); ++j) blend_pixel(i + j);
+    }
+  }
+  for(; i != pixels.size(); ++i) blend_pixel(i);
 }
 std::vector<rgba> framebuffer::colour_pixels() const {
   std::vector<rgba> pixels;
   colour_pixels(pixels);
   return pixels;
+}
+void framebuffer::write_ppm(std::string const &filename) const {
+  if(hud_coverage.empty()) {
+    resources::write_ppm(filename, image);
+    return;
+  }
+  std::ofstream file{filename, std::ios::binary};
+  if(!file) throw std::runtime_error{"Cannot write image: " + filename};
+  file << "P6\n" << image.width << ' ' << image.height << "\n255\n";
+  auto const pixels{colour_pixels()};
+  std::vector<char> row(size_t(image.width) * 3);
+  for(unsigned int y{0}; y != image.height; ++y) {
+    for(unsigned int x{0}; x != image.width; ++x) {
+      auto const &pixel{pixels[size_t(y) * image.width + x]};
+      row[x * 3] = static_cast<char>(pixel.r);
+      row[x * 3 + 1] = static_cast<char>(pixel.g);
+      row[x * 3 + 2] = static_cast<char>(pixel.b);
+    }
+    file.write(row.data(), static_cast<std::streamsize>(row.size()));
+  }
+  if(!file) throw std::runtime_error{"Cannot write image: " + filename};
 }
 } // namespace apache::render

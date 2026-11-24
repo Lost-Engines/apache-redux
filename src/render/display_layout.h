@@ -7,6 +7,14 @@ enum class horizontal_anchor {
   left,
   right
 };
+struct hud_mapping {
+  double scale_x{1};
+  double scale_y{1};
+  double offset_x{0};
+  double offset_y{0};
+  double stroke_width{1};
+  rectangle clip;
+};
 class display_layout {
   unsigned int source_width;
   unsigned int source_height;
@@ -19,6 +27,7 @@ public:
   rectangle map(rectangle logical) const;
   void background(framebuffer const &world, framebuffer &overlay) const;
   void composite(framebuffer const &overlay, framebuffer &world) const;
+  auto hud_transform(rectangle reference_view, double fov) const->hud_mapping;
   void composite_hud(framebuffer const &overlay, framebuffer &world, rectangle reference_view, double fov) const;
 };
 } // namespace apache::render

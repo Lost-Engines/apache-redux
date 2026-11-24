@@ -260,7 +260,7 @@ void inspect_session(apache::resources::data_store const &data, int const missio
       input >> std::quoted(path);
       session.draw();
       if(path != "-") {
-        apache::resources::write_ppm(path + ".ppm", session.frame.image);
+        session.frame.write_ppm(path + ".ppm");
         std::ofstream pixels{path + ".pixels", std::ios::binary};
         pixels.write(reinterpret_cast<char const *>(session.frame.image.pixels.data()), static_cast<std::streamsize>(session.frame.image.pixels.size()));
         std::ofstream palette{path + ".palette", std::ios::binary};

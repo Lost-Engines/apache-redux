@@ -1,8 +1,10 @@
 #include "rasterizer.h"
 #include <algorithm>
+#include <cmath>
 #include <cstdlib>
 #include <stdexcept>
 #include "math/fixed.h"
+#include "stroke.h"
 
 namespace apache::render {
 namespace {
@@ -47,6 +49,19 @@ void rasterizer::line(screen_vertex a, screen_vertex const b, uint8_t const colo
       }
     }
   }
+}
+void rasterizer::wide_line(screen_vertex const a, screen_vertex const b, uint8_t const colour, double const width) {
+  if(width <= 1) {
+    line(a, b, colour);
+    return;
+  }
+  auto const clip{intersect(target.clip, {0, 0, static_cast<int>(target.image.width) - 1, static_cast<int>(target.image.height) - 1})};
+  int const pixels{static_cast<int>(std::ceil(width))};
+  double const centre{pixels % 2 ? 0.5 : 1.0};
+  paint_stroke({a.x + centre, a.y + centre}, {b.x + centre, b.y + centre}, clip, pixels, false,
+    [&](int x, int y, uint8_t){
+      target.point(x, y, colour);
+    });
 }
 void rasterizer::scan(std::span<screen_vertex const> const polygon) {
   first_row = static_cast<int>(target.image.height);
