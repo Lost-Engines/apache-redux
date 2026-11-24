@@ -9,7 +9,7 @@ build/apache_capture DATA_DIRECTORY -3 3840 2160 90 6
 
 Arguments select the game data, mission, width, height, horizontal FOV and model LOD distance multiplier. Negative mission IDs select Quickstart: `-1` Yemen, `-2` Korea, `-3` Cyprus. The tool uses realistic physics, maximum visual detail and the original 640-resolution cockpit artwork.
 
-The sibling `apache-reverse` repository contains `tools/capture_comparison_flight.py`, which drives this executable or the original instruction harness using the same timed keyboard script. Its `tools/flights/README.md` describes the supplied 90-second flight and FFV1/MP4 encoding commands. Apache video, stills and capture metadata default to `/mnt/extra2/lost-engines/video/apache/`, outside the repositories. File names include the engine and resolution. Use `--size 1920x1440` with the wrapper for a 4:3 recording matching the original aspect ratio.
+The sibling `apache-reverse` repository contains `tools/capture_comparison_flight.py`, which drives this executable or the original instruction harness using the same timed keyboard script. Its `tools/flights/README.md` describes the supplied 90-second flight and lossless video capture commands. Retain one lossless master for each engine and resolution. Apache video, stills and capture metadata default to `/mnt/extra2/lost-engines/video/apache/`, outside the repositories. File names include the engine and resolution. Use `--size 1920x1440` with the wrapper for a 4:3 recording matching the original aspect ratio.
 
 ## Stream protocol
 
