@@ -23,6 +23,8 @@ The other platform names are `windows-x86_64` and `macos-arm64`. The install ste
 
 The extensive original-code comparisons live in the sibling analysis workspace. CTest runs the self-contained resource, scene, profile, packet and localhost transport tests. Headless window checks use a private X server; they never send input to the desktop.
 
+The optional [offline flight capture tool](https://github.com/Lost-Engines/apache-redux/blob/master/docs/capture-flight.md) produces scripted gameplay recordings with per-frame state and camera data.
+
 ## Continuous builds
 
 GitHub Actions builds Debug and Release configurations on Linux x86-64, Windows x86-64 and macOS Apple Silicon. CI uses `ubuntu-latest`, `windows-latest` and `macos-latest` so builds follow GitHub's current stable runner images. Every job runs the asset-independent CTest suite and checks the installed executable before uploading its package. Compiler caches are bounded to 500 MB per configuration; build artifacts expire after seven days.

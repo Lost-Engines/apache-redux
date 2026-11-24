@@ -317,6 +317,8 @@ add_executable(apache_inspect src/inspect_chat.cpp src/inspect_network_live.cpp 
 target_link_libraries(apache_inspect PRIVATE apache_core)
 
 if(BUILD_TESTING)
+  add_executable(apache_capture tools/capture_flight.cpp)
+  target_link_libraries(apache_capture PRIVATE apache_core)
   add_executable(render_benchmark tests/render_benchmark.cpp)
   target_link_libraries(render_benchmark PRIVATE apache_core)
   add_executable(redux_aircraft_check tests/redux_aircraft.cpp)
