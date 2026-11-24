@@ -33,7 +33,7 @@ That location is remembered for subsequent launches. The reference is the Januar
 - **Widescreen cockpit views.** The world fills the space around the cockpit, including the lower corners. Side-view artwork stays against the screen edges.
 - **Adjustable field of view.** Set the FOV in Preferences or on the command line, with HUD aiming cues that stay aligned with the scene.
 - **Longer detail distances.** Keep aircraft, scenery and effects detailed farther away, with an adjustable model detail distance.
-- **HUD with live MFDs.** H cycles through the plain HUD, HUD with the pilot’s two MFDs, and HUD with the gunner’s two MFDs. The displays update live in the lower corners and share the cockpit’s page selections.
+- **HUD with live MFDs.** H cycles through the plain HUD, HUD with the pilot’s two MFDs, and HUD with all three gunner displays. The MFD views raise the horizon and HUD to their cockpit positions, with live displays along the bottom and the cockpit’s shared page selections.
 - **Smooth HUD lines.** HUD lines render smoothly at your chosen resolution. Text keeps the original pixel lettering.
 - **Sharper target views.** The F3 target preview and FLIR MFD images render at full resolution.
 - **Clearer model details.** Tree trunks, aerials and other model lines thicken with proximity and resolution.
@@ -51,7 +51,7 @@ Flight opens the training, single-mission and campaign choices. Briefing maps su
 
 Arrow keys control pitch and roll, Q/A change collective, Enter selects a weapon, and Space fires. F2/F3 select the pilot/gunner cockpit; F4/F5 look left/right. F1 opens the illustrated manual in single-player flight; press F1 again or F2 to return to the pilot cockpit. P or Pause pauses; Escape asks whether to end the sortie. Press Y to confirm, or N or Escape to cancel. Ctrl+Escape also works.
 
-F6 shows the helicopter from outside. Hold Alt and use the arrow keys (or your selected joystick) to orbit it; comma and period zoom out and in. Camera movement and view switching work while paused. H selects the full-screen helmet display. Press H again to add the pilot’s two MFDs in the lower corners, again for the gunner’s pair, and again for the plain HUD. Brackets cycle the displayed MFD pages; Shift reverses direction and Ctrl switches a display off or on. F2 returns to the pilot cockpit. I switches the HUD between black and green; V toggles the pilot’s night-vision system (PNVS).
+F6 shows the helicopter from outside. Hold Alt and use the arrow keys (or your selected joystick) to orbit it; comma and period zoom out and in. Camera movement and view switching work while paused. H selects the full-screen helmet display. Press H again to add the pilot’s two MFDs in the lower corners, again for the gunner’s three displays, and again for the plain HUD. The MFD views keep the horizon and HUD at cockpit height. Brackets cycle the displayed MFD pages; Shift reverses direction and Ctrl switches a display off or on. F2 returns to the pilot cockpit. I switches the HUD between black and green; V toggles the pilot’s night-vision system (PNVS).
 
 `--skip-intro` skips the opening sequence, and `--no-audio` disables playback. Run `apache --help` for other options.
 

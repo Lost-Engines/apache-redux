@@ -4,14 +4,21 @@
 #include <numbers>
 #include <stdexcept>
 namespace apache::render {
-auto hud_mfd_areas(unsigned int const width, unsigned int const height)->std::array<rectangle, 2> {
+auto hud_mfd_areas(unsigned int const width, unsigned int const height, bool const gunner)->std::array<rectangle, 3> {
   double const scale{std::min(width / 640.0, height / 480.0)};
   int const margin{std::max(1, static_cast<int>(std::lround(8 * scale)))};
   int const side{std::min({static_cast<int>(std::lround(140 * scale)), (static_cast<int>(width) - 3 * margin) / 2, static_cast<int>(height) - 2 * margin})};
   if(side < 1) return {};
   int const top{static_cast<int>(height) - margin - side};
   int const right{static_cast<int>(width) - margin - 1};
-  return {{{margin, top, margin + side - 1, top + side - 1}, {right - side + 1, top, right, top + side - 1}}};
+  std::array<rectangle, 3> result{{{margin, top, margin + side - 1, top + side - 1}, {right - side + 1, top, right, top + side - 1}, {}}};
+  if(gunner) {
+    int const middle_side{std::max(1, side * 5 / 7)};
+    int const left{(static_cast<int>(width) - middle_side) / 2};
+    int const bottom{static_cast<int>(height) - margin - 1};
+    result[2] = {left, bottom - middle_side + 1, left + middle_side - 1, bottom};
+  }
+  return result;
 }
 void composite_region(framebuffer const &source, rectangle const source_area, framebuffer &destination, rectangle const destination_area) {
   if(source_area.right < source_area.left || source_area.bottom < source_area.top || destination_area.right < destination_area.left || destination_area.bottom < destination_area.top) return;
@@ -120,13 +127,14 @@ void display_layout::composite(framebuffer const &overlay, framebuffer &world) c
     }
   }
 }
-auto display_layout::hud_transform(rectangle const reference_view, double const fov) const->hud_mapping {
+auto display_layout::hud_transform(rectangle const reference_view, double const fov, std::optional<rectangle> const projection_reference) const->hud_mapping {
   double const zoom{fov == 90 ? 1 : 1 / std::tan(fov * std::numbers::pi / 360)};
   double const scale_x{double(artwork.right - artwork.left + 1) / source_width * zoom};
   double const scale_y{double(artwork.bottom - artwork.top + 1) / source_height * zoom};
   // the 3D projection's origin lies at left + width/2, bottom - height/2
-  double const centre_x{scene.left + (scene.right - scene.left + 1) / 2.0};
-  double const centre_y{scene.bottom - (scene.bottom - scene.top + 1) / 2.0};
+  auto const optical_view{projection_reference.value_or(scene)};
+  double const centre_x{optical_view.left + (optical_view.right - optical_view.left + 1) / 2.0};
+  double const centre_y{optical_view.bottom - (optical_view.bottom - optical_view.top + 1) / 2.0};
   double const source_x{reference_view.left + (reference_view.right - reference_view.left + 1) / 2.0};
   double const source_y{reference_view.bottom - (reference_view.bottom - reference_view.top + 1) / 2.0};
   return {
@@ -138,8 +146,8 @@ auto display_layout::hud_transform(rectangle const reference_view, double const 
     .clip{scene},
   };
 }
-void display_layout::composite_hud(framebuffer const &overlay, framebuffer &world, rectangle const reference_view, double const fov) const {
-  auto const mapping{hud_transform(reference_view, fov)};
+void display_layout::composite_hud(framebuffer const &overlay, framebuffer &world, rectangle const reference_view, double const fov, std::optional<rectangle> const projection_reference) const {
+  auto const mapping{hud_transform(reference_view, fov, projection_reference)};
   auto const clip{intersect(mapping.clip, {0, 0, static_cast<int>(world.image.width) - 1, static_cast<int>(world.image.height) - 1})};
   std::vector<int> columns(source_width + 1);
   for(unsigned int x{0}; x <= source_width; ++x) {

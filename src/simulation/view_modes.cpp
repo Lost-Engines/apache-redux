@@ -72,8 +72,11 @@ bool view_modes::select(unsigned int const requested, view_context const &contex
   return true;
 }
 std::array<int32_t, 4> view_modes::viewport(unsigned int const video_mode) const {
-  if(mode >= viewports.size() || video_mode >= 3) throw std::runtime_error{"Invalid view viewport"};
-  return viewports[mode][video_mode];
+  return viewport(video_mode, mode);
+}
+std::array<int32_t, 4> view_modes::viewport(unsigned int const video_mode, unsigned int const view_mode) const {
+  if(view_mode >= viewports.size() || video_mode >= 3) throw std::runtime_error{"Invalid view viewport"};
+  return viewports[view_mode][video_mode];
 }
 optical_devices::optical_devices(resources::executable_data const &executable) {
   auto const text{[&](uint32_t address){

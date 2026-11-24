@@ -8,7 +8,7 @@ avionics_renderer::avionics_renderer(cockpit const &panels, math::trigonometry c
     instruments{panels, angles, executable},
     screens{panels, executable},
     helmet{executable, angles, panels.video_mode()} {}
-void avionics_renderer::multifunction(framebuffer &target, avionics_instruments &state, bool const gunner, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview, bool const middle) const {
+void avionics_renderer::multifunction(framebuffer &target, avionics_instruments &state, bool const gunner, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview) const {
   auto const &flight{state.helmet};
   auto const navigation{state.navigation.value_or(navigation_instruments{flight.heading, flight.airspeed})};
   state.displays.apply_faults(gunner, flight.faults);
@@ -55,7 +55,7 @@ void avionics_renderer::multifunction(framebuffer &target, avionics_instruments 
       break;
     }
   }
-  if(gunner && middle) {
+  if(gunner) {
     auto const area{screens.area(mfd_panel::gunner_middle)};
     if(flight.faults & 0x100) {
       screens.damaged(target, area, state.damaged_display_seed);
@@ -65,11 +65,11 @@ void avionics_renderer::multifunction(framebuffer &target, avionics_instruments 
   }
   screens.corners(target, gunner);
 }
-auto avionics_renderer::mfd_area(bool const gunner, bool const right) const->rectangle {
-  return screens.area(static_cast<mfd_panel>((gunner ? 2 : 0) + (right ? 1 : 0)));
+auto avionics_renderer::mfd_area(mfd_panel const panel) const->rectangle {
+  return screens.area(panel);
 }
-void avionics_renderer::draw_mfd_pair(framebuffer &target, avionics_instruments &state, bool const gunner, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview) const {
-  multifunction(target, state, gunner, world, lighting, preview, false);
+void avionics_renderer::draw_mfds(framebuffer &target, avionics_instruments &state, bool const gunner, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview) const {
+  multifunction(target, state, gunner, world, lighting, preview);
 }
 void avionics_renderer::draw_helmet(framebuffer &target, helmet_instruments const &state, vector_hud *const vectors) const {
   if(state.view < 10 || state.view == 12 || state.view == 13 || state.view == 18) helmet.draw(target, state, vectors);

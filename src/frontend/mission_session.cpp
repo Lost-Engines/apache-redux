@@ -780,6 +780,15 @@ void mission_session::draw() {
   bool const scaled{frame.image.width != overlay.image.width || frame.image.height != overlay.image.height};
   if(scaled) frame.clear();
   frame.clip = layout.scene;
+  std::optional<render::rectangle> hud_projection;
+  if(views->modes.mode == 12 && hud_mfds != hud_mfd_mode::none) {
+    // Keep the cockpit's optical axis while exposing the world below it.
+    auto const cockpit_view{views->modes.viewport(settings.video_mode, hud_mfds == hud_mfd_mode::gunner ? 5 : 0)};
+    render::rectangle const reference{cockpit_view[0], cockpit_view[1], cockpit_view[0] + cockpit_view[2] - 1, cockpit_view[1] + cockpit_view[3] - 1};
+    render::display_layout const cockpit_layout{frame.image.width, frame.image.height, overlay.image.width, overlay.image.height, reference, settings.graphics.field_of_view};
+    hud_projection = cockpit_layout.scene;
+    frame.projection_reference = hud_projection;
+  }
   if(views->modes.mode < 10 && layout.artwork.right - layout.artwork.left + 1 < static_cast<int>(frame.image.width)) {
     // Keep the windscreen projection while revealing scenery beside the panel.
     frame.projection_reference = layout.scene;
@@ -877,18 +886,20 @@ void mission_session::draw() {
   if(scaled) layout.composite(overlay, frame);
   helmet_overlay.coverage.assign(helmet_overlay.image.pixels.size(), 0);
   helmet_overlay.reset_clip();
-  render::vector_hud vectors{frame, layout.hud_transform(original_view, settings.graphics.field_of_view), state.helmet.colour};
+  render::vector_hud vectors{frame, layout.hud_transform(original_view, settings.graphics.field_of_view, hud_projection), state.helmet.colour};
   avionics.draw_helmet(helmet_overlay, state.helmet, &vectors);
-  layout.composite_hud(helmet_overlay, frame, original_view, settings.graphics.field_of_view);
+  layout.composite_hud(helmet_overlay, frame, original_view, settings.graphics.field_of_view, hud_projection);
   if(views->modes.mode == 12 && hud_mfds != hud_mfd_mode::none) {
     bool const gunner{hud_mfds == hud_mfd_mode::gunner};
-    auto const corners{render::hud_mfd_areas(frame.image.width, frame.image.height)};
-    std::array const areas{avionics.mfd_area(gunner, false), avionics.mfd_area(gunner, true)};
+    auto const corners{render::hud_mfd_areas(frame.image.width, frame.image.height, gunner)};
+    std::array const areas{avionics.mfd_area(gunner ? render::mfd_panel::gunner_left : render::mfd_panel::pilot_left),
+      avionics.mfd_area(gunner ? render::mfd_panel::gunner_right : render::mfd_panel::pilot_right), avionics.mfd_area(render::mfd_panel::gunner_middle)};
     // Reuse the logical HUD buffer after its lettering has been composited.
     helmet_overlay.coverage.assign(helmet_overlay.image.pixels.size(), 0);
     helmet_overlay.reset_clip();
     render::target_preview_renderer const floating_preview{[&](render::rectangle const area)->std::string_view {
-      auto const destination{corners[area.left == areas[1].left ? 1 : 0]};
+      size_t const panel{area.left == areas[2].left ? 2u : area.left == areas[1].left ? 1u : 0u};
+      auto const destination{corners[panel]};
       if(destination.right < destination.left || destination.bottom < destination.top) return "No Target";
       auto const saved_clip{frame.clip};
       auto const saved_fov{frame.horizontal_fov};
@@ -900,8 +911,8 @@ void mission_session::draw() {
       frame.horizontal_fov = saved_fov;
       return name;
     }};
-    avionics.draw_mfd_pair(helmet_overlay, state, gunner, world, visual.lighting, floating_preview);
-    for(size_t side{0}; side != 2; ++side) render::composite_region(helmet_overlay, areas[side], frame, corners[side]);
+    avionics.draw_mfds(helmet_overlay, state, gunner, world, visual.lighting, floating_preview);
+    for(size_t panel{0}; panel != (gunner ? 3u : 2u); ++panel) render::composite_region(helmet_overlay, areas[panel], frame, corners[panel]);
   }
   // Chat and the quit prompt cover the optical strokes at their normal text size.
   if(scaled) layout.background(frame, overlay);

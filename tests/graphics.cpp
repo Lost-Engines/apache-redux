@@ -214,14 +214,20 @@ int main() try {
   for(unsigned int source_width : {320u, 640u}) {
     for(auto size : {configuration::resolution{640, 480}, {1437, 911}, {3840, 2160}, {800, 1000}}) {
       for(double fov : {30., 60., 120., 150.}) {
-        for(bool cockpit : {false, true}) {
+        for(unsigned int presentation : {0u, 1u, 2u}) {
           unsigned int const source_height{source_width * 3 / 4};
-          int const view_height{cockpit ? static_cast<int>(source_width * 31 / 80) : static_cast<int>(source_height)};
+          int const view_height{presentation == 1 ? static_cast<int>(source_width * 31 / 80) : static_cast<int>(source_height)};
           render::rectangle const viewport{0, 0, static_cast<int>(source_width) - 1, view_height - 1};
           render::display_layout const layout{size.width, size.height, source_width, source_height, viewport, fov};
           render::display_layout const reference{size.width, size.height, source_width, source_height, viewport, 90};
           render::projection const source{0, 0, static_cast<int>(source_width), view_height, reference.instrument_fov};
-          render::projection const destination{layout.scene.left, layout.scene.top, layout.scene.right - layout.scene.left + 1, layout.scene.bottom - layout.scene.top + 1, fov};
+          std::optional<render::rectangle> optical_view;
+          if(presentation == 2) {
+            render::display_layout const cockpit{size.width, size.height, source_width, source_height,
+              {0, 0, static_cast<int>(source_width) - 1, static_cast<int>(source_width * 31 / 80) - 1}, fov};
+            optical_view = cockpit.scene;
+          }
+          render::projection const destination{layout.scene.left, layout.scene.top, layout.scene.right - layout.scene.left + 1, layout.scene.bottom - layout.scene.top + 1, fov, optical_view};
           render::framebuffer image{size.width, size.height};
           render::framebuffer layer{source_width, source_height};
           layer.coverage.assign(layer.image.pixels.size(), 0);
@@ -231,7 +237,7 @@ int main() try {
             auto const point{*source.project_unclipped(rays[i])};
             layer.point(point.x, point.y, static_cast<uint8_t>(220 + i));
           }
-          layout.composite_hud(layer, image, viewport, fov);
+          layout.composite_hud(layer, image, viewport, fov, optical_view);
           double const zoom{destination.lateral_scale()};
           int const tolerance{static_cast<int>(std::ceil(2.0 * (layout.artwork.right - layout.artwork.left + 1) / source_width * zoom)) + 2};
           for(size_t i{0}; i < rays.size(); ++i) {
@@ -247,7 +253,7 @@ int main() try {
           layer.coverage.assign(layer.image.pixels.size(), 1);
           std::ranges::fill(layer.image.pixels, 223);
           image.clear(17);
-          layout.composite_hud(layer, image, viewport, fov);
+          layout.composite_hud(layer, image, viewport, fov, optical_view);
           for(unsigned int y{0}; y < size.height; ++y) {
             for(unsigned int x{0}; x < size.width; ++x) {
               if(!layout.scene.contains(static_cast<int>(x), static_cast<int>(y))) {
@@ -265,8 +271,12 @@ int main() try {
     require(panels[0].left > 0 && panels[1].right < static_cast<int>(size.width), "HUD MFDs have no corner margin");
     require(panels[0].right < panels[1].left, "HUD MFDs overlap");
     require(panels[0].left == static_cast<int>(size.width) - 1 - panels[1].right && panels[0].top == panels[1].top, "HUD MFD corner placement is asymmetric");
-    for(auto area : panels) {
-      require(area.right - area.left == area.bottom - area.top && area.bottom < static_cast<int>(size.height), "HUD MFD is stretched or outside the image");
+    require(panels[2].right < panels[2].left, "pilot overlay contains a third display");
+    auto const gunner{render::hud_mfd_areas(size.width, size.height, true)};
+    require(gunner[0].right < gunner[2].left && gunner[2].right < gunner[1].left, "gunner centre display overlaps a side display");
+    require(std::abs(gunner[2].left - (static_cast<int>(size.width) - 1 - gunner[2].right)) <= 1 && gunner[2].bottom == gunner[0].bottom, "gunner target display is not centred along the bottom");
+    for(auto area : gunner) {
+      require(area.left >= 0 && area.top >= 0 && area.right >= area.left && area.right - area.left == area.bottom - area.top && area.bottom < static_cast<int>(size.height), "HUD MFD is stretched or outside the image");
     }
   }
   {

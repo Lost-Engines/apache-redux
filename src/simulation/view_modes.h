@@ -46,6 +46,7 @@ public:
     return mode < right.size() ? right[mode] : home;
   }
   std::array<int32_t, 4> viewport(unsigned int video_mode) const;
+  std::array<int32_t, 4> viewport(unsigned int video_mode, unsigned int view_mode) const;
 };
 struct optical_magnification {
   int32_t distance{0};

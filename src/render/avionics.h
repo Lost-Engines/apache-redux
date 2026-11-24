@@ -36,11 +36,11 @@ class avionics_renderer {
   panel_instruments instruments;
   mfd_renderer screens;
   helmet_display helmet;
-  void multifunction(framebuffer &target, avionics_instruments &state, bool gunner, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview = {}, bool middle = true) const;
+  void multifunction(framebuffer &target, avionics_instruments &state, bool gunner, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview = {}) const;
 public:
   avionics_renderer(cockpit const &panels, math::trigonometry const &trig, resources::executable_data const &executable);
-  auto mfd_area(bool gunner, bool right) const->rectangle;
-  void draw_mfd_pair(framebuffer &target, avionics_instruments &state, bool gunner, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview = {}) const;
+  auto mfd_area(mfd_panel panel) const->rectangle;
+  void draw_mfds(framebuffer &target, avionics_instruments &state, bool gunner, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview = {}) const;
   void draw_helmet(framebuffer &target, helmet_instruments const &state, vector_hud *vectors = nullptr) const;
   void draw(framebuffer &target, avionics_instruments &state, landscape &world, sky_lighting const &lighting, target_preview_renderer const &preview = {}, bool draw_hud = true) const;
 };
