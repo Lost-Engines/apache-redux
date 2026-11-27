@@ -401,6 +401,11 @@ simulation::view_sources mission_session::sources() {
   result.weapon_target = [this](size_t i){return missile_target(i);};
   return result;
 }
+void mission_session::select_actor_view(size_t const actor) {
+  if(actor >= runtime.actors.units.size() || !runtime.mobiles.contains(runtime.spatial.mobile_id(actor))) throw std::runtime_error{"Actor view requires an active unit"};
+  drone = actor;
+  select_view(11);
+}
 void mission_session::select_view(unsigned int const mode) {
   if(views->select(mode, sources(), runtime.random.global_seed)) hud_mfds = hud_mfd_mode::none;
   runtime.player_armament->in_cockpit = views->modes.in_cockpit;

@@ -5,6 +5,7 @@
 #include <iomanip>
 #include <iostream>
 #include <memory>
+#include <optional>
 #include <span>
 #include <stdexcept>
 #include <string>
@@ -19,6 +20,8 @@
 #endif // _WIN32
 
 namespace {
+std::vector<apache::simulation::target_reference> watched;
+std::vector<std::array<int32_t, 7>> impacts;
 template<typename Range>
 void write_array(Range const &values) {
   std::cout << '[';
@@ -59,13 +62,34 @@ void snapshot(apache::frontend::mission_session const &session, size_t const byt
             << ",\"armed\":" << inventory.armed
             << ",\"locked\":" << session.runtime.sensors->state.locked << ",\"ammo\":";
   write_array(inventory.ammunition);
-  std::cout << ",\"target\":" << std::quoted(session.runtime.targets.describe(*session.runtime.player_armament->target).name);
+  auto const target{session.runtime.targets.describe(*session.runtime.player_armament->target)};
+  std::cout << ",\"target\":" << std::quoted(target.name)
+            << ",\"target_status\":" << target.status << ",\"target_damage\":" << target.damage << ",\"target_position\":";
+  write_array(target.movement.position);
   std::cout << ",\"rounds\":" << rounds << ",\"destroyed\":" << destroyed
             << ",\"bytes\":" << bytes << ",\"audio_frames\":" << audio.size() / 2
             << ",\"audio_bytes\":" << audio.size_bytes() << ",\"audio_rate\":48000,\"audio_events\":[";
   for(size_t i{0}; i != sounds.size(); ++i) {
     if(i) std::cout << ',';
     write_array(sounds[i]);
+  }
+  std::cout << "],\"player_impacts\":[";
+  for(size_t i{0}; i < impacts.size(); ++i) {if(i) std::cout << ','; write_array(impacts[i]);}
+  std::cout << "],\"player_missiles\":[";
+  bool first_missile{true};
+  for(auto const &entry : session.runtime.weapons->rounds.entries()) {
+    if(!entry || entry->state.weapon != 3 || !apache::simulation::equivalent_targets(entry->source, *session.runtime.spatial.targets[*session.runtime.timing.player])) continue;
+    if(!first_missile) std::cout << ',';
+    first_missile = false;
+    std::cout << "{\"position\":";
+    write_array(entry->state.body.pose.position);
+    std::cout << ",\"flags\":" << entry->state.body.seeker.flags << '}';
+  }
+  std::cout << "],\"watched\":[";
+  for(size_t i{0}; i < watched.size(); ++i) {
+    auto const target{session.runtime.targets.describe(watched[i])};
+    if(i) std::cout << ',';
+    std::cout << "{\"model\":" << target.model << ",\"status\":" << target.status << ",\"damage\":" << target.damage << '}';
   }
   std::cout << "]}\n";
 }
@@ -75,12 +99,30 @@ void snapshot(apache::frontend::mission_session const &session, size_t const byt
 // frame|audio|step TICKS HELD_COUNT SCAN... EVENT_COUNT SCAN...
 // A response is one JSON line, optional RGBA pixels, then optional stereo f32le PCM.
 int main(int argc, char **argv) try {
-  bool const capture_audio{argc == 8 && std::string_view{argv[7]} == "--audio"};
-  if(argc != 7 && !capture_audio) throw std::runtime_error{
+  if(argc < 7) throw std::runtime_error{
     "Usage: apache_capture DATA_DIRECTORY MISSION WIDTH HEIGHT FOV LOD [--audio]\n"
-    "Negative mission IDs select Quickstart: -1 Yemen, -2 Korea, -3 Cyprus.\n"
-    "Use frame|audio|step TICKS HELD_COUNT SCAN... EVENT_COUNT SCAN... on stdin."
+    "  [--start X Y Z TOWARD_X TOWARD_Y] [--activate TASK GROUP] [--invulnerable]\n"
+    "Coordinates use original world units (256 per foot). Negative missions select Quickstart: -1 Yemen, -2 Korea, -3 Cyprus.\n"
+    "Stdin: frame|audio|step TICKS HELD_COUNT SCAN... EVENT_COUNT SCAN...\n"
+    "       lock MODEL X Y | lock_actor TASK GROUP MEMBER | follow_actor TASK GROUP MEMBER"
   };
+  bool capture_audio{false};
+  std::optional<std::array<int32_t, 5>> start;
+  std::vector<std::array<size_t, 2>> activate;
+  bool invulnerable{false};
+  for(int i{7}; i < argc; ++i) {
+    if(std::string_view{argv[i]} == "--audio") capture_audio = true;
+    else if(std::string_view{argv[i]} == "--invulnerable") invulnerable = true;
+    else if(std::string_view{argv[i]} == "--activate" && i + 2 < argc) {
+      auto const task{static_cast<size_t>(std::stoul(argv[++i]))};
+      auto const group{static_cast<size_t>(std::stoul(argv[++i]))};
+      activate.push_back({task, group});
+    }
+    else if(std::string_view{argv[i]} == "--start" && i + 5 < argc) {
+      start.emplace();
+      for(auto &value : *start) value = std::stoi(argv[++i]);
+    } else throw std::runtime_error{"Unknown or incomplete capture option"};
+  }
 #ifdef _WIN32
   _setmode(_fileno(stdout), _O_BINARY);
 #endif // _WIN32
@@ -95,11 +137,43 @@ int main(int argc, char **argv) try {
   options.graphics.field_of_view = apache::configuration::parse_field_of_view(argv[5]);
   options.graphics.lod_distance_multiplier = apache::configuration::parse_lod_distance_multiplier(argv[6]);
   options.video_mode = 1;
+  options.invulnerable = invulnerable;
+  std::optional<apache::resources::mission_definition> edited;
+  if(start || !activate.empty()) {
+    if(mission >= 0 || mission < -3) throw std::runtime_error{"A capture start requires a Quickstart mission"};
+    auto const bytes{data.read("MISSDATA/QS_" + std::string(1, "YKC"[-mission - 1]) + ".DTA")};
+    edited = apache::resources::read_mission_definition(std::string{bytes.begin(), bytes.end()});
+    if(start) {
+      auto task{std::ranges::find(edited->tasks, true, &apache::resources::mission_task::user)};
+      if(task == edited->tasks.end() || task->actors.empty() || task->actors.front().waypoints.size() < 2) throw std::runtime_error{"Capture mission has no player route"};
+      auto &route{task->actors.front().waypoints};
+      route[0].position = {(*start)[0], (*start)[1], (*start)[2]};
+      route[1].position = {(*start)[3], (*start)[4], (*start)[2]};
+    }
+    for(auto const &actor : activate) edited->tasks.at(actor[0]).actors.at(actor[1]).start_time = 0;
+  }
   auto owner{mission < 0 ? std::make_unique<apache::frontend::mission_session>(data,
-    apache::frontend::mission_session::quick_start(data, -mission), options)
+    apache::frontend::mission_session::quick_start(data, -mission), options, edited ? &*edited : nullptr)
     : std::make_unique<apache::frontend::mission_session>(data, mission, options)};
   auto &session{*owner};
+  if(start) session.runtime.pilot->realistic.dynamics.z = (*start)[2] / 256.0;
   session.resize(resolution->width, resolution->height);
+  auto prior_projectile{session.runtime.events.projectile};
+  session.runtime.events.projectile = [&, prior_projectile](auto index, auto &round, auto const &event){
+    if(prior_projectile) prior_projectile(index, round, event);
+    using apache::simulation::projectile_event;
+    if(round.state.weapon == 3 && apache::simulation::equivalent_targets(round.source, *session.runtime.spatial.targets[*session.runtime.timing.player]) &&
+       (event.kind == projectile_event::terrain || event.kind == projectile_event::scenery || event.kind == projectile_event::mobile || event.kind == projectile_event::proximity)) {
+      uint32_t model{0};
+      if(event.target) {
+        apache::simulation::target_reference ref;
+        ref.identity = *event.target;
+        ref.position = event.position;
+        model = session.runtime.targets.describe(ref).model;
+      }
+      impacts.push_back({static_cast<int32_t>(event.kind), static_cast<int32_t>(model), event.position[0], event.position[1], event.position[2], static_cast<int32_t>(round.state.body.seeker.flags), session.runtime.timing.now});
+    }
+  };
   std::unique_ptr<apache::audio::engine> sound;
   std::vector<std::array<int32_t, 4>> sound_events;
   if(capture_audio) {
@@ -134,6 +208,53 @@ int main(int argc, char **argv) try {
   std::vector<apache::render::rgba> pixels;
   std::string operation;
   while(std::cin >> operation) {
+    if(operation == "lock" || operation == "lock_actor" || operation == "follow_actor") {
+      uint32_t model{0};
+      int32_t x{0}, y{0};
+      std::cin >> model >> x >> y;
+      apache::simulation::target_reference reference;
+      bool found{false};
+      auto const find{[&](auto const &objects, size_t layer){
+        for(size_t i{0}; i < objects.size(); ++i) {
+          auto const &object{objects[i]};
+          if(object.model == model && object.x == x && object.y == y) {
+            reference.identity = {apache::simulation::target_kind::scenery, layer, static_cast<uint32_t>(i)};
+            reference.position = {x, y, 0};
+            found = true;
+            break;
+          }
+        }
+      }};
+      if(operation == "lock") {
+        find(session.runtime.scene.base, 0);
+        if(!found) find(session.runtime.scene.extra, 1);
+      } else {
+        for(size_t i{0}; i < session.runtime.actors.units.size(); ++i) {
+          auto const &location{session.runtime.actors.units[i].location};
+          if(location.task == model && location.group == static_cast<size_t>(x) && location.member == static_cast<size_t>(y)) {
+            reference = *session.runtime.spatial.targets.at(i);
+            if(operation == "follow_actor") session.select_actor_view(i);
+            found = true;
+            break;
+          }
+        }
+      }
+      if(!std::cin || !found) throw std::runtime_error{"Capture target was not found"};
+      if(operation == "follow_actor") {
+        snapshot(session, 0, {}, {});
+        std::cout.flush();
+        continue;
+      }
+      watched.push_back(reference);
+      auto &sensors{session.runtime.sensors->state};
+      sensors.current = reference;
+      sensors.tads = sensors.locked = true;
+      sensors.automatic = sensors.previous_tads = false;
+      sensors.cycle_direction = 0;
+      snapshot(session, 0, {}, {});
+      std::cout.flush();
+      continue;
+    }
     if(operation != "frame" && operation != "audio" && operation != "step") throw std::runtime_error{"Unknown capture operation: " + operation};
     unsigned int ticks{0};
     unsigned int count{0};
@@ -175,6 +296,7 @@ int main(int argc, char **argv) try {
     }
     if(!samples.empty()) std::cout.write(reinterpret_cast<char const *>(samples.data()), static_cast<std::streamsize>(samples.size() * sizeof(samples[0])));
     sound_events.clear();
+    impacts.clear();
     std::cout.flush();
     if(!std::cout) throw std::runtime_error{"Capture output closed"};
   }

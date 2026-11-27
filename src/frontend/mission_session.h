@@ -115,6 +115,7 @@ public:
     commands.push_back(key);
   }
   void select_view(unsigned int mode);
+  void select_actor_view(size_t actor);
   void request_end(unsigned int cause);
   void detail(unsigned int level);
   void step(unsigned int ticks);
