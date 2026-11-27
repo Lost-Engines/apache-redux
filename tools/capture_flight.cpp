@@ -9,8 +9,8 @@
 #include <span>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 #include <vector>
+#include <boost/program_options.hpp>
 #include "audio/engine.h"
 #include "configuration/graphics.h"
 #include "frontend/mission_session.h"
@@ -99,29 +99,54 @@ void snapshot(apache::frontend::mission_session const &session, size_t const byt
 // frame|audio|step TICKS HELD_COUNT SCAN... EVENT_COUNT SCAN...
 // A response is one JSON line, optional RGBA pixels, then optional stereo f32le PCM.
 int main(int argc, char **argv) try {
-  if(argc < 7) throw std::runtime_error{
-    "Usage: apache_capture DATA_DIRECTORY MISSION WIDTH HEIGHT FOV LOD [--audio]\n"
-    "  [--start X Y Z TOWARD_X TOWARD_Y] [--activate TASK GROUP] [--invulnerable]\n"
-    "Coordinates use original world units (256 per foot). Negative missions select Quickstart: -1 Yemen, -2 Korea, -3 Cyprus.\n"
-    "Stdin: frame|audio|step TICKS HELD_COUNT SCAN... EVENT_COUNT SCAN...\n"
-    "       lock MODEL X Y | lock_actor TASK GROUP MEMBER | follow_actor TASK GROUP MEMBER"
-  };
   bool capture_audio{false};
   std::optional<std::array<int32_t, 5>> start;
   std::vector<std::array<size_t, 2>> activate;
   bool invulnerable{false};
-  for(int i{7}; i < argc; ++i) {
-    if(std::string_view{argv[i]} == "--audio") capture_audio = true;
-    else if(std::string_view{argv[i]} == "--invulnerable") invulnerable = true;
-    else if(std::string_view{argv[i]} == "--activate" && i + 2 < argc) {
-      auto const task{static_cast<size_t>(std::stoul(argv[++i]))};
-      auto const group{static_cast<size_t>(std::stoul(argv[++i]))};
-      activate.push_back({task, group});
-    }
-    else if(std::string_view{argv[i]} == "--start" && i + 5 < argc) {
-      start.emplace();
-      for(auto &value : *start) value = std::stoi(argv[++i]);
-    } else throw std::runtime_error{"Unknown or incomplete capture option"};
+  std::string directory, width, height, fov, lod;
+  int mission{0};
+  std::vector<int32_t> start_coordinates, active_actors;
+  boost::program_options::options_description command_options{"Offline flight capture options"};
+  command_options.add_options()
+    ("help", "Show command-line options")
+    ("data-directory", boost::program_options::value<std::string>(&directory)->required(), "Original game data directory")
+    ("mission", boost::program_options::value<int>(&mission)->required(), "Mission ID; Quickstart: -1 Yemen, -2 Korea, -3 Cyprus")
+    ("width", boost::program_options::value<std::string>(&width)->required(), "Render width in pixels")
+    ("height", boost::program_options::value<std::string>(&height)->required(), "Render height in pixels")
+    ("fov", boost::program_options::value<std::string>(&fov)->required(), "Horizontal field of view in degrees")
+    ("lod", boost::program_options::value<std::string>(&lod)->required(), "Model LOD distance multiplier")
+    ("audio", boost::program_options::bool_switch(&capture_audio), "Capture synchronized stereo audio")
+    ("invulnerable", boost::program_options::bool_switch(&invulnerable), "Disable player damage while filming")
+    ("start", boost::program_options::value<std::vector<int32_t>>(&start_coordinates)->multitoken(), "X Y Z TOWARD_X TOWARD_Y in world units (256 per foot)")
+    ("activate", boost::program_options::value<std::vector<int32_t>>(&active_actors)->multitoken()->composing(), "TASK GROUP to start immediately; repeat for additional groups");
+  boost::program_options::positional_options_description positional;
+  positional.add("data-directory", 1).add("mission", 1).add("width", 1).add("height", 1).add("fov", 1).add("lod", 1);
+  auto const parsed{boost::program_options::command_line_parser(argc, argv)
+    .options(command_options).positional(positional)
+    .style(boost::program_options::command_line_style::default_style &
+      ~boost::program_options::command_line_style::allow_guessing &
+      ~boost::program_options::command_line_style::allow_short)
+    .run()};
+  for(auto const &option : parsed.options) {
+    if(option.string_key == "start" && option.value.size() != 5) throw std::runtime_error{"--start requires X Y Z TOWARD_X TOWARD_Y"};
+    if(option.string_key == "activate" && option.value.size() != 2) throw std::runtime_error{"--activate requires TASK GROUP"};
+  }
+  boost::program_options::variables_map arguments;
+  boost::program_options::store(parsed, arguments);
+  if(arguments.contains("help")) {
+    std::cout << "Usage: apache_capture DATA_DIRECTORY MISSION WIDTH HEIGHT FOV LOD [options]\n"
+              << command_options << "\nStdin: frame|audio|step TICKS HELD_COUNT SCAN... EVENT_COUNT SCAN...\n"
+              << "       lock MODEL X Y | lock_actor TASK GROUP MEMBER | follow_actor TASK GROUP MEMBER\n";
+    return 0;
+  }
+  boost::program_options::notify(arguments);
+  if(arguments.contains("start")) {
+    start.emplace();
+    std::ranges::copy(start_coordinates, start->begin());
+  }
+  for(size_t i{0}; i < active_actors.size(); i += 2) {
+    if(active_actors[i] < 0 || active_actors[i + 1] < 0) throw std::runtime_error{"Actor task and group must be non-negative"};
+    activate.push_back({static_cast<size_t>(active_actors[i]), static_cast<size_t>(active_actors[i + 1])});
   }
 #ifdef _WIN32
   _setmode(_fileno(stdout), _O_BINARY);
@@ -129,13 +154,12 @@ int main(int argc, char **argv) try {
   std::ios::sync_with_stdio(false);
   std::cin.tie(nullptr);
   std::cout << std::setprecision(17);
-  apache::resources::data_store data{argv[1]};
-  int const mission{std::stoi(argv[2])};
-  auto const resolution{apache::configuration::parse_resolution(std::string{argv[3]} + 'x' + argv[4])};
+  apache::resources::data_store data{directory};
+  auto const resolution{apache::configuration::parse_resolution(width + 'x' + height)};
   if(!resolution) throw std::runtime_error{"An explicit capture resolution is required"};
   apache::frontend::mission_options options;
-  options.graphics.field_of_view = apache::configuration::parse_field_of_view(argv[5]);
-  options.graphics.lod_distance_multiplier = apache::configuration::parse_lod_distance_multiplier(argv[6]);
+  options.graphics.field_of_view = apache::configuration::parse_field_of_view(fov);
+  options.graphics.lod_distance_multiplier = apache::configuration::parse_lod_distance_multiplier(lod);
   options.video_mode = 1;
   options.invulnerable = invulnerable;
   std::optional<apache::resources::mission_definition> edited;

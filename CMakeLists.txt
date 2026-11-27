@@ -306,7 +306,7 @@ add_executable(apache
   src/platform/window.cpp
   src/platform/window.h
 )
-target_link_libraries(apache PRIVATE apache_core glfw OpenGL::GL pcm_device)
+target_link_libraries(apache PRIVATE apache_core glfw OpenGL::GL pcm_device Boost::program_options)
 target_compile_options(apache PRIVATE $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall;-Wextra;-Wpedantic;-Wconversion>)
 
 if(WIN32)
@@ -318,7 +318,7 @@ target_link_libraries(apache_inspect PRIVATE apache_core)
 
 if(BUILD_TESTING)
   add_executable(apache_capture tools/capture_flight.cpp)
-  target_link_libraries(apache_capture PRIVATE apache_core)
+  target_link_libraries(apache_capture PRIVATE apache_core Boost::program_options)
   add_executable(render_benchmark tests/render_benchmark.cpp)
   target_link_libraries(render_benchmark PRIVATE apache_core)
   add_executable(redux_aircraft_check tests/redux_aircraft.cpp)

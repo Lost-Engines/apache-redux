@@ -11,3 +11,4 @@ install(FILES "${miniaudio_SOURCE_DIR}/LICENSE" DESTINATION licenses/miniaudio C
 if(DEFINED glfw_SOURCE_DIR AND EXISTS "${glfw_SOURCE_DIR}/LICENSE.md")
   install(FILES "${glfw_SOURCE_DIR}/LICENSE.md" DESTINATION licenses/glfw COMPONENT Runtime)
 endif()
+install(FILES cmake/licenses/boost-LICENSE_1_0.txt DESTINATION licenses/boost RENAME LICENSE_1_0.txt COMPONENT Runtime)

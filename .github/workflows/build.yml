@@ -100,6 +100,7 @@ jobs:
             mingw-w64-ucrt-x86_64-gcc
             mingw-w64-ucrt-x86_64-cmake
             mingw-w64-ucrt-x86_64-ninja
+            mingw-w64-ucrt-x86_64-boost
             mingw-w64-ucrt-x86_64-ccache
             mingw-w64-ucrt-x86_64-python
             mingw-w64-ucrt-x86_64-pkgconf
@@ -138,9 +139,32 @@ jobs:
             ccache-${{ matrix.platform }}-${{ matrix.configuration }}-${{ hashFiles('cmake/**', 'CMakeLists.txt') }}-
             ccache-${{ matrix.platform }}-${{ matrix.configuration }}-
 
+      - name: Restore Boost
+        if: runner.os != 'Windows'
+        id: boost
+        uses: actions/cache@v5
+        with:
+          path: .cache/boost
+          key: boost-1.90.0-${{ matrix.platform }}-gcc-static-v2
+      - name: Build Boost
+        if: runner.os != 'Windows' && steps.boost.outputs.cache-hit != 'true'
+        run: |
+          curl --fail --location --retry 3 -o "$RUNNER_TEMP/boost.tar.gz" \
+            https://archives.boost.io/release/1.90.0/source/boost_1_90_0.tar.gz
+          echo "5e93d582aff26868d581a52ae78c7d8edf3f3064742c6e77901a1f18a437eea9  $RUNNER_TEMP/boost.tar.gz" | shasum -a 256 --check
+          tar -xzf "$RUNNER_TEMP/boost.tar.gz" -C "$RUNNER_TEMP"
+          cd "$RUNNER_TEMP/boost_1_90_0"
+          ./bootstrap.sh --with-libraries=program_options
+          echo "using gcc : : $CXX ;" > "$RUNNER_TEMP/boost-user-config.jam"
+          ./b2 -j3 --user-config="$RUNNER_TEMP/boost-user-config.jam" toolset=gcc cxxstd=23 variant=release link=static \
+            --prefix="$GITHUB_WORKSPACE/.cache/boost" install
+
       - name: Configure
         run: |
           extra=()
+          if [[ "$RUNNER_OS" != Windows ]]; then
+            extra+=("-DCMAKE_PREFIX_PATH=$GITHUB_WORKSPACE/.cache/boost")
+          fi
           if [[ "$RUNNER_OS" == macOS ]]; then
             extra+=(-DCMAKE_OSX_ARCHITECTURES=arm64 "-DCMAKE_OBJC_COMPILER=$OBJC")
           fi

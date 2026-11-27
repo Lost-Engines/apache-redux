@@ -1,17 +1,17 @@
 #include <algorithm>
 #include <bit>
-#include <charconv>
 #include <chrono>
 #include <cmath>
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
+#include <limits>
 #include <stdexcept>
 #include <string>
-#include <string_view>
 #include <thread>
 #include <utility>
 #include <vector>
+#include <boost/program_options.hpp>
 #include "platform/audio_output.h"
 #include "platform/key_map.h"
 #include "platform/window.h"
@@ -25,11 +25,9 @@
 #include "resources/installation.h"
 
 namespace {
-unsigned int number(std::string_view const text) {
-  unsigned int result{0};
-  auto const [end, error]{std::from_chars(text.data(), text.data() + text.size(), result)};
-  if(error != std::errc{} || end != text.data() + text.size()) throw std::runtime_error{"Expected a non-negative integer"};
-  return result;
+unsigned int number(int64_t const value) {
+  if(value < 0 || static_cast<uint64_t>(value) > std::numeric_limits<unsigned int>::max()) throw std::runtime_error{"Expected a non-negative integer within range"};
+  return static_cast<unsigned int>(value);
 }
 struct events {
   apache::platform::window &window;
@@ -160,90 +158,72 @@ int main(int const argc, char const *const argv[]) try {
   apache::frontend::mission_options mission_options;
   std::optional<double> fov_override;
   std::optional<double> lod_override;
-  for(int i{1}; i < argc; ++i) {
-    std::string_view const key{argv[i]};
-    auto const value{[&]()->std::string_view {
-      if(++i == argc) throw std::runtime_error{"Missing value for " + std::string{key}};
-      return argv[i];
-    }};
-    if(key == "--help") {
-      std::cout << "Apache Redux reconstruction\n"
-                   "Usage: apache [--data-dir DIRECTORY] [--scale N] [--fullscreen]\n"
-                   "  --data-dir DIRECTORY  Original installation or extracted CD contents\n"
-                   "  --save-dir DIRECTORY  Pilot and preference storage\n"
-                   "  --install-cd FILE     Extract the reference CD into --data-dir or the default location\n"
-                   "  --check-assets        Verify all reference game files without starting the game\n"
-                   "  --asset-directory     Print the default game-data directory\n"
-                   "  --resolution WxH      Fixed 3D render size, or auto to follow window pixels (default)\n"
-                   "  --fov DEGREES         Horizontal field of view, 30..150 (initial default: 90)\n"
-                   "  --lod-distance N      Model LOD/visibility distance multiplier, 0.1..32 (default: 6)\n"
-                   "  --scale N             Initial window scale, or 0 to fit the desktop\n"
-                   "  --fullscreen          Start fullscreen; Alt+Enter toggles at any time\n"
-                   "  --skip-intro          Skip the opening movies and publisher logos\n"
-                   "  --no-audio            Disable the playback device\n"
-                   "Development checks:\n"
-                   "  --menu NAME           Select an original frontend screen\n"
-                   "  --capture FILE.ppm    Render one menu frame without opening a window\n"
-                   "  --press NAME          Show a pressed menu button\n"
-                   "  --quick               Show the Quickstart choices\n"
-                   "  --mission ID          Start a mission directly\n"
-                   "  --realistic           Use the realistic flight model\n"
-                   "  --video-mode N        Original 320 (0) or 640 (1) mode\n"
-                   "  --detail N            Original detail level, 0 to 9\n"
-                   "  --frames N            Close after N window frames\n";
-      return EXIT_SUCCESS;
-    }
-    if(key == "--data-dir") {
-      directory = value();
-    } else if(key == "--install-cd") {
-      cd_image = value();
-    } else if(key == "--check-assets") {
-      check_assets = true;
-    } else if(key == "--asset-directory") {
-      asset_directory = true;
-    } else if(key == "--save-dir") {
-      save_directory = value();
-    } else if(key == "--resolution") {
-      mission_options.graphics.fixed_resolution = apache::configuration::parse_resolution(value());
-    } else if(key == "--fov") {
-      fov_override = apache::configuration::parse_field_of_view(value());
-      mission_options.graphics.field_of_view = *fov_override;
-    } else if(key == "--lod-distance") {
-      lod_override = apache::configuration::parse_lod_distance_multiplier(value());
-      mission_options.graphics.lod_distance_multiplier = *lod_override;
-    } else if(key == "--scale") {
-      scale = number(value());
-      if(scale > 16) throw std::runtime_error{"Window scale must be between 0 and 16"};
-    } else if(key == "--frames") {
-      frame_limit = number(value());
-    } else if(key == "--menu") {
-      selected_menu = "_" + std::string{value()} + "_screen";
-    } else if(key == "--capture") {
-      capture = value();
-    } else if(key == "--press") {
-      pressed = value();
-    } else if(key == "--fullscreen") {
-      fullscreen = true;
-    } else if(key == "--skip-intro") {
-      skip_intro = true;
-    } else if(key == "--no-audio") {
-      no_audio = true;
-    } else if(key == "--quick") {
-      quick = true;
-    } else if(key == "--mission") {
-      mission_id = static_cast<int>(number(value()));
-    } else if(key == "--realistic") {
-      mission_options.arcade = false;
-      override_model = true;
-    } else if(key == "--detail") {
-      mission_options.detail = number(value());
-      override_detail = true;
-    } else if(key == "--video-mode") {
-      mission_options.video_mode = number(value());
-      override_video = true;
-    } else {
-      throw std::runtime_error{"Unknown option: " + std::string{key}};
-    }
+  boost::program_options::options_description general{"Apache Redux reconstruction"};
+  general.add_options()
+    ("help,h", "Show command-line options")
+    ("data-dir", boost::program_options::value<std::string>(), "Original installation or extracted CD directory")
+    ("save-dir", boost::program_options::value<std::string>(), "Pilot and preference storage directory")
+    ("install-cd", boost::program_options::value<std::string>(), "Install the reference CD into the game-data directory")
+    ("check-assets", boost::program_options::bool_switch(&check_assets), "Verify reference game files without starting the game")
+    ("asset-directory", boost::program_options::bool_switch(&asset_directory), "Print the default game-data directory")
+    ("scale", boost::program_options::value<int64_t>(), "Initial window scale, 0..16; 0 fits the desktop")
+    ("resolution", boost::program_options::value<std::string>(), "Fixed 3D render size WIDTHxHEIGHT, or auto (default)")
+    ("fov", boost::program_options::value<std::string>(), "Horizontal field of view, 30..150 degrees (initial default: 90)")
+    ("lod-distance", boost::program_options::value<std::string>(), "Model LOD/visibility distance multiplier, 0.1..32 (default: 6)")
+    ("fullscreen", boost::program_options::bool_switch(&fullscreen), "Start fullscreen; Alt+Enter toggles at any time")
+    ("skip-intro", boost::program_options::bool_switch(&skip_intro), "Skip opening movies and publisher logos")
+    ("no-audio", boost::program_options::bool_switch(&no_audio), "Disable the playback device");
+  boost::program_options::options_description development{"Development checks"};
+  development.add_options()
+    ("menu", boost::program_options::value<std::string>(), "Select an original frontend screen")
+    ("capture", boost::program_options::value<std::string>(&capture), "Render one frame to a PPM file without opening a window")
+    ("press", boost::program_options::value<std::string>(&pressed), "Show a pressed menu button")
+    ("quick", boost::program_options::bool_switch(&quick), "Show the Quickstart choices")
+    ("mission", boost::program_options::value<int>(&mission_id), "Start a mission directly")
+    ("realistic", "Use the realistic flight model")
+    ("video-mode", boost::program_options::value<int64_t>(), "Original 320 (0) or 640 (1) mode")
+    ("detail", boost::program_options::value<int64_t>(), "Original detail level, 0..9")
+    ("frames", boost::program_options::value<int64_t>(), "Close after N window frames");
+  boost::program_options::options_description options;
+  options.add(general).add(development);
+  boost::program_options::variables_map arguments;
+  boost::program_options::store(boost::program_options::command_line_parser(argc, argv)
+    .options(options)
+    .style(boost::program_options::command_line_style::default_style & ~boost::program_options::command_line_style::allow_guessing)
+    .run(), arguments);
+  if(arguments.contains("help")) {
+    std::cout << general << '\n' << development;
+    return EXIT_SUCCESS;
+  }
+  boost::program_options::notify(arguments);
+  if(arguments.contains("data-dir")) directory = arguments["data-dir"].as<std::string>();
+  if(arguments.contains("save-dir")) save_directory = arguments["save-dir"].as<std::string>();
+  if(arguments.contains("install-cd")) cd_image = arguments["install-cd"].as<std::string>();
+  if(arguments.contains("scale")) scale = number(arguments["scale"].as<int64_t>());
+  if(scale > 16) throw std::runtime_error{"Window scale must be between 0 and 16"};
+  if(arguments.contains("frames")) frame_limit = number(arguments["frames"].as<int64_t>());
+  if(arguments.contains("menu")) selected_menu = "_" + arguments["menu"].as<std::string>() + "_screen";
+  if(mission_id < 0) throw std::runtime_error{"Mission ID must be non-negative"};
+  override_model = arguments.contains("realistic");
+  if(override_model) mission_options.arcade = false;
+  override_detail = arguments.contains("detail");
+  if(override_detail) {
+    mission_options.detail = number(arguments["detail"].as<int64_t>());
+    if(mission_options.detail > 9) throw std::runtime_error{"Detail level must be between 0 and 9"};
+  }
+  override_video = arguments.contains("video-mode");
+  if(override_video) {
+    mission_options.video_mode = number(arguments["video-mode"].as<int64_t>());
+    if(mission_options.video_mode > 1) throw std::runtime_error{"Video mode must be 0 or 1"};
+  }
+  if(arguments.contains("resolution")) mission_options.graphics.fixed_resolution = apache::configuration::parse_resolution(arguments["resolution"].as<std::string>());
+  if(arguments.contains("fov")) {
+    fov_override = apache::configuration::parse_field_of_view(arguments["fov"].as<std::string>());
+    mission_options.graphics.field_of_view = *fov_override;
+  }
+  if(arguments.contains("lod-distance")) {
+    lod_override = apache::configuration::parse_lod_distance_multiplier(arguments["lod-distance"].as<std::string>());
+    mission_options.graphics.lod_distance_multiplier = *lod_override;
   }
   if(asset_directory) {
     std::cout << apache::resources::default_game_directory().string() << '\n';

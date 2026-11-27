@@ -1,4 +1,8 @@
 find_package(OpenGL REQUIRED)
+if(APACHE_STATIC_RUNTIME)
+  set(Boost_USE_STATIC_LIBS ON)
+endif()
+find_package(Boost CONFIG REQUIRED COMPONENTS program_options)
 if(NOT TARGET glfw)
   include(FetchContent)
   set(GLFW_BUILD_DOCS OFF CACHE BOOL "Build GLFW documentation")
