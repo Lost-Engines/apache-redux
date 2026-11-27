@@ -1,3 +1,4 @@
+#include "capture_options.h"
 #include <algorithm>
 #include <chrono>
 #include <filesystem>
@@ -27,8 +28,9 @@ struct temporary_directory {
 } // anonymous namespace
 
 int main(int argc, char **argv) try {
-  if(argc < 2 || argc > 3) throw std::runtime_error{"Usage: lod_check DATA_DIRECTORY [PREFERENCES_CAPTURE.ppm]"};
-  resources::data_store const data{argv[1]};
+  auto const command_line{apache::testing::read_capture_options(argc, argv, "LOD checks", "output", false)};
+  if(command_line.help) return EXIT_SUCCESS;
+  resources::data_store const data{command_line.directory};
   temporary_directory directory;
   auto frontend{std::make_unique<apache::frontend::mission_frontend>(data)};
   frontend->load_profiles(directory.path);
@@ -65,7 +67,7 @@ int main(int argc, char **argv) try {
   click(165, 59);
   click(165, 125);                                                             // 6x in the LOD dropdown
   require(settings.graphics.lod_distance_multiplier == 6, "LOD dropdown did not override the command line");
-  if(argc == 3) resources::write_ppm(argv[2], frame.image);
+  if(command_line.capture.has_value()) resources::write_ppm(command_line.capture->string(), frame.image);
   frontend->back();
   require(frontend->options.graphics.field_of_view == 120 && frontend->options.graphics.lod_distance_multiplier == 6, "menu settings did not reach mission options");
   restored.load(directory.path);

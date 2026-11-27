@@ -1,3 +1,4 @@
+#include "capture_options.h"
 #include <algorithm>
 #include <cstdlib>
 #include <filesystem>
@@ -26,9 +27,10 @@ void gear(render::model_instance const &object, bool down) {
   check(*object.children.at(1), 3, 1214);
 }
 int main(int argc, char **argv) try {
-  if(argc < 2 || argc > 3) throw std::runtime_error{"Usage: redux_aircraft_check DATA_DIRECTORY [CAPTURE_DIRECTORY]"};
-  if(argc == 3) std::filesystem::create_directories(argv[2]);
-  resources::data_store data{argv[1]};
+  auto const command_line{apache::testing::read_capture_options(argc, argv, "Redux aircraft checks", "capture-directory", false)};
+  if(command_line.help) return EXIT_SUCCESS;
+  if(command_line.capture.has_value()) std::filesystem::create_directories(command_line.capture->string());
+  resources::data_store data{command_line.directory};
   frontend::mission_options options;
   options.detail = 4;
   auto session_owner{std::make_unique<frontend::mission_session>(data, frontend::mission_session::quick_start(data, 3), options)};
@@ -165,7 +167,7 @@ int main(int argc, char **argv) try {
     image.clear(208);
     drawer.draw(object, camera);
     require(std::ranges::all_of(drawn, [](bool value){return value;}), "all three F-15 wheels reach the renderer");
-    if(argc == 3) resources::write_ppm((std::filesystem::path{argv[2]} / "f15-gear.ppm").string(), image.image);
+    if(command_line.capture.has_value()) resources::write_ppm((std::filesystem::path{command_line.capture->string()} / "f15-gear.ppm").string(), image.image);
     // Look under the fuselage: distant gear lines share its underside visibility test.
     camera.position[2] = object.world.position[2] - 5500;
     for(size_t i{0}; i < 3; ++i) direction[i] = object.world.position[i] - camera.position[i];
@@ -347,8 +349,8 @@ int main(int argc, char **argv) try {
     }
     require(ink > 100, "target preview has visible geometry");
     require(size.width == 640 ? changed == 0 : changed > 100, "native target preview differs from enlarged low-resolution image");
-    if(argc == 3 && size.width == 1920) {
-      session.frame.write_ppm((std::filesystem::path{argv[2]} / "f3-native.ppm").string());
+    if(command_line.capture.has_value() && size.width == 1920) {
+      session.frame.write_ppm((std::filesystem::path{command_line.capture->string()} / "f3-native.ppm").string());
     }
     std::cout << size.width << 'x' << size.height << ": native F3 pixels match; " << changed << " differ from upscaling\n";
   }
@@ -410,7 +412,7 @@ int main(int argc, char **argv) try {
     };
     drawer.draw(object, camera);
     require(std::ranges::all_of(drawn, [](bool value){return value;}), "all three gear models reach the renderer");
-    if(argc == 3) resources::write_ppm((std::filesystem::path{argv[2]} / "a10-gear.ppm").string(), image.image);
+    if(command_line.capture.has_value()) resources::write_ppm((std::filesystem::path{command_line.capture->string()} / "a10-gear.ppm").string(), image.image);
   }
   // Damage and empty-target states must not reveal the previous frame's target.
   runtime.sensors->state.current = {};

@@ -1,3 +1,4 @@
+#include "capture_options.h"
 #include <algorithm>
 #include <cmath>
 #include <cstdlib>
@@ -28,10 +29,11 @@ apache::render::rectangle ink(apache::render::framebuffer const &image, uint8_t 
 }
 } // anonymous namespace
 int main(int argc, char **argv) try {
-  if(argc < 2 || argc > 3) throw std::runtime_error{"Usage: hud_fov_check DATA_DIRECTORY [CAPTURE_DIRECTORY]"};
+  auto const command_line{apache::testing::read_capture_options(argc, argv, "HUD field-of-view checks", "capture-directory", false)};
+  if(command_line.help) return EXIT_SUCCESS;
   namespace frontend = apache::frontend;
   namespace render = apache::render;
-  apache::resources::data_store data{argv[1]};
+  apache::resources::data_store data{command_line.directory};
   frontend::mission_options options;
   options.detail = 0;
   options.invulnerable = true;
@@ -145,9 +147,9 @@ int main(int argc, char **argv) try {
     } else {
       require(panel == panel_pixels, "changing FOV changed cockpit artwork or panel instruments");
     }
-    if(argc == 3) {
-      std::filesystem::create_directories(argv[2]);
-      flight->frame.write_ppm((std::filesystem::path{argv[2]} / ("hud-" + std::to_string(static_cast<int>(fov)) + ".ppm")).string());
+    if(command_line.capture.has_value()) {
+      std::filesystem::create_directories(command_line.capture->string());
+      flight->frame.write_ppm((std::filesystem::path{command_line.capture->string()} / ("hud-" + std::to_string(static_cast<int>(fov)) + ".ppm")).string());
     }
   }
   std::cout << "Full cockpit panel pixels stay identical across FOV changes\n";

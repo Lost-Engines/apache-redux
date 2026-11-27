@@ -3,6 +3,7 @@
 #include <iostream>
 #include <stdexcept>
 #include <string_view>
+#include <boost/program_options.hpp>
 #include "render/rasterizer.h"
 
 namespace {
@@ -132,6 +133,21 @@ std::array<uint64_t, 22> fingerprints() {
 }
 } // namespace
 int main(int argc, char **argv) try {
+  bool show_fingerprints{false};
+  boost::program_options::options_description options{"Raster regression checks"};
+  options.add_options()
+    ("help", "Show command-line options")
+    ("fingerprints", boost::program_options::bool_switch(&show_fingerprints), "Print reference digests");
+  boost::program_options::variables_map arguments;
+  boost::program_options::store(boost::program_options::command_line_parser(argc, argv)
+    .options(options)
+    .style(boost::program_options::command_line_style::default_style & ~boost::program_options::command_line_style::allow_guessing)
+    .run(), arguments);
+  if(arguments.contains("help")) {
+    std::cout << options;
+    return EXIT_SUCCESS;
+  }
+  boost::program_options::notify(arguments);
   // Golden digests from the pre-optimization software renderer (0704172).
   // Each material covers 512 draws, both winding orders, empty/degenerate
   // faces, clipping, coverage, transparent texels and invalid UV samples.
@@ -160,7 +176,7 @@ int main(int argc, char **argv) try {
     0x3d0e04be3167a85ull,
   };
   auto const actual{fingerprints()};
-  if(argc == 2 && std::string_view{argv[1]} == "--fingerprints") {
+  if(show_fingerprints) {
     for(auto value : actual) std::cout << "0x" << std::hex << value << "ull,\n";
     return EXIT_SUCCESS;
   }

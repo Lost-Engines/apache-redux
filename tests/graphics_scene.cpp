@@ -1,3 +1,4 @@
+#include "capture_options.h"
 #include <cstdlib>
 #include <filesystem>
 #include <iostream>
@@ -74,9 +75,10 @@ void check_cockpit_sections(apache::resources::data_store const &data) {
 }
 } // anonymous namespace
 int main(int argc, char **argv) try {
-  if(argc != 3) throw std::runtime_error{"Usage: graphics_scene_check DATA_DIRECTORY OUTPUT_DIRECTORY"};
-  apache::resources::data_store data{argv[1]};
-  std::filesystem::path const output{argv[2]};
+  auto const command_line{apache::testing::read_capture_options(argc, argv, "Graphics scene checks", "output-directory", true)};
+  if(command_line.help) return EXIT_SUCCESS;
+  apache::resources::data_store data{command_line.directory};
+  std::filesystem::path const output{command_line.capture->string()};
   std::filesystem::create_directories(output);
   check_cockpit_sections(data);
   for(double fov : {30., 90., 150.}) {

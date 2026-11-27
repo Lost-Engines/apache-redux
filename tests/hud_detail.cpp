@@ -1,3 +1,4 @@
+#include "capture_options.h"
 #include <algorithm>
 #include <array>
 #include <cstdlib>
@@ -17,9 +18,10 @@ void require(bool const value, char const *const message) {
 }
 } // anonymous namespace
 int main(int argc, char **argv) try {
-  if(argc < 2 || argc > 3) throw std::runtime_error{"Usage: hud_detail_check DATA_DIRECTORY [CAPTURE_DIRECTORY]"};
-  resources::data_store data{argv[1]};
-  if(argc == 3) std::filesystem::create_directories(argv[2]);
+  auto const command_line{apache::testing::read_capture_options(argc, argv, "HUD detail checks", "capture-directory", false)};
+  if(command_line.help) return EXIT_SUCCESS;
+  resources::data_store data{command_line.directory};
+  if(command_line.capture.has_value()) std::filesystem::create_directories(command_line.capture->string());
   frontend::mission_options options;
   options.detail = 4;
   auto session{std::make_unique<frontend::mission_session>(data, frontend::mission_session::quick_start(data, 3), options)};
@@ -75,7 +77,7 @@ int main(int argc, char **argv) try {
       require(!session->frame.hud_coverage.empty(), "integrated cockpit did not draw native HUD geometry");
       auto const edges{std::ranges::count_if(session->frame.hud_coverage, [](auto alpha){return alpha > 0 && alpha < 255;})};
       require(edges > 100, "integrated cockpit lacks antialiased HUD edges");
-      if(argc == 3 && dimensions[0] == 3840 && fov == 90) session->frame.write_ppm((std::filesystem::path{argv[2]} / "cockpit-hud.ppm").string());
+      if(command_line.capture.has_value() && dimensions[0] == 3840 && fov == 90) session->frame.write_ppm((std::filesystem::path{command_line.capture->string()} / "cockpit-hud.ppm").string());
     }
   }
   // The original pitch ladder is the same geometry, now stroked after native projection.
@@ -94,7 +96,7 @@ int main(int argc, char **argv) try {
     render::vector_hud vectors{native, layout.hud_transform({0, 0, 639, 247}, 90), state.colour};
     session->avionics.draw_helmet(lettering, state, &vectors);
     layout.composite_hud(lettering, native, {0, 0, 639, 247}, 90);
-    if(argc == 3) native.write_ppm((std::filesystem::path{argv[2]} / "banked-hud.ppm").string());
+    if(command_line.capture.has_value()) native.write_ppm((std::filesystem::path{command_line.capture->string()} / "banked-hud.ppm").string());
   }
   std::cout << "Integrated HUD smoothing passed at native, fractional and 4K sizes with custom FOVs\n";
 
@@ -133,7 +135,7 @@ int main(int argc, char **argv) try {
     if(distance == 70000) near_width = new_width;
     else far_width = new_width;
     std::cout << "Tree at " << distance << " units: " << old_width << " -> " << new_width << " pixels\n";
-    if(argc == 3) image.write_ppm((std::filesystem::path{argv[2]} / (distance == 70000 ? "trees-near.ppm" : "trees-far.ppm")).string());
+    if(command_line.capture.has_value()) image.write_ppm((std::filesystem::path{command_line.capture->string()} / (distance == 70000 ? "trees-near.ppm" : "trees-far.ppm")).string());
   }
   require(near_width > far_width, "tree trunks do not grow thicker with proximity");
   return EXIT_SUCCESS;

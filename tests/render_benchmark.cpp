@@ -3,6 +3,7 @@
 #include <iomanip>
 #include <iostream>
 #include <stdexcept>
+#include <boost/program_options.hpp>
 #include "frontend/mission_session.h"
 #if __has_include(<valgrind/callgrind.h>)
 #include <valgrind/callgrind.h>
@@ -12,22 +13,45 @@
 #endif
 
 int main(int argc, char **argv) try {
-  if(argc < 5 || argc > 10) throw std::runtime_error{"Usage: render_benchmark DATA WIDTH HEIGHT FRAMES [VIEW=0] [MISSION=-3] [ALTITUDE_FEET=0] [FOV=90] [LOD_DISTANCE=6]"};
   namespace frontend = apache::frontend;
   namespace resources = apache::resources;
-  resources::data_store data{argv[1]};
-  auto const width{static_cast<unsigned int>(std::stoul(argv[2]))};
-  auto const height{static_cast<unsigned int>(std::stoul(argv[3]))};
-  unsigned int const frames{static_cast<unsigned int>(std::stoul(argv[4]))};
-  unsigned int const view{argc > 5 ? static_cast<unsigned int>(std::stoul(argv[5])) : 0u};
-  int const mission{argc > 6 ? std::stoi(argv[6]) : -3};
-  int const altitude{argc > 7 ? std::stoi(argv[7]) : 0};
+  std::string directory, fov, lod;
+  unsigned int width{0}, height{0}, frames{0}, view{0};
+  int mission{-3}, altitude{0};
+  boost::program_options::options_description arguments_description{"Software rendering benchmark"};
+  arguments_description.add_options()
+    ("help", "Show command-line options")
+    ("data-directory", boost::program_options::value<std::string>(&directory)->required(), "Original game data directory")
+    ("width", boost::program_options::value<unsigned int>(&width)->required(), "Render width")
+    ("height", boost::program_options::value<unsigned int>(&height)->required(), "Render height")
+    ("frames", boost::program_options::value<unsigned int>(&frames)->required(), "Number of measured frames")
+    ("view", boost::program_options::value<unsigned int>(&view)->default_value(0), "View mode")
+    ("mission", boost::program_options::value<int>(&mission)->default_value(-3), "Mission ID; negative IDs select Quickstart")
+    ("altitude", boost::program_options::value<int>(&altitude)->default_value(0), "Altitude above terrain in feet")
+    ("fov", boost::program_options::value<std::string>(&fov)->default_value("90"), "Horizontal field of view in degrees")
+    ("lod-distance", boost::program_options::value<std::string>(&lod)->default_value("6"), "Model LOD distance multiplier");
+  boost::program_options::positional_options_description positions;
+  positions.add("data-directory", 1).add("width", 1).add("height", 1).add("frames", 1)
+    .add("view", 1).add("mission", 1).add("altitude", 1).add("fov", 1).add("lod-distance", 1);
+  boost::program_options::variables_map arguments;
+  boost::program_options::store(boost::program_options::command_line_parser(argc, argv)
+    .options(arguments_description).positional(positions)
+    .style(boost::program_options::command_line_style::default_style &
+      ~boost::program_options::command_line_style::allow_guessing &
+      ~boost::program_options::command_line_style::allow_short)
+    .run(), arguments);
+  if(arguments.contains("help")) {
+    std::cout << arguments_description;
+    return EXIT_SUCCESS;
+  }
+  boost::program_options::notify(arguments);
+  resources::data_store data{directory};
   if(!frames || frames > 10000 || altitude < 0 || altitude > 50000 || mission < -4 || !mission || view > 19) {
     throw std::runtime_error{"Invalid benchmark frame count, altitude, mission or view"};
   }
   frontend::mission_options options;
-  options.graphics.field_of_view = argc > 8 ? apache::configuration::parse_field_of_view(argv[8]) : 90;
-  if(argc > 9) options.graphics.lod_distance_multiplier = apache::configuration::parse_lod_distance_multiplier(argv[9]);
+  options.graphics.field_of_view = apache::configuration::parse_field_of_view(fov);
+  options.graphics.lod_distance_multiplier = apache::configuration::parse_lod_distance_multiplier(lod);
   auto session{mission < 0
     ? std::make_unique<frontend::mission_session>(data, frontend::mission_session::quick_start(data, -mission), options)
     : std::make_unique<frontend::mission_session>(data, mission, options)};

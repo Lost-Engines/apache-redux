@@ -1,3 +1,4 @@
+#include "capture_options.h"
 #include <algorithm>
 #include <array>
 #include <cstdlib>
@@ -67,9 +68,10 @@ void check_displays(frontend::mission_session &session, bool const gunner, uint3
 }
 } // anonymous namespace
 int main(int argc, char **argv) try {
-  if(argc < 2 || argc > 3) throw std::runtime_error{"Usage: hud_mfd_check DATA_DIRECTORY [CAPTURE_DIRECTORY]"};
-  apache::resources::data_store data{argv[1]};
-  if(argc == 3) std::filesystem::create_directories(argv[2]);
+  auto const command_line{apache::testing::read_capture_options(argc, argv, "HUD MFD checks", "capture-directory", false)};
+  if(command_line.help) return EXIT_SUCCESS;
+  apache::resources::data_store data{command_line.directory};
+  if(command_line.capture.has_value()) std::filesystem::create_directories(command_line.capture->string());
   for(unsigned int mode : {0u, 1u}) {
     frontend::mission_options options;
     options.video_mode = mode;
@@ -127,7 +129,7 @@ int main(int argc, char **argv) try {
         auto const seed{session->instruments->state.damaged_display_seed};
         session->draw();
         check_displays(*session, gunner, seed);
-        if(argc == 3 && i == 3 && mode == 1) session->frame.write_ppm((std::filesystem::path{argv[2]} / (gunner ? "hud-gunner.ppm" : "hud-pilot.ppm")).string());
+        if(command_line.capture.has_value() && i == 3 && mode == 1) session->frame.write_ppm((std::filesystem::path{command_line.capture->string()} / (gunner ? "hud-gunner.ppm" : "hud-pilot.ppm")).string());
       }
       press(*session, 0x23);
       session->draw();
