@@ -41,6 +41,7 @@
 #include "inspect_seekers.h"
 #include "inspect_sensors.h"
 #include "inspect_session.h"
+#include "inspect_options.h"
 #include "inspect_target_search.h"
 #include "inspect_targeting.h"
 #include "inspect_targets.h"
@@ -211,19 +212,17 @@ void inspect_models(apache::resources::data_store const &data, bool const traces
 } // namespace
 
 int main(int const argc, char const *const argv[]) try {
-  if(argc < 3) {
-    std::cout << "Usage: apache_inspect DATA_DIRECTORY images|terrain|models|model-traces|matrices [RESOURCE [OUTPUT.ppm]]" << std::endl;
-    return EXIT_FAILURE;
-  }
-  apache::resources::data_store const data{argv[1]};
-  std::string_view const command{argv[2]};
-  if(inspect_briefing(data, command, std::cin, std::cout, argc > 3 ? argv[3] : "")) return EXIT_SUCCESS;
+  auto const command_line{apache::read_inspection_options(argc, argv)};
+  if(command_line.help) return EXIT_SUCCESS;
+  apache::resources::data_store const data{command_line.directory};
+  std::string_view const command{command_line.command};
+  if(inspect_briefing(data, command, std::cin, std::cout, command_line.output)) return EXIT_SUCCESS;
   if(command == "chat") {
     apache::inspect_chat(data, std::cin, std::cout);
     return EXIT_SUCCESS;
   }
   if(command == "network-group") {
-    apache::inspect_network_group(data, argc > 3 ? static_cast<unsigned int>(std::stoul(argv[3])) : 3, std::cout);
+    apache::inspect_network_group(data, command_line.players, std::cout);
     return EXIT_SUCCESS;
   }
   if(command == "network-incomplete-flag") {
@@ -231,7 +230,7 @@ int main(int const argc, char const *const argv[]) try {
     return EXIT_SUCCESS;
   }
   if(command == "network-loopback") {
-    apache::inspect_network_live(data, argc > 3 ? static_cast<unsigned int>(std::stoul(argv[3])) : 4, std::cout);
+    apache::inspect_network_live(data, command_line.players, std::cout);
     return EXIT_SUCCESS;
   }
   if(command == "network") {
@@ -262,23 +261,19 @@ int main(int const argc, char const *const argv[]) try {
     return EXIT_SUCCESS;
   }
   if(command == "session-network") {
-    if(argc < 8) throw std::runtime_error{"session-network requires mission, video, flight model, game mode and connection slot"};
-    inspect_session(data, std::stoi(argv[3]), static_cast<unsigned int>(std::stoul(argv[4])), std::stoi(argv[5]) == 2, std::cin, std::cout, -1, std::stoi(argv[6]), static_cast<unsigned int>(std::stoul(argv[7])), argc > 8 ? static_cast<unsigned int>(std::stoul(argv[8])) : 2);
+    inspect_session(data, command_line.mission, command_line.video, command_line.flight_model == 2, std::cin, std::cout, -1, command_line.game_mode, command_line.connection, command_line.players);
     return EXIT_SUCCESS;
   }
   if(command == "session-shared") {
-    if(argc < 7) throw std::runtime_error{"session-shared requires mission, video mode, flight model and seat"};
-    inspect_session(data, std::stoi(argv[3]), static_cast<unsigned int>(std::stoul(argv[4])), std::stoi(argv[5]) == 2, std::cin, std::cout, std::stoi(argv[6]));
+    inspect_session(data, command_line.mission, command_line.video, command_line.flight_model == 2, std::cin, std::cout, command_line.seat);
     return EXIT_SUCCESS;
   }
   if(command == "session") {
-    if(argc < 6) throw std::runtime_error{"session requires mission, video mode and flight model"};
-    inspect_session(data, std::stoi(argv[3]), static_cast<unsigned int>(std::stoul(argv[4])), std::stoi(argv[5]) == 2, std::cin, std::cout);
+    inspect_session(data, command_line.mission, command_line.video, command_line.flight_model == 2, std::cin, std::cout);
     return EXIT_SUCCESS;
   }
   if(command == "mission-sensors") {
-    if(argc < 5) throw std::runtime_error{"mission-sensors requires a warzone and mission path"};
-    inspect_sensors(data, argv[3], argv[4], std::cin, std::cout);
+    inspect_sensors(data, command_line.zone, command_line.resource, std::cin, std::cout);
     return EXIT_SUCCESS;
   }
   if(command == "cameras") {
@@ -325,8 +320,7 @@ int main(int const argc, char const *const argv[]) try {
     return EXIT_SUCCESS;
   }
   if(command == "animation") {
-    if(argc < 4) throw std::runtime_error{"animation requires an original resource path"};
-    apache::resources::animation movie{data.read(argv[3])};
+    apache::resources::animation movie{data.read(command_line.resource)};
     while(movie.advance()) {
       apache::resources::bytes palette;
       for(auto const &c : movie.image.colours) {
@@ -343,28 +337,23 @@ int main(int const argc, char const *const argv[]) try {
     return EXIT_SUCCESS;
   }
   if(command == "mission-combat" || command == "mission-weapons" || command == "mission-battle") {
-    if(argc < 5) throw std::runtime_error{"Expected zone and mission path"};
-    inspect_mission_combat(std::cin, std::cout, data, argv[3], argv[4], command != "mission-combat", command == "mission-battle");
+    inspect_mission_combat(std::cin, std::cout, data, command_line.zone, command_line.resource, command != "mission-combat", command == "mission-battle");
     return EXIT_SUCCESS;
   }
   if(command == "mission-targets") {
-    if(argc < 5) throw std::runtime_error{"Expected zone and mission path"};
-    inspect_mission_targets(std::cin, std::cout, data, argv[3], argv[4]);
+    inspect_mission_targets(std::cin, std::cout, data, command_line.zone, command_line.resource);
     return EXIT_SUCCESS;
   }
   if(command == "mission-spatial") {
-    if(argc < 5) throw std::runtime_error{"Expected zone and mission path"};
-    inspect_mission_spatial(std::cin, std::cout, data, argv[3], argv[4]);
+    inspect_mission_spatial(std::cin, std::cout, data, command_line.zone, command_line.resource);
     return EXIT_SUCCESS;
   }
   if(command == "mission-radar") {
-    if(argc < 5) throw std::runtime_error{"Expected zone and mission path"};
-    inspect_mission_radar(std::cout, data, argv[3], argv[4]);
+    inspect_mission_radar(std::cout, data, command_line.zone, command_line.resource);
     return EXIT_SUCCESS;
   }
   if(command == "mission-scenery") {
-    if(argc < 5) throw std::runtime_error{"Expected zone and mission path"};
-    inspect_mission_scenery(std::cout, data, argv[3], argv[4]);
+    inspect_mission_scenery(std::cout, data, command_line.zone, command_line.resource);
     return EXIT_SUCCESS;
   }
   if(command == "combat-update") {
@@ -434,16 +423,14 @@ int main(int const argc, char const *const argv[]) try {
   } else if(command == "collisions") {
     inspect_collisions(std::cin, std::cout, data);
   } else if(command == "briefings") {
-    if(argc != 4) throw std::runtime_error{"briefings requires a bundle resource"};
-    for(auto const &mission : apache::resources::read_mission_briefings(data.read(argv[3]))) std::cout << mission.id << ' ' << mission.flow << ' ' << mission.zone << ' ' << mission.level << ' ' << std::quoted(mission.title) << '\n';
+    for(auto const &mission : apache::resources::read_mission_briefings(data.read(command_line.resource))) std::cout << mission.id << ' ' << mission.flow << ' ' << mission.zone << ' ' << mission.level << ' ' << std::quoted(mission.title) << '\n';
   } else if(command == "mission-actors" || command == "mission-actor-state" || command == "mission-battles" || command == "ground-trace" || command == "actor-trace") {
-    if(argc != 5) throw std::runtime_error{"mission-actors requires a warzone and mission resource"};
-    auto const bytes{data.read(argv[4])};
+    auto const bytes{data.read(command_line.resource)};
     auto const mission{apache::resources::read_mission_definition({reinterpret_cast<char const *>(bytes.data()), bytes.size()})};
     auto const models{apache::resources::read_models(data.read("3DDATA/3DOBJS.BIN"))};
     auto const formations{apache::resources::read_formations(apache::resources::executable_data{data})};
     apache::math::trigonometry trig{data};
-    std::string const zone{argv[3]};
+    std::string const zone{command_line.zone};
     apache::resources::terrain heights{data.read(zone + ".WZ/GRIDPOST.BIN")};
     apache::resources::feature_layer features{data, zone, false};
     apache::resources::feature_layer super_features{data, zone, true};
@@ -596,8 +583,7 @@ int main(int const argc, char const *const argv[]) try {
       std::cout << '\n';
     }
   } else if(command == "mission-data") {
-    if(argc != 4) throw std::runtime_error{"mission-data requires a mission resource"};
-    auto const bytes{data.read(argv[3])};
+    auto const bytes{data.read(command_line.resource)};
     auto const mission{apache::resources::read_mission_definition(std::string_view{reinterpret_cast<char const *>(bytes.data()), bytes.size()})};
     for(auto const &task : mission.tasks) {
       std::cout << "task " << task.side << ' ' << task.type << ' ' << task.battle_cell << ' ' << task.user << ' ' << task.actors.size() << '\n';
@@ -642,8 +628,8 @@ int main(int const argc, char const *const argv[]) try {
         helmets[mode].draw_component(frame, state, static_cast<apache::render::helmet_component>(component));
       }
       std::cout << std::hex << apache::resources::fingerprint(frame.image.pixels) << std::dec << '\n';
-      if(argc > 3) {
-        std::ofstream output{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream output{command_line.output, std::ios::binary};
         output.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -734,8 +720,8 @@ int main(int const argc, char const *const argv[]) try {
         for(auto const page : seat) std::cout << ' ' << static_cast<unsigned int>(page);
       }
       std::cout << ' ' << world->missing_normals << ' ' << world->invalid_texture_samples << '\n';
-      if(argc > 3) {
-        std::ofstream output{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream output{command_line.output, std::ios::binary};
         output.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -817,8 +803,8 @@ int main(int const argc, char const *const argv[]) try {
         world->draw_map(frame, area, {apache::math::subtract(x, range), apache::math::subtract(y, range), apache::math::add(x, range), apache::math::add(y, range)}, heading, config);
       }
       std::cout << std::hex << apache::resources::fingerprint(frame.image.pixels) << std::dec << '\n';
-      if(argc > 3) {
-        std::ofstream output{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream output{command_line.output, std::ios::binary};
         output.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -834,8 +820,8 @@ int main(int const argc, char const *const argv[]) try {
       for(auto &point : triangle) std::cin >> point.x >> point.y >> point.intensity;
       apache::render::draw_map_contours(frame, apache::render::projection2{area, window}, triangle, interval);
       std::cout << std::hex << apache::resources::fingerprint(frame.image.pixels) << std::dec << '\n';
-      if(argc > 3) {
-        std::ofstream output{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream output{command_line.output, std::ios::binary};
         output.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -962,9 +948,9 @@ int main(int const argc, char const *const argv[]) try {
         std::cout << ' ' << std::hex << apache::resources::fingerprint(rgb) << ' ' << apache::resources::fingerprint(world->palette.modified) << std::dec;
       }
       std::cout << '\n';
-      if(argc > 3) {
-        apache::resources::write_ppm(argv[3], frame.image);
-        std::ofstream file{std::string{argv[3]} + ".pixels", std::ios::binary};
+      if(command_line.output_requested) {
+        apache::resources::write_ppm(command_line.output, frame.image);
+        std::ofstream file{std::string{command_line.output} + ".pixels", std::ios::binary};
         file.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -1052,8 +1038,8 @@ int main(int const argc, char const *const argv[]) try {
       for(size_t i{0}; i != frame.image.pixels.size(); ++i) frame.image.pixels[i] = static_cast<uint8_t>(i * 7 + i / frame.image.width * 13);
       mfds[mode].flir(frame, mfds[mode].area(static_cast<apache::render::mfd_panel>(panel)), *world, kind ? &object : nullptr, aim, observer, lighting);
       std::cout << std::hex << apache::resources::fingerprint(frame.image.pixels) << std::dec << ' ' << world->missing_normals << ' ' << world->invalid_texture_samples << '\n';
-      if(argc > 3) {
-        std::ofstream file{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream file{command_line.output, std::ios::binary};
         file.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -1134,8 +1120,8 @@ int main(int const argc, char const *const argv[]) try {
         }
       }
       std::cout << std::hex << apache::resources::fingerprint(frame.image.pixels) << std::dec << ' ' << seed << '\n';
-      if(argc > 3) {
-        std::ofstream file{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream file{command_line.output, std::ios::binary};
         file.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -1163,8 +1149,8 @@ int main(int const argc, char const *const argv[]) try {
       if(which == 3 || which == 5) gauge.compass(frame, heading);
       if(which == 4 || which == 5) gauge.attitude(frame, trig.transformation(heading, pitch, roll));
       std::cout << std::hex << apache::resources::fingerprint(frame.image.pixels) << std::dec << '\n';
-      if(argc > 3) {
-        std::ofstream file{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream file{command_line.output, std::ios::binary};
         file.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -1185,9 +1171,9 @@ int main(int const argc, char const *const argv[]) try {
       cockpits[mode].install_palette(colours);
       colours = apache::render::apply_faders(colours, cockpits[mode].faders(night, pnvs));
       std::cout << std::hex << apache::resources::fingerprint(frame.image.pixels) << ' ' << apache::resources::fingerprint(colours) << std::dec << '\n';
-      if(argc > 3) {
+      if(command_line.output_requested) {
         for(size_t i{0}; i != 256; ++i) frame.image.colours[i] = {colours[i * 3], colours[i * 3 + 1], colours[i * 3 + 2]};
-        apache::resources::write_ppm(argv[3], frame.image);
+        apache::resources::write_ppm(command_line.output, frame.image);
       }
     }
   } else if(command == "instrument-fonts") {
@@ -1220,8 +1206,8 @@ int main(int const argc, char const *const argv[]) try {
       palette->prepare(conditions.infrared);
       palette->update(conditions);
       std::cout << std::hex << apache::resources::fingerprint(palette->colours) << ' ' << apache::resources::fingerprint(palette->modified) << ' ' << apache::resources::fingerprint(palette->infrared) << ' ' << apache::resources::fingerprint(palette->mfd_infrared) << ' ' << apache::resources::fingerprint(palette->hud_nvs) << ' ' << apache::resources::fingerprint(palette->visual_remap) << std::dec << '\n';
-      if(argc > 3) {
-        std::ofstream file{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream file{command_line.output, std::ios::binary};
         file.write(reinterpret_cast<char const *>(palette->modified.data()), palette->modified.size());
       }
     }
@@ -1426,8 +1412,8 @@ int main(int const argc, char const *const argv[]) try {
       renderer.style.light = apache::render::light_vector(trig, light);
       renderer.draw(instance, camera);
       std::cout << std::hex << apache::resources::fingerprint(frame.image.pixels) << std::dec << ' ' << renderer.missing_normals << ' ' << renderer.invalid_texture_samples << '\n';
-      if(argc > 3) {
-        std::ofstream raw{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream raw{command_line.output, std::ios::binary};
         raw.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -1545,8 +1531,8 @@ int main(int const argc, char const *const argv[]) try {
       apache::render::shadow_renderer renderer{frame, models, casting, *palette};
       renderer.draw(instance, camera);
       std::cout << std::hex << apache::resources::fingerprint(frame.image.pixels) << std::dec << ' ' << casting.cast[0] << ' ' << casting.cast[1] << '\n';
-      if(argc > 3) {
-        std::ofstream raw{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream raw{command_line.output, std::ios::binary};
         raw.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -1640,8 +1626,8 @@ int main(int const argc, char const *const argv[]) try {
         effects.draw_explosion({static_cast<unsigned int>(kind), position, {0, 0, 0}, radius, age}, camera, angles[2], trig, view, raster);
       }
       std::cout << std::hex << apache::resources::fingerprint(frame.image.pixels) << std::dec << ' ' << raster.invalid_texture_samples << '\n';
-      if(argc > 3) {
-        std::ofstream raw{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream raw{command_line.output, std::ios::binary};
         raw.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -1674,8 +1660,8 @@ int main(int const argc, char const *const argv[]) try {
         auto const entries{queue.ordered()};
         for(auto const &entry : entries) mesh.draw(raster, view, palette, entry.payload);
         std::cout << entries.size() << ' ' << std::hex << apache::resources::fingerprint(frame.image.pixels) << std::dec << '\n';
-        if(argc > 3) {
-          std::ofstream raw{argv[3], std::ios::binary};
+        if(command_line.output_requested) {
+          std::ofstream raw{command_line.output, std::ios::binary};
           raw.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
         }
         continue;
@@ -1684,7 +1670,7 @@ int main(int const argc, char const *const argv[]) try {
       for(auto const &point : mesh.vertices) {
         for(auto const value : point.eye) word(bytes, static_cast<uint32_t>(value));
         word(bytes, static_cast<uint32_t>(point.intensity));
-        if(argc > 3) std::cerr << point.eye[0] << ' ' << point.eye[1] << ' ' << point.eye[2] << ' ' << point.intensity << '\n';
+        if(command_line.output_requested) std::cerr << point.eye[0] << ' ' << point.eye[1] << ' ' << point.eye[2] << ' ' << point.intensity << '\n';
       }
       std::cout << bounds.left << ' ' << bounds.bottom << ' ' << bounds.right << ' ' << bounds.top << ' ' << mesh.vertices.size() << ' ' << std::hex << apache::resources::fingerprint(bytes) << std::dec << '\n';
     }
@@ -1708,8 +1694,8 @@ int main(int const argc, char const *const argv[]) try {
       frame.clear(155);
       auto const glare{sky.draw(frame, trig.transformation(heading, pitch, roll), trig, palette, conditions, lighting)};
       std::cout << std::hex << apache::resources::fingerprint(frame.image.pixels) << std::dec << ' ' << glare << '\n';
-      if(argc > 3) {
-        std::ofstream raw{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream raw{command_line.output, std::ios::binary};
         raw.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -1730,8 +1716,8 @@ int main(int const argc, char const *const argv[]) try {
       horizon.ground(pitch, roll, conditions);
       horizon.sky(conditions);
       std::cout << apache::resources::fingerprint(frame.image.pixels) << '\n';
-      if(argc > 3) {
-        std::ofstream file{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream file{command_line.output, std::ios::binary};
         file.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -1883,8 +1869,8 @@ int main(int const argc, char const *const argv[]) try {
         for(int32_t const value : {point.eye[0], point.eye[1], point.eye[2], point.screen.x, point.screen.y, int32_t{point.outcode}}) word(coordinates, static_cast<uint32_t>(value));
       }
       std::cout << std::hex << apache::resources::fingerprint(coordinates) << ' ' << apache::resources::fingerprint(frame.image.pixels) << std::dec << '\n';
-      if(argc >= 4) {
-        std::ofstream raw{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream raw{command_line.output, std::ios::binary};
         raw.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
         for(auto const &point : points) std::cerr << point.eye[0] << ' ' << point.eye[1] << ' ' << point.eye[2] << ' ' << point.screen.x << ' ' << point.screen.y << ' ' << +point.outcode << '\n';
       }
@@ -1917,8 +1903,8 @@ int main(int const argc, char const *const argv[]) try {
       frame.clear(155);
       renderer.draw(post, points, half, static_cast<apache::render::terrain_method>(method), apache::render::terrain_fog{detail}, two_sided != 0);
       std::cout << std::hex << apache::resources::fingerprint(frame.image.pixels) << std::dec << ' ' << renderer.invalid_texture_samples() << '\n';
-      if(argc >= 4) {
-        std::ofstream raw{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream raw{command_line.output, std::ios::binary};
         raw.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -1950,8 +1936,8 @@ int main(int const argc, char const *const argv[]) try {
     apache::render::scene_palette const palette{data, "FORT"};
     for(auto const &table : palette.fog_intensity) {
       std::cout << std::hex << apache::resources::fingerprint(table) << std::dec << '\n';
-      if(argc >= 4) {
-        std::ofstream out{std::string{argv[3]} + std::to_string(&table - palette.fog_intensity.data()), std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream out{std::string{command_line.output} + std::to_string(&table - palette.fog_intensity.data()), std::ios::binary};
         out.write(reinterpret_cast<char const *>(table.data()), static_cast<std::streamsize>(table.size()));
       }
     }
@@ -1977,7 +1963,7 @@ int main(int const argc, char const *const argv[]) try {
       for(auto const &v : vertices) {
         for(int32_t const field : {v.eye[0], v.eye[1], v.eye[2], v.screen.x, v.screen.y, v.screen.intensity, int32_t{v.outcode}}) {
           for(unsigned int shift{0}; shift != 32; shift += 8) output.push_back(static_cast<uint8_t>(static_cast<uint32_t>(field) >> shift));
-          if(argc >= 4) std::cerr << field << ' ';
+          if(command_line.verbose) std::cerr << field << ' ';
         }
       }
       std::cout << std::hex << apache::resources::fingerprint(output) << std::dec << '\n';
@@ -2027,7 +2013,7 @@ int main(int const argc, char const *const argv[]) try {
     apache::render::framebuffer frame{320, 240};
     for(size_t i{0}; i != 256; ++i) frame.image.colours[i] = {palette.colours[i * 3], palette.colours[i * 3 + 1], palette.colours[i * 3 + 2]};
     apache::render::model_renderer renderer{frame, models, textures, palette};
-    if(argc >= 5 && std::string_view{argv[4]} == "trace") {
+    if(command_line.trace) {
       renderer.face_observer = [&](uint32_t const model, uint32_t const pc){
         std::cerr << model << ' ' << pc << ' ' << std::hex << apache::resources::fingerprint(frame.image.pixels) << std::dec << '\n';
       };
@@ -2056,9 +2042,9 @@ int main(int const argc, char const *const argv[]) try {
       } catch(std::runtime_error const &error) {
         std::cout << "error " << error.what() << '\n';
       }
-      if(argc >= 4) {
-        apache::resources::write_ppm(argv[3], frame.image);
-        std::ofstream raw{std::string{argv[3]} + ".pixels", std::ios::binary};
+      if(command_line.output_requested) {
+        apache::resources::write_ppm(command_line.output, frame.image);
+        std::ofstream raw{std::string{command_line.output} + ".pixels", std::ios::binary};
         raw.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -2125,8 +2111,8 @@ int main(int const argc, char const *const argv[]) try {
         raster.circle(x, y, radius, paint);
       }
       std::cout << std::hex << apache::resources::fingerprint(frame.image.pixels) << std::dec << '\n';
-      if(argc > 3) {
-        std::ofstream raw{argv[3], std::ios::binary};
+      if(command_line.output_requested) {
+        std::ofstream raw{command_line.output, std::ios::binary};
         raw.write(reinterpret_cast<char const *>(frame.image.pixels.data()), static_cast<std::streamsize>(frame.image.pixels.size()));
       }
     }
@@ -2183,12 +2169,12 @@ int main(int const argc, char const *const argv[]) try {
     }
   } else if(command == "images") {
     for(auto const &name : data.names()) {
-      if(argc >= 4 && name != apache::resources::data_store::normalise(argv[3])) continue;
+      if(command_line.resource_requested && name != apache::resources::data_store::normalise(command_line.resource)) continue;
       auto const file{data.read(name)};
       if(file.size() < 4 || std::string_view{reinterpret_cast<char const *>(file.data()), 4} != "FORM") continue;
       auto const image{apache::resources::read_iff(file)};
       std::cout << name << '\t' << image.width << '\t' << image.height << '\t' << std::hex << apache::resources::fingerprint(image.pixels) << std::dec << '\n';
-      if(argc >= 5) apache::resources::write_ppm(argv[4], image);
+      if(command_line.output_requested) apache::resources::write_ppm(command_line.output, image);
     }
   } else if(command == "terrain") {
     for(std::string_view const zone : {"FORT", "CYPRUS", "KOREA", "YEMEN"}) {
