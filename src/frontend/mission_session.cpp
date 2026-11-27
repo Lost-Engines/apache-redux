@@ -644,13 +644,22 @@ void mission_session::command(uint16_t const key) {
   case 0x58:
   case 0x4058:
     {
-    if(runtime.actors.units.empty()) break;
-    size_t candidate{drone.value_or(*runtime.timing.player)};
-    for(size_t i{0}; i != runtime.actors.units.size(); ++i) {
-      candidate = (candidate + (key == 0x58 ? 1 : runtime.actors.units.size() - 1)) % runtime.actors.units.size();
-      auto const &actor{runtime.actors.units[candidate]};
-      if(candidate != *runtime.timing.player && !actor.destroyed && runtime.mobiles.contains(runtime.spatial.mobile_id(candidate))) {
-        drone = candidate;
+    auto const &groups{runtime.actors.groups};
+    if(groups.empty()) break;
+    // The original cursor starts at the last authored group and visits leaders.
+    size_t candidate{groups.size() - 1};
+    if(drone && *drone < runtime.actors.units.size()) {
+      auto const &location{runtime.actors.units[*drone].location};
+      auto const current{std::ranges::find_if(groups, [&](auto const &group){return group.task == location.task && group.index == location.group;})};
+      if(current != groups.end()) candidate = static_cast<size_t>(current - groups.begin());
+    }
+    for(size_t i{0}; i != groups.size(); ++i) {
+      candidate = (candidate + (key == 0x58 ? 1 : groups.size() - 1)) % groups.size();
+      if(groups[candidate].units.empty()) continue;
+      size_t const leader{groups[candidate].units.front()};
+      auto const &actor{runtime.actors.units[leader]};
+      if(!(actor.object.status & 1) && actor.classification != 4 && actor.classification != 6 && actor.classification != 8) {
+        drone = leader;
         select_view(11);
         break;
       }
