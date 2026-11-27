@@ -1,6 +1,7 @@
 #pragma once
 #include <filesystem>
 #include "graphics.h"
+#include "input/controllers.h"
 #include "preferences.h"
 #include "resources/data_store.h"
 #include "simulation/control_input.h"
@@ -12,6 +13,8 @@ class settings {
   std::optional<double> lod_override;
 public:
   preferences values;
+  input::controller_settings controllers;
+  std::string controller_error;
   configuration::graphics graphics;
   unsigned int video_mode{1};
   unsigned int detail{9};

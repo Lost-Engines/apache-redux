@@ -14,6 +14,16 @@ menu::menu(resources::data_store const &data)
   clips.resize(widgets.size());
   show("_main_screen");
 }
+int menu::add(widget object) {
+  auto const index{widgets.size()};
+  for(auto const &name : object.globals) {
+    if(globals.contains(name)) throw std::runtime_error{"Duplicate menu widget: " + name};
+    globals[name] = index;
+  }
+  widgets.push_back(std::move(object));
+  clips.resize(widgets.size());
+  return static_cast<int>(index);
+}
 widget &menu::named(std::string_view const global) {
   auto const found{globals.find(global)};
   if(found == globals.end()) throw std::runtime_error{"Unknown menu widget: " + std::string{global}};

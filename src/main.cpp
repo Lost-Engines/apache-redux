@@ -13,6 +13,7 @@
 #include <vector>
 #include <boost/program_options.hpp>
 #include "platform/audio_output.h"
+#include "platform/controllers.h"
 #include "platform/key_map.h"
 #include "platform/window.h"
 #include "audio/engine.h"
@@ -333,6 +334,7 @@ int main(int const argc, char const *const argv[]) try {
     mission->runtime.events.gun_sound = [&](bool active){sound->gun(active);};
   }};
   connect_audio();
+  apache::input::controller_mapper controller_mapper;
   events input{window};
   glfwSetWindowUserPointer(window.get(), &input);
   glfwSetKeyCallback(window.get(), [](GLFWwindow *const handle, int const key, int, int const action, int const modifiers){
@@ -404,44 +406,15 @@ int main(int const argc, char const *const argv[]) try {
       input.keys.clear();
       input.clicks.clear();
       if(!window.focused()) {
-        mission->controls.held.fill(false);
-        mission->controls.counts.fill(0);
+        mission->controls.clear_keys();
       }
-      mission->controls.joystick_present = window.focused() && glfwJoystickPresent(GLFW_JOYSTICK_1);
-      mission->controls.buttons = mission->controls.hat = 0;
-      mission->controls.hat_present = false;
-      mission->controls.axis_count = 0;
-      if(mission->controls.configuration.input_type != 1) {
-        int button_count{0};
-        int hat_count{0};
-        auto const *buttons{glfwGetJoystickButtons(GLFW_JOYSTICK_1, &button_count)};
-        for(int i{0}; buttons && i < std::min(button_count, 4); ++i) {
-          if(buttons[i] == GLFW_PRESS) mission->controls.buttons |= 1u << i;
-        }
-        auto const *hats{glfwGetJoystickHats(GLFW_JOYSTICK_1, &hat_count)};
-        mission->controls.hat_present = hats && hat_count;
-        if(mission->controls.hat_present) {
-          switch(hats[0]) {
-          case GLFW_HAT_UP:
-            mission->controls.hat = 1;
-            break;
-          case GLFW_HAT_RIGHT:
-            mission->controls.hat = 2;
-            break;
-          case GLFW_HAT_DOWN:
-            mission->controls.hat = 3;
-            break;
-          case GLFW_HAT_LEFT:
-            mission->controls.hat = 4;
-            break;
-          default:
-            break;
-          }
-        }
-        int count{0};
-        auto const *axes{glfwGetJoystickAxes(GLFW_JOYSTICK_1, &count)};
-        mission->controls.axis_count = static_cast<unsigned int>(std::max(count, 0));
-        for(size_t i{0}; i != mission->controls.joystick.size(); ++i) mission->controls.joystick[i].value = axes && i < static_cast<size_t>(count) ? static_cast<int32_t>(std::lround((std::clamp(axes[i], -1.0f, 1.0f) + 1.0f) * 127.5f)) : 128;
+      auto const devices{apache::platform::poll_controllers()};
+      if(apache::input::resolve_imported_devices(frontend.settings.controllers, devices)) frontend.settings.save();
+      bool const accept_controller{window.focused() && !mission->quit_prompt && !(mission->chat && mission->chat->writing)};
+      auto const mapped{controller_mapper.sample(frontend.settings.controllers.current(), devices, accept_controller)};
+      mission->controls.controller(mapped);
+      for(size_t i{0}; i < apache::input::actions.size(); ++i) {
+        if(mapped.pressed[i]) mission->post(apache::input::actions[i].scan);
       }
       auto const now{std::chrono::steady_clock::now()};
       tick_fraction += std::chrono::duration<double>(now - previous_time).count() * 200;
@@ -457,8 +430,7 @@ int main(int const argc, char const *const argv[]) try {
       if(mission->help_requested) {
         mission->help_requested = false;
         in_flight_help = true;
-        mission->controls.held.fill(false);
-        mission->controls.counts.fill(0);
+        mission->controls.clear_keys();
         menu.show("_help_screen");
       }
       if(mission->finished) {
@@ -507,17 +479,10 @@ int main(int const argc, char const *const argv[]) try {
       } else if(key.value == GLFW_KEY_F1) menu.show("_help_screen");
     }
     input.keys.clear();
-    if(menu.current() == "_preferences_screen") {
-      int count{0};
-      int hats{0};
-      auto const *axes{glfwGetJoystickAxes(GLFW_JOYSTICK_1, &count)};
-      auto const *hat{glfwGetJoystickHats(GLFW_JOYSTICK_1, &hats)};
-      std::array<int32_t, 4> values{128, 128, 128, 128};
-      for(size_t i{0}; i != values.size(); ++i) {
-        if(axes && i < static_cast<size_t>(count)) values[i] = static_cast<int32_t>(std::lround((std::clamp(axes[i], -1.0f, 1.0f) + 1.0f) * 127.5f));
-      }
-      frontend.preferences.calibration(values, hat && hats ? *hat : 0u);
-    }
+    controller_mapper.reset();
+    auto const devices{apache::platform::poll_controllers()};
+    if(apache::input::resolve_imported_devices(frontend.settings.controllers, devices)) frontend.settings.save();
+    frontend.controls.poll(devices, window.focused());
     if(!pending_movie.empty()) {
       if(sound) sound->cinematic(true);
       play_clip(data, {std::exchange(pending_movie, {}), true, false}, window, input);
@@ -545,6 +510,8 @@ int main(int const argc, char const *const argv[]) try {
     window.present(frame);
     if(auto launched{frontend.takeoff()}) {
       mission = std::move(launched);
+      controller_mapper.reset();
+      mission->controls.controller(controller_mapper.sample(frontend.settings.controllers.current(), devices, window.focused()));
       launched_from_menu = true;
       connect_audio();
       if(mission->network && frontend.network.peers) {

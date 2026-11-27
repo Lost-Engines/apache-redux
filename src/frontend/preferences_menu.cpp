@@ -26,9 +26,6 @@ void preferences_menu::update() {
   on("_preferences_sound_effects_off_button", !settings.effects);
   on("_preferences_sound_effects_min_button", settings.effects && settings.minimal_effects);
   on("_preferences_sound_effects_full_button", settings.effects && !settings.minimal_effects);
-  interface.named("_preferences_collective_button").text = settings.controls.collective == 6 ? "Throttle Stick" : "Keyboard";
-  interface.named("_preferences_tailrotor_button").text = settings.controls.tail_rotor == 5 ? "Pedals" : "Keyboard";
-  interface.named("_preferences_cyclic_button").text = std::array<std::string_view, 5>{"Keyboard", "Joystick", "Thrustmaster FCS", "Flightstick Pro", "Virtual Pilot Pro"}[settings.controls.cyclic];
 }
 void preferences_menu::show() {
   update();

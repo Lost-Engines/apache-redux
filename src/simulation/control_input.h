@@ -1,5 +1,6 @@
 #pragma once
 #include "realistic_flight.h"
+#include "input/controllers.h"
 
 namespace apache::simulation {
 struct control_configuration {
@@ -32,6 +33,11 @@ struct joystick_commands {
 };
 joystick_commands decode_joystick_buttons(unsigned int mode, unsigned int buttons, bool analogue_hat, unsigned int hat_position);
 class control_input {
+  std::array<bool, 128> physical_keys{};
+  std::array<bool, 128> controller_keys{};
+  std::array<std::optional<double>, 4> mapped_axes;
+  bool mapped_absolute{false};
+  bool mapped{false};
 public:
   control_configuration configuration;
   std::array<bool, 128> held{};
@@ -48,6 +54,8 @@ public:
   unsigned int hat{0};
   joystick_commands button_commands() const;
   void key(unsigned int scan, bool down);
+  void clear_keys();
+  void controller(input::mapped_input const &sample);
   void timer(uint32_t ticks);
   void update(unsigned int view_moves, bool gunner, bool joystick_alt = false, bool throttle_reversed = false);
 };

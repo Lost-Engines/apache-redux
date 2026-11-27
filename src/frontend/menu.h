@@ -77,6 +77,7 @@ public:
   std::function<void(render::framebuffer &, widget const &)> paint;
   std::function<void(render::framebuffer &)> finish;
   std::function<bool(widget &, pointer_action, int, int)> pointer;
+  int add(widget object);
   widget &named(std::string_view global);
   std::span<widget> objects() {
     return widgets;

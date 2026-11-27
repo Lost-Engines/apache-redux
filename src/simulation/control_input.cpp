@@ -1,5 +1,6 @@
 #include "control_input.h"
 #include <algorithm>
+#include <cmath>
 #include <stdexcept>
 
 namespace apache::simulation {
@@ -63,7 +64,7 @@ joystick_commands decode_joystick_buttons(unsigned int const mode, unsigned int 
   return out;
 }
 joystick_commands control_input::button_commands() const {
-  if(!joystick_present || configuration.input_type == 1) return {};
+  if(mapped || !joystick_present || configuration.input_type == 1) return {};
   unsigned int bits{buttons & 15};
   unsigned int position{255};
   if(configuration.button_mode && hat >= 1 && hat <= 4) bits |= std::array<unsigned int, 4>{15, 11, 7, 3}[hat - 1];
@@ -82,7 +83,26 @@ joystick_commands control_input::button_commands() const {
   return decode_joystick_buttons(configuration.button_mode, bits, configuration.analogue_hat, position);
 }
 void control_input::key(unsigned int const scan, bool const down) {
-  if(scan < held.size()) held[scan] = down;
+  if(scan < held.size()) {
+    physical_keys[scan] = down;
+    held[scan] = down || controller_keys[scan];
+  }
+}
+void control_input::clear_keys() {
+  physical_keys.fill(false);
+  controller_keys.fill(false);
+  held.fill(false);
+  counts.fill(0);
+}
+void control_input::controller(input::mapped_input const &sample) {
+  mapped = true;
+  mapped_axes = sample.axes;
+  mapped_absolute = sample.absolute_collective;
+  controller_keys.fill(false);
+  for(size_t i{0}; i < input::actions.size(); ++i) {
+    if(sample.down[i]) controller_keys[input::actions[i].scan & 127] = true;
+  }
+  for(size_t i{0}; i < held.size(); ++i) held[i] = physical_keys[i] || controller_keys[i];
 }
 void control_input::timer(uint32_t const ticks) {
   for(size_t i{0}; i != held.size(); ++i) {
@@ -109,7 +129,7 @@ void control_input::update(unsigned int const view_moves, bool const gunner, boo
   }
   std::array<int32_t, 4> axes;
   std::copy_n(keyboard.begin(), 4, axes.begin());
-  if(configuration.input_type != 1) {
+  if(!mapped && configuration.input_type != 1) {
     axes[2] = curve.sample(2, joystick[1]);
     axes[3] = curve.sample(2, joystick[0]);
     if(configuration.absolute_throttle) {
@@ -118,14 +138,25 @@ void control_input::update(unsigned int const view_moves, bool const gunner, boo
     }
     if(configuration.rudder) axes[1] = math::negate(curve.sample(2, joystick[2]));
   }
+  if(mapped) {
+    for(size_t i{0}; i < axes.size(); ++i) {
+      if(!mapped_axes[i]) continue;
+      // An absolute collective uses the original unsigned full-turn encoding;
+      // the other axes are signed Q31. Keep device precision until this step.
+      if(i == 0 && mapped_absolute) {
+        auto const bits{static_cast<uint32_t>(std::llround((1 - std::clamp(*mapped_axes[i], -1., 1.)) * .5 * UINT32_MAX))};
+        axes[i] = std::bit_cast<int32_t>(bits);
+      } else axes[i] = static_cast<int32_t>(std::llround(std::clamp(*mapped_axes[i], -1., 1.) * INT32_MAX));
+    }
+  }
   if(view_moves == 2 || (view_moves == 1 && (held[0x38] || joystick_alt))) {
     external = axes;
   } else {
     flight.controls = axes;
     external.fill(0);
   }
-  flight.absolute_throttle = configuration.absolute_throttle;
-  flight.type = configuration.input_type;
+  flight.absolute_throttle = mapped ? mapped_absolute : configuration.absolute_throttle;
+  flight.type = mapped ? (mapped_absolute ? 2u : 1u) : configuration.input_type;
   if(!gunner) keyboard[4] = 0;
 }
 } // namespace apache::simulation

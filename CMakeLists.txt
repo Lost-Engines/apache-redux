@@ -18,6 +18,8 @@ set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 include(CTest)
 
 add_library(apache_core
+  src/input/controllers.cpp src/input/controllers.h
+  src/frontend/controls_menu.cpp src/frontend/controls_menu.h
   src/configuration/graphics.cpp src/configuration/graphics.h
   src/render/display_layout.cpp src/render/display_layout.h
   src/render/stroke.h
@@ -298,6 +300,7 @@ if(APPLE)
 endif()
 target_link_libraries(apache_core PUBLIC Threads::Threads)
 add_executable(apache
+  src/platform/controllers.cpp src/platform/controllers.h
   src/platform/audio_output.cpp
   src/platform/audio_output.h
   src/main.cpp
@@ -317,6 +320,11 @@ add_executable(apache_inspect src/inspect_options.cpp src/inspect_options.h src/
 target_link_libraries(apache_inspect PRIVATE apache_core Boost::program_options)
 
 if(BUILD_TESTING)
+  add_executable(controller_menu_check tests/controller_menu.cpp)
+  target_link_libraries(controller_menu_check PRIVATE apache_core Boost::program_options)
+  add_executable(controller_tests tests/controllers.cpp)
+  target_link_libraries(controller_tests PRIVATE apache_core)
+  add_test(NAME controller_tests COMMAND controller_tests)
   add_executable(apache_capture tools/capture_flight.cpp)
   target_link_libraries(apache_capture PRIVATE apache_core Boost::program_options)
   add_executable(render_benchmark tests/render_benchmark.cpp)

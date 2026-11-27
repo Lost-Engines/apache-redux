@@ -7,6 +7,7 @@ void mission_frontend::network_error(std::string const &message) {
   interface.popup({{message, 0}, {"OK", 0}}, [](int){});
 }
 bool mission_frontend::text_input(unsigned int const value) {
+  if(controls.text_input(value)) return true;
   try {
     return network.key(value) || scores.key(value) || pilots.key(value);
   }

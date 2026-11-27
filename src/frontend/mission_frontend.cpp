@@ -36,6 +36,7 @@ mission_frontend::mission_frontend(resources::data_store const &data, mission_op
     options{settings},
     settings{data},
     preferences{data, interface, this->settings},
+    controls{data, interface, this->settings},
     help{data, interface},
     planner{data, interface, this->settings},
     logs{hours_now()},
@@ -52,6 +53,7 @@ mission_frontend::mission_frontend(resources::data_store const &data, mission_op
   interface.activated = [this](widget &object, int line){return activate(object, line);};
   interface.paint = [this](render::framebuffer &frame, widget const &object){
     preferences.paint(frame, object);
+    controls.paint(frame, object);
     if(prepared) planner.paint(frame, object);
   };
 }
@@ -328,6 +330,7 @@ void mission_frontend::log_result(bool const keep) {
 }
 void mission_frontend::back() {
   if(interface.dismiss_popup()) return;
+  if(interface.current() == "_controls_screen" && controls.cancel()) return;
   auto const current{interface.current()};
   if(stop_speech && (current == "_map_screen" || current == "_mission_select_screen" || current == "_situation_screen")) stop_speech();
   if(network.peers && (current == "_network_screen" || current == "_modem_screen" || (network.selecting() && (current == "_world_screen" || current == "_mission_select_screen" || current == "_map_screen")))) {
@@ -411,6 +414,7 @@ bool mission_frontend::activate(widget &object, int const line) {
   if(help.activate(object)) return true;
   if(planner.activate(object)) return true;
   if(pilots.activate(object, line)) return true;
+  if(controls.activate(object, line)) return true;
   if(preferences.activate(object)) {
     apply_preferences();
     return true;

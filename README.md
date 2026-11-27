@@ -37,6 +37,7 @@ That location is remembered for subsequent launches. The reference is the Januar
 - **Smooth HUD lines.** HUD lines render smoothly at your chosen resolution. Text keeps the original pixel lettering.
 - **Sharper target views.** The F3 target preview and FLIR MFD images render at full resolution.
 - **Clearer model details.** Tree trunks, aerials and other model lines thicken with proximity and resolution.
+- **Bindable joystick and gamepad controls.** Set up a HOTAS, separate throttle and pedals, or gamepad triggers in the Controls menu. Save profiles with calibration, deadzones and response curves.
 - **Camera controls while paused.** Orbit, zoom and change views to inspect the scene or compose screenshots.
 - **Convenient shortcuts.** Alt+Enter toggles fullscreen, Escape opens the exit prompt, and pressing F1 again closes the manual.
 
@@ -56,6 +57,16 @@ F6 shows the helicopter from outside. Hold Alt and use the arrow keys (or your s
 `--skip-intro` skips the opening sequence, and `--no-audio` disables playback. Run `apache --help` for other options.
 
 Pilot profiles and preferences are saved under `$XDG_DATA_HOME/apache-redux` or `~/.local/share/apache-redux` on Linux, and `%LOCALAPPDATA%\apache-redux` on Windows. `--save-dir` selects another location. Game files are shared with Apache C++ under `$XDG_DATA_HOME/apache/game` or `~/.local/share/apache/game` on Linux, so one download serves both versions. On Windows, they live in `data` beside the executable.
+
+## Controller setup
+
+Open **Preferences → Controls**. Keyboard flight is the default. Choose **Restore defaults** for a joystick or gamepad preset, or select a flight axis and click **Bind axis**, then move the control you want to use. Stick, throttle and pedals can be separate devices.
+
+Use **Bind left/right**, **Bind forward/back** or **Bind increase/decrease** for paired inputs, including gamepad triggers and buttons. A single collective axis sets its position directly; paired inputs increase or decrease it and hold the setting when released. The gamepad preset uses the two triggers for rudder and the bumpers for collective.
+
+Each axis has inversion, deadzone, response and calibration options, with a live meter. For calibration, move through the full travel, return a centred stick or pedals to rest, then finish. **Buttons & hats** assigns weapon, targeting, countermeasure, view, MFD and other actions. Click **Bind input** and press the control; Escape cancels. Existing keyboard shortcuts remain available.
+
+Use **Copy** and **Rename** to keep separate setups. Profiles are saved automatically in `controls.cfg` alongside preferences. Selecting **Keyboard only** disables controller input without losing your bindings. Existing joystick preferences are imported on the first run.
 
 ## Graphics options
 

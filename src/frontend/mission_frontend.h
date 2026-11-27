@@ -1,6 +1,7 @@
 #pragma once
 #include <filesystem>
 #include "briefing_map.h"
+#include "controls_menu.h"
 #include "help_menu.h"
 #include "menu.h"
 #include "mission_session.h"
@@ -54,6 +55,7 @@ public:
   mission_options options;
   configuration::settings settings;
   preferences_menu preferences;
+  controls_menu controls;
   help_menu help;
   briefing_map planner;
   configuration::profiles logs;

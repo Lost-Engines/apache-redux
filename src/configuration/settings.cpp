@@ -65,7 +65,8 @@ void settings::apply() {
 }
 void settings::load(std::filesystem::path const &directory) {
   auto const path{directory / "prefs.cfg"};
-  if(std::filesystem::exists(path)) {
+  bool const saved_preferences{std::filesystem::exists(path)};
+  if(saved_preferences) {
     auto const size{std::filesystem::file_size(path)};
     if(size > 1024 * 1024) throw std::runtime_error{"Preference file is too large"};
     std::ifstream input{path, std::ios::binary};
@@ -75,6 +76,64 @@ void settings::load(std::filesystem::path const &directory) {
     apply();
   }
   filename = path;
+  auto const controls_path{directory / "controls.cfg"};
+  controller_error.clear();
+  if(std::filesystem::exists(controls_path)) {
+    try {
+      if(std::filesystem::file_size(controls_path) > 1024 * 1024) throw std::runtime_error{"Controller settings are too large"};
+      std::ifstream input{controls_path, std::ios::binary};
+      std::string text{std::istreambuf_iterator<char>{input}, {}};
+      if(!input || input.bad()) throw std::runtime_error{"Cannot read controller settings"};
+      controllers = input::controller_settings::parse(text);
+    } catch(std::exception const &error) {
+      // Show the problem in Controls rather than aborting startup or silently
+      // overwriting the player's file with defaults.
+      controller_error = error.what();
+    }
+  } else if(saved_preferences && controls.input_type != 1) {
+    input::device_state legacy;
+    legacy.id = {"*", "First joystick", 0};
+    legacy.axes.resize(4);
+    legacy.buttons.resize(4);
+    legacy.hats.resize(1);
+    auto imported{input::joystick_defaults(legacy, false)};
+    imported.name = "Imported controls";
+    if(controls.rudder) {
+      imported.axes[1].positive = {legacy.id, input::source_kind::axis, 2};
+      imported.axes[1].inverted = true;
+    }
+    if(controls.absolute_throttle) {
+      imported.axes[0].positive = {legacy.id, input::source_kind::axis, 3};
+      imported.axes[0].inverted = true;
+    }
+    for(size_t i{0}; i < imported.axes.size(); ++i) {
+      auto &a{imported.axes[i]};
+      a.deadzone = std::clamp(deadband / 127.0, 0., .5);
+      a.response = i == 0 ? 1 : 2;
+      if(a.positive.assigned()) {
+        auto const &old{axes[a.positive.index]};
+        a.minimum = old.minimum / 127.5 - 1;
+        a.centre = old.centre / 127.5 - 1;
+        a.maximum = old.maximum / 127.5 - 1;
+      }
+    }
+    imported.buttons.fill({});
+    for(unsigned int i{0}; i < 4; ++i) {
+      auto const decoded{simulation::decode_joystick_buttons(controls.button_mode, 1u << i, false, 255)};
+      for(size_t j{0}; j < decoded.count; ++j) {
+        auto const scan{static_cast<uint16_t>(decoded.keys[j])};
+        auto const found{std::ranges::find(input::actions, scan, &input::action::scan)};
+        if(found != input::actions.end()) imported.buttons[static_cast<size_t>(found - input::actions.begin())] = {legacy.id, input::source_kind::button, i};
+      }
+    }
+    if(controls.cyclic >= 2) {
+      for(auto const &[scan, direction] : std::array<std::pair<uint16_t, unsigned int>, 4>{{{0x3c, 1}, {0x3f, 2}, {0x3d, 4}, {0x3e, 8}}}) {
+        auto const found{std::ranges::find(input::actions, scan, &input::action::scan)};
+        imported.buttons[static_cast<size_t>(found - input::actions.begin())] = {legacy.id, input::source_kind::hat, 0, direction};
+      }
+    }
+    controllers.profiles = {std::move(imported)};
+  }
 }
 void settings::save() const {
   if(filename.empty()) return;
@@ -87,6 +146,17 @@ void settings::save() const {
     if(!output || !output.write(text.data(), static_cast<std::streamsize>(text.size())) || !output.flush()) throw std::runtime_error{"Cannot save preferences: " + filename.string()};
   }
   std::filesystem::rename(temporary, filename);
+  if(controller_error.empty()) {
+    auto const controls_path{filename.parent_path() / "controls.cfg"};
+    auto controls_temporary{controls_path};
+    controls_temporary += ".tmp";
+    {
+      std::ofstream output{controls_temporary, std::ios::binary | std::ios::trunc};
+      auto const text{controllers.serialise()};
+      if(!output || !output.write(text.data(), static_cast<std::streamsize>(text.size())) || !output.flush()) throw std::runtime_error{"Cannot save controller profiles: " + controls_path.string()};
+    }
+    std::filesystem::rename(controls_temporary, controls_path);
+  }
 }
 void settings::set(std::string_view const key, int const value) {
   values.set(key, value);
