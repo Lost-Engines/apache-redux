@@ -9,7 +9,7 @@ build/apache_capture DATA_DIRECTORY -3 3840 2160 90 6 --audio
 
 Arguments select the game data, mission, width, height, horizontal FOV and model LOD distance multiplier. Negative mission IDs select Quickstart: `-1` Yemen, `-2` Korea, `-3` Cyprus. The tool uses realistic physics, maximum visual detail and the original 640-resolution cockpit artwork. `--audio` connects the same mixer and sound callbacks used by the game, without opening an audio device.
 
-The sibling `apache-reverse` repository contains `tools/capture_comparison_flight.py`, which drives this executable or the original instruction harness using the same timed keyboard script. Its `tools/flights/README.md` describes the supplied 90-second flight and lossless video capture commands. Retain one lossless master for each engine and resolution. Apache video, stills and capture metadata default to `/mnt/extra2/lost-engines/video/apache/`, outside the repositories. File names include the engine and resolution. Use `--size 1920x1440` with the wrapper for a 4:3 recording matching the original aspect ratio.
+The sibling `apache-reverse` repository contains `tools/capture_comparison_flight.py`, which drives this executable or the original instruction harness using the same timed keyboard script. Its `tools/flights/README.md` describes the supplied 90-second flight and lossless video capture commands. Retain one lossless master for each engine and resolution. Only finished videos go to `/mnt/extra2/lost-engines/video/apache/`. Generated video, audio and logs use a temporary directory and are removed automatically when the capture ends. Use `--size 1920x1440` with the wrapper for a 4:3 recording matching the original aspect ratio.
 
 ## Stream protocol
 
@@ -29,8 +29,8 @@ This advances 40 milliseconds with no held keys and presses F6. The response is 
 
 Use `audio` in place of `frame` to draw and mix the complete scene while returning only the audio payload. This supports adding sound to an existing video. `step` advances without drawing. Both return zero video bytes and include PCM when `--audio` is enabled. Sending EOF finishes the process. Standard error is reserved for errors; standard output carries only the capture protocol.
 
-Camera updates occur during drawing, as in the game. A final recording should therefore use `frame` throughout, with matching intervals and inputs for the original and Redux. The capture wrapper does this and writes the inputs and state to JSONL for later comparison. Redux recordings include game audio by default, encoded as 24-bit stereo FLAC at compression level 12. Original-engine recordings remain silent.
+Camera updates occur during drawing, as in the game. A final recording should therefore use `frame` throughout, with matching intervals and inputs for the original and Redux. The capture wrapper does this while recording the video. Redux recordings include game audio by default, encoded as 24-bit stereo FLAC at compression level 12. Original-engine recordings remain silent.
 
 `audio_events` logs requested sound callbacks as four integers: kind, sample/event ID, volume/state and pan. Kinds are 0 for effects, 1 for cockpit voices, 2 for radio voices, 3 for flight events and 4 for the gun loop.
 
-The wrapper can upgrade a silent Redux master with `--add-audio`. It replays the same flight and checks aircraft and camera transforms, view, weapon and damage state for every frame before replacing the master. It copies video packets directly and verifies their hash, audio duration and lossless PCM round trip. Temporary audio and video files are removed after verification, leaving one master per recording.
+The wrapper verifies the encoded video packets and lossless audio PCM round trip before publishing the completed master. The source flight definition stays in Git; generated working files are discarded.
