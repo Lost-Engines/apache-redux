@@ -12,6 +12,8 @@ GLFW follows upstream `master` in local builds and CI; miniaudio uses a checksum
 
 For portable packages, configure with `-DAPACHE_STATIC_RUNTIME=ON -DBUILD_SHARED_LIBS=OFF`. This bundles GLFW and statically links Boost.Program_options and the compiler runtimes. Linux still uses system graphics, windowing and C libraries.
 
+Some MinGW GCC versions emit duplicate standard exception copy constructors in unoptimised C++26 builds ([GCC PR125151](https://gcc.gnu.org/bugzilla/show_bug.cgi?id=125151)). For static-runtime builds, CMake checks the compiler with an unoptimised link probe. If it reproduces the bug, a second probe verifies the workaround before disabling libstdc++'s constexpr exception classes. C++26 and runtime exceptions remain enabled. Fixed toolchains pass the first probe and need no workaround.
+
 Install into an empty staging directory, then package it:
 
 ```sh
