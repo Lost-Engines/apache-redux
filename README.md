@@ -6,6 +6,8 @@ Quickstart, training, single missions and campaigns are playable, with the origi
 
 Redux adds high-resolution rendering, widescreen views, an adjustable field of view, smoother HUD lines and optional MFD overlays.
 
+[![Watch the original DOS game alongside Apache Redux](docs/images/apache-redux-comparison.jpg)](https://www.youtube.com/watch?v=MrsAVLEDBJ4)
+
 ## Getting started
 
 [Download the latest release](https://github.com/Lost-Engines/apache-redux/releases/latest) for Linux, Windows or macOS and unpack it.
